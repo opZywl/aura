@@ -34,7 +34,10 @@ O Aura Chat Bot integra um chatbot com um sistema de CRM para:
 - **Satisfação do Cliente:** Atendimento mais ágil e personalizado.
 - **Centralização:** Acesso facilitado ao histórico de interações e dados dos clientes.
 - **Crescimento:** Identificação aprimorada de oportunidades de negócios.
-
+- 
+<div align="center">
 ## Licença
-
+  <p>
 Este projeto está licenciado sob a [MIT License](LICENSE).
+  </p>
+</div>
