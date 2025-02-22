@@ -1,0 +1,79 @@
+# Arquivos compilados e cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivos de extensões em C
+*.so
+
+# Diretórios de distribuição e build
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Ambientes virtuais
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Cache e logs de testes/ferramentas
+.cache/
+.mypy_cache/
+.pytest_cache/
+.pyre/
+
+# =========================
+# Arquivos HTML
+# =========================
+
+# Arquivos temporários ou de backup (ex.: editores de texto)
+*.html~
+
+# =========================
+# Arquivos e pastas do Node/React
+# =========================
+
+# Dependências do Node
+node_modules/
+
+# Diretórios de build e produção
+build/
+dist/
+public/build/
+
+# Logs e arquivos de debug
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================
+# Outros arquivos comuns
+# =========================
+
+# Arquivos do macOS
+.DS_Store
+
+# Configurações de IDEs/editors (opcional)
+.vscode/
+.idea/
