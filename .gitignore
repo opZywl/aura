@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+*.pyd
 
 # Arquivos de extensões em C
 *.so
@@ -29,12 +31,27 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+*.venv/
 
 # Cache e logs de testes/ferramentas
 .cache/
 .mypy_cache/
 .pytest_cache/
 .pyre/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+nosetests.xml
+*.log
+*.pid
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+
+# Arquivos de dependências e configurações
+requirements.txt.bak
+.python-version
 
 # =========================
 # Arquivos HTML
@@ -42,6 +59,11 @@ venv.bak/
 
 # Arquivos temporários ou de backup (ex.: editores de texto)
 *.html~
+*.html.bak
+*~
+
+# Arquivos de cache de pré-processadores HTML
+*.cache
 
 # =========================
 # Arquivos e pastas do Node/React
@@ -49,15 +71,20 @@ venv.bak/
 
 # Dependências do Node
 node_modules/
+package-lock.json.bak
+yarn.lock.bak
 
 # Diretórios de build e produção
 build/
 dist/
 public/build/
+*.tsbuildinfo
+*.map
 
 # Logs e arquivos de debug
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
 
 # Arquivos de ambiente
@@ -66,6 +93,14 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+*.env.backup
+
+# Arquivos de testes e coverage
+coverage/
+lcov.info
+*.spec.js
+*.test.js
+*.test.ts
 
 # =========================
 # Outros arquivos comuns
@@ -73,7 +108,24 @@ pnpm-debug.log*
 
 # Arquivos do macOS
 .DS_Store
+Thumbs.db
+
+# Arquivos do Windows
+desktop.ini
 
 # Configurações de IDEs/editors (opcional)
 .vscode/
 .idea/
+*.sublime-workspace
+*.sublime-project
+
+# Arquivos temporários gerais
+*.swp
+*.bak
+*.tmp
+*.out
+*.output
+
+# Arquivos de banco de dados locais
+*.db
+*.sqlite3
