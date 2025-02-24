@@ -6,7 +6,6 @@ import Hero from './components/Hero';
 import Footer from './components/Footer';
 import './App.css';
 
-// Importação das páginas existentes
 import Artigo from './pages/Artigo';
 import Changelog from './pages/Changelog';
 import CRM from './pages/CRM';
@@ -14,7 +13,6 @@ import Privacidade from './pages/Privacidade';
 import Prompts from './pages/Prompts';
 import Terms from './pages/Terms';
 
-// Importação das novas páginas
 import Tecnologias from './pages/Tecnologias';
 import Orientadores from './pages/Orientadores';
 import Feedback from './pages/Feedback';
@@ -22,7 +20,6 @@ import Feedback from './pages/Feedback';
 const AppContent: React.FC = () => {
     const location = useLocation();
 
-    // Lista de páginas que NÃO devem exibir o Header (ou seja, todas exceto a home)
     const paginasSemHeader = [
         "/artigo",
         "/changelog",
