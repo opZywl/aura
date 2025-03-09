@@ -6,7 +6,19 @@ interface HomeProps {}
 
 const Home: React.FC<HomeProps> = () => {
     const location = useLocation();
-    const theme = localStorage.getItem('theme') || 'light';
+    const [theme, setTheme] = React.useState(localStorage.getItem('theme') || 'light');
+
+    React.useEffect(() => {
+        const handleStorageChange = () => {
+            setTheme(localStorage.getItem('theme') || 'light');
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, []);
 
     const textColorClass = theme === 'light' ? 'text-gray-800' : 'text-gray-200';
     const bgColorClass = theme === 'light' ? 'bg-white' : 'bg-gray-800';
@@ -36,12 +48,11 @@ const Home: React.FC<HomeProps> = () => {
                 <nav className="p-4 flex flex-col justify-center h-full">
                     <ul className="space-y-2">
                         <SidebarItem to="/" icon={HomeIcon} label="Lobby" />
-
-                        <SidebarItem to="/settings/conversations" icon={MessageSquare} label="Conversas" />
-                        <SidebarItem to="/settings/chat" icon={Zap} label="Chat" />
-                        <SidebarItem to="/settings/conta" icon={User} label="Conta" />
-                        <SidebarItem to="/settings/settings" icon={Settings} label="Configurações" />
-                        <SidebarItem to="/settings/teste" icon={FileText} label="Teste" />
+                        <SidebarItem to="/module/conversations" icon={MessageSquare} label="Conversas" />
+                        <SidebarItem to="/module/chat" icon={Zap} label="Chat" />
+                        <SidebarItem to="/module/conta" icon={User} label="Conta" />
+                        <SidebarItem to="/module/settings" icon={Settings} label="Configurações" />
+                        <SidebarItem to="/module/teste" icon={FileText} label="Teste" />
                     </ul>
                 </nav>
             </aside>

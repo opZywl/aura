@@ -14,7 +14,7 @@ const Login: React.FC<LoginProps> = ({ theme }) => {
 
     useEffect(() => {
         if (localStorage.getItem('isLoggedIn') === 'true') {
-            navigate('/settings/home');
+            navigate('/module/home');
         }
     }, [navigate]);
 
@@ -28,7 +28,7 @@ const Login: React.FC<LoginProps> = ({ theme }) => {
 
         if (email === 'Dev@123' && password === '1234') {
             localStorage.setItem('isLoggedIn', 'true');
-            navigate('/settings/home');
+            navigate('/module/home');
         } else {
             alert('Credenciais inválidas. Por favor, tente novamente.');
         }

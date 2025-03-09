@@ -1,4 +1,3 @@
-// src/aura/App.tsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Header from './components/Header';
@@ -17,12 +16,12 @@ import Tecnologias from './pages/Tecnologias';
 import Orientadores from './pages/Orientadores';
 import Feedback from './pages/Feedback';
 
-import Home from './settings/Home';
-import Conta from './settings/Conta';
-import Chat from './settings/Chat';
-import SettingsComponent from './settings/Settings';
-import Teste from './settings/Teste';
-import Conversations from './settings/Conversations';
+import Home from './module/Home';
+import Conta from './module/Conta';
+import Chat from './module/Chat';
+import SettingsComponent from './module/Settings';
+import Teste from './module/Teste';
+import Conversations from './module/Conversations';
 
 interface AppContentProps {
     toggleTheme: () => void;
@@ -59,7 +58,7 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
         '/feedback',
     ];
 
-    const hideHeaderFooter = location.pathname.startsWith('/settings');
+    const hideHeaderFooter = location.pathname.startsWith('/module');
 
     return (
         <div className={`bg-background min-h-screen scroll-smooth antialiased ${theme === 'dark' ? 'dark' : ''}`}>
@@ -77,17 +76,17 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
                     <Route path="/tecnologias" element={<Tecnologias />} />
                     <Route path="/orientadores" element={<Orientadores />} />
                     <Route path="/feedback" element={<Feedback />} />
-                    {/* Passa a prop theme para o Login */}
-                    <Route path="/login" element={<Login theme={theme} />} />
-                    <Route path="/" element={isLoggedIn ? <Navigate to="/settings/home" /> : <Navigate to="/login" />} />
 
-                    {/* Rota principal para settings */}
-                    <Route path="/settings/home" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
-                    <Route path="/settings/conta" element={isLoggedIn ? <Conta /> : <Navigate to="/login" />} />
-                    <Route path="/settings/chat" element={isLoggedIn ? <Chat /> : <Navigate to="/login" />} />
-                    <Route path="/settings/settings" element={isLoggedIn ? <SettingsComponent /> : <Navigate to="/login" />} />
-                    <Route path="/settings/teste" element={isLoggedIn ? <Teste /> : <Navigate to="/login" />} />
-                    <Route path="/settings/conversations" element={isLoggedIn ? <Conversations /> : <Navigate to="/login" />} />
+                    <Route path="/login" element={<Login theme={theme} />} />
+
+
+                    <Route path="/module/home" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
+                    <Route path="/module/conta" element={isLoggedIn ? <Conta /> : <Navigate to="/login" />} />
+                    <Route path="/module/chat" element={isLoggedIn ? <Chat /> : <Navigate to="/login" />} />
+                    <Route path="/module/settings" element={isLoggedIn ? <SettingsComponent /> : <Navigate to="/login" />} />
+                    <Route path="/module/teste" element={isLoggedIn ? <Teste /> : <Navigate to="/login" />} />
+                    <Route path="/module/conversations" element={isLoggedIn ? <Conversations /> : <Navigate to="/login" />} />
+                    <Route path="/" element={isLoggedIn ? <Navigate to="/module/home" /> : <Navigate to="/login" />} />
                 </Routes>
                 {!hideHeaderFooter && (
                     <section style={{ backgroundColor: "#000", height: "400px" }}></section>
@@ -100,10 +99,16 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
 };
 
 const App: React.FC = () => {
-    const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+    const storedTheme = localStorage.getItem('theme');
+    // Default to 'dark' if localStorage is empty or has an invalid value
+    const initialTheme = (storedTheme === 'light') ? 'light' : 'dark';
+
+    const [theme, setTheme] = useState<'light' | 'dark'>(initialTheme);
 
     const toggleTheme = () => {
-        setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
     };
 
     useEffect(() => {
@@ -114,6 +119,7 @@ const App: React.FC = () => {
             document.documentElement.classList.remove('dark');
             document.documentElement.style.colorScheme = 'light';
         }
+        localStorage.setItem('theme', theme);
     }, [theme]);
 
     return (
