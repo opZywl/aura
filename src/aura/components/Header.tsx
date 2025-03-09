@@ -17,7 +17,7 @@ const Header: React.FC<HeaderProps> = ({ toggleTheme, theme }) => {
     const textColorClass = theme === 'light' ? 'text-black' : 'text-white';
 
     return (
-        <header className="animate-fade-in left-0 top-0 z-50 w-full -translate-y-4 border-b opacity-0 backdrop-blur-md [--animation-delay:600ms]">
+        <header className="animate-fade-in delay-600 left-0 top-0 z-50 w-full -translate-y-4 border-b opacity-0 backdrop-blur-md">
             <div className="container flex h-14 items-center justify-between">
                 <a className={`flex items-center text-lg font-extrabold ${textColorClass}`} href="/">
                     Aura

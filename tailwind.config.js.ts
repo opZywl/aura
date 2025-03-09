@@ -30,15 +30,67 @@ export default {
                 sm: 'calc(var(--radius) - 4px)'
             },
             keyframes: {
+                fadeIn: {
+                    '0%': {
+                        opacity: '0',
+                        transform: 'translateY(-10px)'
+                    },
+                    '100%': {
+                        opacity: '1',
+                        transform: 'none'
+                    }
+                },
                 marquee: {
                     '0%': { transform: 'translateX(0%)' },
                     '100%': { transform: 'translateX(-50%)' }
+                },
+                gradient: {
+                    to: {
+                        backgroundPosition: 'var(--bg-size) 0'
+                    }
+                },
+                pulse: {
+                    '50%': {
+                        opacity: .5
+                    }
+                },
+                shimmer: {
+                    '0%, 90%, to': {
+                        backgroundPosition: 'calc(-100% - var(--shimmer-width)) 0'
+                    },
+                    '30%, 60%': {
+                        backgroundPosition: 'calc(100% + var(--shimmer-width)) 0'
+                    }
+                },
+                spin: {
+                    to: {
+                        transform: 'rotate(1turn)'
+                    }
                 }
             },
             animation: {
-                marquee: 'marquee 40s linear infinite'
-            }
+                marquee: 'marquee 40s linear infinite',
+                'fade-in': 'fadeIn 1s var(--animation-delay, 0s) ease forwards',
+                gradient: 'gradient 8s linear infinite',
+                pulse: 'pulse 2s cubic-bezier(.4, 0, .6, 1) infinite',
+                shimmer: 'shimmer 8s infinite',
+                spin: 'spin 1s linear infinite',
+            },
+            animationDelay: {
+                '100': '100ms',
+                '200': '200ms',
+                '300': '300ms',
+                '400': '400ms',
+                '500': '500ms',
+                '600': '600ms',
+                '700': '700ms',
+                '800': '800ms',
+                '900': '900ms',
+            },
+            width: { // width
+                'shimmer': '100px',
+            },
         }
     },
-    plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')]
+    plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography'), require('tailwindcss-animation-delay')]
 };
