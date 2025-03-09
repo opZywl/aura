@@ -1,22 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="preload" as="image" href="https://jA2pJ2P80H3Z.design/companies/OWjHg3rw11PE.svg" />
   <link rel="icon" href="/favicon.png" sizes="any" />
   <title>Aura</title>
   <meta name="description" content="O melhor ChatBot do Planeta!" />
+  <meta name="theme-color" content="#000000" />
 </head>
 <body class="bg-background min-h-screen scroll-smooth antialiased">
 <script>
-  (function(){
-    var d = document.documentElement, c = d.classList;
-    c.remove('light','dark');
-    d.style.colorScheme = 'dark';
-    c.add('dark');
+  (function () {
+    const htmlEl = document.documentElement;
+    htmlEl.classList.remove('light', 'dark');
+
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      htmlEl.style.colorScheme = 'dark';
+      htmlEl.classList.add('dark');
+    } else {
+      htmlEl.style.colorScheme = 'light';
+      htmlEl.classList.add('light');
+    }
   })();
 </script>
+<noscript>
+  <p>Este site requer JavaScript para funcionar corretamente.</p>
+</noscript>
 <div id="root"></div>
 </body>
 </html>

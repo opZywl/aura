@@ -37,3 +37,11 @@ O Aura Chat Bot integra um chatbot com um sistema de CRM para:
 
 ### Licença
 Este projeto está licenciado sob a [MIT License](LICENSE).
+
+Estrutura ->
+
+src -> aura -> settings -> Home.tsx, Chat.tsx, Conta.tsx, Conversations.tsx, Settings.tsx, Teste.tsx
+src -> aura -> components -> Companies.tsx, Footer.tsx, Header.tsx, Hero.tsx
+src -> aura -> pages -> Artigo.tsx, Changelog.tsx, CRM.tsx, Feedback.tsx, Login.tsx, Orientadores.tsx, Privacidade.tsx, Prompts.tsx, Tecnologias.tsx, Terms.tsx
+src -> aura -> App.css, App.tsx, index.css
+src -> resources -> carrosel (icons do carrosel)

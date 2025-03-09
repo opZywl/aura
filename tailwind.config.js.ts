@@ -1,7 +1,7 @@
 export default {
     darkMode: 'class',
     content: [
-        './src/aura/**/*.{ts,tsx}',
+        './src/**/*.{ts,tsx}',
     ],
     theme: {
         container: {
