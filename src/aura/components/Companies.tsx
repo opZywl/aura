@@ -3,8 +3,8 @@ import unaspLogo from '../../resources/carrossel/Unasp.svg';
 import eraLogo from '../../resources/carrossel/ERA.svg';
 import pirelliLogo from '../../resources/carrossel/Pirelli.svg';
 import desktopLogo from '../../resources/carrossel/Desktop.svg';
+import linharesDistribuidoras from '../../resources/carrossel/LinharesDistribuidora.svg';
 import googleLogo from '../../resources/carrossel/Google.svg';
-import airbnbLogo from '../../resources/carrossel/Airbnb.svg';
 import microsoftLogo from '../../resources/carrossel/Microsoft.svg';
 import instagramLogo from '../../resources/carrossel/Instagram.svg';
 
@@ -13,8 +13,8 @@ const logos = [
     { src: eraLogo, alt: 'ERA' },
     { src: pirelliLogo, alt: 'Pirelli' },
     { src: desktopLogo, alt: 'Desktop' },
+    { src: linharesDistribuidoras, alt: 'LinharesDistribuidora' },
     { src: googleLogo, alt: 'Google' },
-    { src: airbnbLogo, alt: 'Airbnb' },
     { src: microsoftLogo, alt: 'Microsoft' },
     { src: instagramLogo, alt: 'Instagram' },
 ];
