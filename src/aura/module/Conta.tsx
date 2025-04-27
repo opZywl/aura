@@ -1,24 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import telegramIcon  from '../../resources/social/telegram.svg';
 import messengerIcon from '../../resources/social/telegram.svg';
 import whatsappIcon  from '../../resources/social/telegram.svg';
 
 type ServiceKey = 'telegram' | 'messenger' | 'whatsapp';
-
-interface Account {
-    id: string;
-    apiKey: string;
-    botName: string;
-}
+interface Account { id: string; apiKey: string; botName: string; }
 
 const ConnectChannels: React.FC = () => {
-    const [active, setActive] = useState<ServiceKey | null>(null);
-    const [telegramAccounts, setTelegramAccounts] = useState<Account[]>([]);
-    const [formApiKey, setFormApiKey]   = useState('');
-    const [formBotName, setFormBotName] = useState('');
+    const [theme, setTheme] = useState<'light'|'dark'>(
+        (localStorage.getItem('theme') as 'light'|'dark') || 'light'
+    );
+    useEffect(() => {
+        const onStorage = () =>
+            setTheme((localStorage.getItem('theme') as 'light'|'dark') || 'light');
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+    }, []);
+    const pageBg       = theme === 'light' ? 'bg-gray-100'     : 'bg-gray-900';
+    const sidebarBg    = theme === 'light' ? 'bg-white'        : 'bg-black';
+    const sidebarText  = theme === 'light' ? 'text-gray-600'   : 'text-gray-400';
+    const sidebarHover = theme === 'light' ? 'hover:bg-gray-200' : 'hover:bg-gray-700';
+    const shadowSide   = theme === 'light' ? 'shadow-md'       : 'shadow-none';
 
-    const services: Record<ServiceKey, { label: string; icon: string }> = {
+    const textPrimary   = theme === 'light' ? 'text-gray-900'   : 'text-gray-100';
+    const textSecondary = theme === 'light' ? 'text-gray-600'   : 'text-gray-300';
+
+    const containerBg   = theme === 'light' ? 'bg-white'        : 'bg-gray-900';
+    const borderColor   = theme === 'light' ? 'border-gray-200' : 'border-gray-700';
+    const inputBg       = theme === 'light' ? 'bg-white'        : 'bg-gray-700';
+    const inputBorder   = theme === 'light' ? 'border-gray-300' : 'border-gray-600';
+    const buttonHover   = sidebarHover;
+
+    const [active, setActive] = useState<ServiceKey | null>(null);
+    const [accounts, setAccounts] = useState<Account[]>([]);
+    const [apiKey, setApiKey]     = useState('');
+    const [botName, setBotName]   = useState('');
+
+    const services: Record<ServiceKey,{label:string;icon:string}> = {
         telegram:  { label: 'Telegram',  icon: telegramIcon  },
         messenger: { label: 'Messenger', icon: messengerIcon },
         whatsapp:  { label: 'WhatsApp',  icon: whatsappIcon  },
@@ -26,46 +45,46 @@ const ConnectChannels: React.FC = () => {
 
     const toggleService = (key: ServiceKey) => {
         setActive(active === key ? null : key);
-        setFormApiKey('');
-        setFormBotName('');
+        setApiKey(''); setBotName('');
     };
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formApiKey.trim() || !formBotName.trim()) return;
-        if (telegramAccounts.length >= 3) {
-            alert('Limite de 3 contas do Telegram atingido');
+        if (!apiKey.trim() || !botName.trim()) return;
+        if (accounts.length >= 3) {
+            alert('Limite de 3 contas');
             return;
         }
-        setTelegramAccounts(prev => [
+        setAccounts(prev => [
             ...prev,
-            { id: Date.now().toString(), apiKey: formApiKey.trim(), botName: formBotName.trim() }
+            { id: Date.now().toString(), apiKey: apiKey.trim(), botName: botName.trim() }
         ]);
-        setFormApiKey('');
-        setFormBotName('');
-        setActive(null);
+        setActive(null); setApiKey(''); setBotName('');
     };
 
     const handleDelete = (id: string) => {
-        setTelegramAccounts(prev => prev.filter(acc => acc.id !== id));
+        setAccounts(prev => prev.filter(a => a.id !== id));
     };
 
     return (
-        <div className="flex h-screen">
-            <aside className="w-64 bg-black">
-                <nav className="flex flex-col justify-center items-center h-full">
-                    <Link to="/module/home" className="text-gray-200 hover:text-white">
-                        Sair
+        <div className={`flex h-screen ${pageBg}`}>
+            <aside className={`w-64 ${sidebarBg} ${shadowSide}`}>
+                <nav className="flex justify-center items-center h-full">
+                    <Link
+                        to="/features/view/home"
+                        className={`ml-10 px-4 py-2 rounded transition-colors ${sidebarText} ${sidebarHover}`}
+                    >
+                        Voltar
                     </Link>
                 </nav>
             </aside>
 
-            <main className="flex-1 bg-gray-900 p-8">
-                <header className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold text-white">
+            <main className="flex-1 p-8 overflow-auto">
+                <header className="text-center mb-8">
+                    <h1 className={`text-3xl font-bold ${textPrimary}`}>
                         Conectar Novos Canais
                     </h1>
-                    <p className="mt-2 text-sm text-gray-400">
+                    <p className={`text-sm ${textSecondary} mt-2`}>
                         Clique no ícone para configurar.
                     </p>
                 </header>
@@ -76,12 +95,11 @@ const ConnectChannels: React.FC = () => {
                             key={key}
                             onClick={() => toggleService(key)}
                             className={`
-                p-2 rounded-lg transition
+                p-2 rounded-lg transition 
                 ${active === key
                                 ? 'border-2 border-blue-600 bg-blue-50'
-                                : 'hover:bg-gray-800'}
+                                : buttonHover}
               `}
-                            disabled={telegramAccounts.length >= 3 && key === 'telegram'}
                         >
                             <img
                                 src={services[key].icon}
@@ -93,52 +111,46 @@ const ConnectChannels: React.FC = () => {
                 </div>
 
                 {active === 'telegram' && (
-                    <section className="mb-12 rounded-lg border border-gray-700 p-6">
+                    <section className={`mb-12 rounded-lg border ${borderColor} p-6 ${containerBg}`}>
                         <form onSubmit={handleSave} className="space-y-6">
-                            <h2 className="flex items-center gap-2 text-xl font-semibold text-white">
+                            <h2 className={`flex items-center gap-2 text-xl font-semibold ${textPrimary}`}>
                                 <img src={telegramIcon} alt="Telegram" className="h-6 w-6" />
                                 Integre-se com o Telegram
                             </h2>
 
                             <div>
-                                <label
-                                    htmlFor="apiKey"
-                                    className="block text-sm font-medium text-gray-300"
-                                >
+                                <label htmlFor="apiKey" className={`block text-sm font-medium ${textSecondary}`}>
                                     API Key <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     id="apiKey"
                                     type="text"
-                                    value={formApiKey}
-                                    onChange={e => setFormApiKey(e.target.value)}
+                                    value={apiKey}
+                                    onChange={e => setApiKey(e.target.value)}
                                     placeholder="sua-api-key-aqui"
-                                    className="
-                    mt-1 w-full rounded-md border border-gray-600
-                    bg-gray-800 px-3 py-2 text-white
+                                    className={`
+                    mt-1 w-full rounded-md border ${inputBorder}
+                    ${inputBg} px-3 py-2 ${textPrimary}
                     focus:border-blue-600 focus:ring-blue-600
-                  "
+                  `}
                                 />
                             </div>
 
                             <div>
-                                <label
-                                    htmlFor="botName"
-                                    className="block text-sm font-medium text-gray-300"
-                                >
+                                <label htmlFor="botName" className={`block text-sm font-medium ${textSecondary}`}>
                                     Bot Name <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     id="botName"
                                     type="text"
-                                    value={formBotName}
-                                    onChange={e => setFormBotName(e.target.value)}
+                                    value={botName}
+                                    onChange={e => setBotName(e.target.value)}
                                     placeholder="@seu_bot"
-                                    className="
-                    mt-1 w-full rounded-md border border-gray-600
-                    bg-gray-800 px-3 py-2 text-white
+                                    className={`
+                    mt-1 w-full rounded-md border ${inputBorder}
+                    ${inputBg} px-3 py-2 ${textPrimary}
                     focus:border-blue-600 focus:ring-blue-600
-                  "
+                  `}
                                 />
                             </div>
 
@@ -146,18 +158,21 @@ const ConnectChannels: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => toggleService('telegram')}
-                                    className="rounded-md border border-gray-600 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                                    className={`
+                    rounded-md border ${inputBorder} px-4 py-2 text-sm
+                    ${textSecondary} ${buttonHover}
+                  `}
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={!formApiKey.trim() || !formBotName.trim()}
+                                    disabled={!apiKey.trim() || !botName.trim()}
                                     className={`
                     rounded-md px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-600
-                    ${formApiKey.trim() && formBotName.trim()
+                    ${apiKey.trim() && botName.trim()
                                         ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'}
+                                        : 'bg-gray-400 text-gray-600 cursor-not-allowed'}
                   `}
                                 >
                                     Salvar Conta
@@ -167,39 +182,42 @@ const ConnectChannels: React.FC = () => {
                     </section>
                 )}
 
-                <section className="space-y-4">
-                    {telegramAccounts.map(acc => (
+                <section className="space-y-6">
+                    {accounts.map(acc => (
                         <div
                             key={acc.id}
-                            className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-lg border border-gray-700 p-4"
+                            className={`flex flex-col md:flex-row items-center justify-between gap-4 rounded-lg border ${borderColor} p-4 ${containerBg}`}
                         >
                             <div className="flex-1">
-                                <label className="block text-sm font-medium text-gray-300">
+                                <label className={`block text-sm font-medium ${textSecondary}`}>
                                     Bot Name
                                 </label>
                                 <input
-                                    type="text"
                                     readOnly
                                     value={acc.botName}
-                                    className="mt-1 w-full rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-white"
+                                    className={`
+                    mt-1 w-full rounded-md border ${inputBorder}
+                    ${containerBg} px-3 py-2 ${textPrimary}
+                  `}
                                 />
                             </div>
-                            <div className="flex flex-col items-center gap-2 md:w-40">
-                <span className="inline-block rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-400">
+
+                            <div className="flex flex-col items-center gap-2">
+                <span className="bg-green-500 text-white px-3 py-1 text-xs font-semibold rounded-full">
                   Live
                 </span>
                                 <button
                                     onClick={() => handleDelete(acc.id)}
-                                    className="w-full rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition"
+                                    className={`px-4 py-2 rounded transition-colors ${sidebarText} ${sidebarHover} text-sm font-medium`}
                                 >
-                                    Excluir Conta
+                                    Excluir
                                 </button>
                             </div>
                         </div>
                     ))}
 
-                    {telegramAccounts.length >= 3 && (
-                        <p className="text-center text-sm text-red-500 mt-2">
+                    {accounts.length >= 3 && (
+                        <p className="text-center text-sm text-red-600">
                             Você atingiu o limite de 3 contas do Telegram.
                         </p>
                     )}
