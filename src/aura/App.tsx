@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-route
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Footer from './components/Footer';
-import './App.css';
+import './styles/App.css';
 
 import Artigo from './pages/Artigo';
 import Changelog from './pages/Changelog';

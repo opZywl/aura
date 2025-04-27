@@ -77,7 +77,7 @@ code {
   --tw-contain-size: ;
   --tw-contain-layout: ;
   --tw-contain-paint: ;
-  --tw-contain-style:
+  --tw-contain-style: ;
 }
 
 ::backdrop {
@@ -131,7 +131,7 @@ code {
   --tw-contain-size: ;
   --tw-contain-layout: ;
   --tw-contain-paint: ;
-  --tw-contain-style:
+  --tw-contain-style: ;;
 }
 
 /*
