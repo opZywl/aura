@@ -29,7 +29,7 @@ const Settings: React.FC<SettingsProps> = () => {
         return (
             <li>
                 <Link
-                    to={`/module/settings${to}`}
+                    to={`/features/view/settings${to}`}
                     className={`flex items-center p-2 rounded transition-colors duration-200 ${sidebarTextColorClass} ${activeClass}`}
                     onClick={() => setActiveSection(to.slice(1))}
                 >
@@ -43,7 +43,7 @@ const Settings: React.FC<SettingsProps> = () => {
         return (
             <li>
                 <Link
-                    to="/module/home" // Defina a rota correta
+                    to="/features/view/home"
                     className={`flex items-center p-2 rounded transition-colors duration-200 ${sidebarTextColorClass} ${hoverBgColorClass}`}
                 >
                     <ArrowLeft className="mr-2" /> Voltar

@@ -48,11 +48,11 @@ const Home: React.FC<HomeProps> = () => {
                 <nav className="p-4 flex flex-col justify-center h-full">
                     <ul className="space-y-2">
                         <SidebarItem to="/" icon={HomeIcon} label="Lobby" />
-                        <SidebarItem to="/module/conversations" icon={MessageSquare} label="Conversas" />
-                        <SidebarItem to="/module/chat" icon={Zap} label="Chat" />
-                        <SidebarItem to="/module/conta" icon={User} label="Conta" />
-                        <SidebarItem to="/module/settings" icon={Settings} label="Configurações" />
-                        <SidebarItem to="/module/teste" icon={FileText} label="Teste" />
+                        <SidebarItem to="/features/view/conversations" icon={MessageSquare} label="Conversas" />
+                        <SidebarItem to="/features/view/chat" icon={Zap} label="Chat" />
+                        <SidebarItem to="/features/view/conta" icon={User} label="Conta" />
+                        <SidebarItem to="/features/view/settings" icon={Settings} label="Configurações" />
+                        <SidebarItem to="/features/view/teste" icon={FileText} label="Teste" />
                     </ul>
                 </nav>
             </aside>

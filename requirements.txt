@@ -1,0 +1,7 @@
+Flask~=3.1.0
+Flask-CORS~=5.0.1
+whitenoise
+SQLAlchemy
+psycopg2-binary
+pandas
+Werkzeug~=3.1.3

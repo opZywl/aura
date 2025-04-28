@@ -14,7 +14,7 @@ const Login: React.FC<LoginProps> = ({ theme }) => {
 
     useEffect(() => {
         if (localStorage.getItem('isLoggedIn') === 'true') {
-            navigate('/module/home');
+            navigate('/features/view/home');
         }
     }, [navigate]);
 
@@ -26,9 +26,9 @@ const Login: React.FC<LoginProps> = ({ theme }) => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (email === 'Dev@123' && password === '1234') {
+        if (email === 'Dev@1' && password === '1234') {
             localStorage.setItem('isLoggedIn', 'true');
-            navigate('/module/home');
+            navigate('/features/view/home');
         } else {
             alert('Credenciais inválidas. Por favor, tente novamente.');
         }

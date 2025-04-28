@@ -16,12 +16,12 @@ import Tecnologias from './pages/Tecnologias';
 import Orientadores from './pages/Orientadores';
 import Feedback from './pages/Feedback';
 
-import Home from './module/Home';
-import Conta from './module/Conta';
-import Chat from './module/Chat';
-import SettingsComponent from './module/Settings';
-import Teste from './module/Teste';
-import Conversations from './module/Conversations';
+import Home from './features/view/Home';
+import Contas from './features/view/Contas';
+import Chat from './features/view/Chat';
+import SettingsComponent from './features/view/Settings';
+import Teste from './features/view/Teste';
+import Conversations from './features/view/Conversations';
 
 interface AppContentProps {
     toggleTheme: () => void;
@@ -58,7 +58,7 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
         '/feedback',
     ];
 
-    const hideHeaderFooter = location.pathname.startsWith('/module');
+    const hideHeaderFooter = location.pathname.startsWith('/features/view');
 
     return (
         <div className={`bg-background min-h-screen scroll-smooth antialiased ${theme === 'dark' ? 'dark' : ''}`}>
@@ -80,13 +80,13 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
                     <Route path="/login" element={<Login theme={theme} />} />
 
 
-                    <Route path="/module/home" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
-                    <Route path="/module/conta" element={isLoggedIn ? <Conta /> : <Navigate to="/login" />} />
-                    <Route path="/module/chat" element={isLoggedIn ? <Chat /> : <Navigate to="/login" />} />
-                    <Route path="/module/settings" element={isLoggedIn ? <SettingsComponent /> : <Navigate to="/login" />} />
-                    <Route path="/module/teste" element={isLoggedIn ? <Teste /> : <Navigate to="/login" />} />
-                    <Route path="/module/conversations" element={isLoggedIn ? <Conversations /> : <Navigate to="/login" />} />
-                    <Route path="/" element={isLoggedIn ? <Navigate to="/module/home" /> : <Navigate to="/login" />} />
+                    <Route path="/features/view/home" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
+                    <Route path="/features/view/conta" element={isLoggedIn ? <Contas /> : <Navigate to="/login" />} />
+                    <Route path="/features/view/chat" element={isLoggedIn ? <Chat /> : <Navigate to="/login" />} />
+                    <Route path="/features/view/settings" element={isLoggedIn ? <SettingsComponent /> : <Navigate to="/login" />} />
+                    <Route path="/features/view/teste" element={isLoggedIn ? <Teste /> : <Navigate to="/login" />} />
+                    <Route path="/features/view/conversations" element={isLoggedIn ? <Conversations /> : <Navigate to="/login" />} />
+                    <Route path="/" element={isLoggedIn ? <Navigate to="/features/view/home" /> : <Navigate to="/login" />} />
                 </Routes>
                 {!hideHeaderFooter && (
                     <section style={{ backgroundColor: "#000", height: "400px" }}></section>
@@ -100,7 +100,6 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
 
 const App: React.FC = () => {
     const storedTheme = localStorage.getItem('theme');
-    // Default to 'dark' if localStorage is empty or has an invalid value
     const initialTheme = (storedTheme === 'light') ? 'light' : 'dark';
 
     const [theme, setTheme] = useState<'light' | 'dark'>(initialTheme);

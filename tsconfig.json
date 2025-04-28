@@ -1,20 +1,44 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx"
+    // --- Backend & Modern JS Settings ---
+    "target": "ES2022",             // Target modern Node.js versions (Node 18+)
+    "module": "NodeNext",           // Use Node's modern ESM module system
+    "moduleResolution": "NodeNext", // Use Node's modern ESM module resolution algorithm
+    "outDir": "./dist",             // Specify output directory for compiled JS (REQUIRED when emit is enabled)
+    "rootDir": "./src",             // Specify root directory of source files (good practice with outDir)
+
+    // --- Shared Settings (Generally Good) ---
+    "lib": ["ESNext", "DOM"],       // Keep DOM for React, ESNext for modern JS features
+    "allowJs": true,                // Allow JavaScript files to be included
+    "skipLibCheck": true,           // Skip type checking of declaration files
+    "esModuleInterop": true,        // Enables compatibility with CommonJS modules (RECOMMENDED)
+    "allowSyntheticDefaultImports": true, // Allow default imports from modules with no default export
+    "strict": true,                 // Enable all strict type-checking options
+    "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references to the same file
+    "resolveJsonModule": true,      // Allow importing .json files
+    "isolatedModules": true,        // Ensure modules can be transpiled independently (often needed by build tools)
+
+    // --- Frontend Specific (Keep for React) ---
+    "jsx": "react-jsx",             // Use the new JSX transform
+
+    // --- Removed ---
+    // "noEmit": true,              // REMOVED - Backend needs JS output
+    // "target": "es5",             // Replaced by ES2022
+    // "module": "esnext",          // Replaced by NodeNext
+    // "moduleResolution": "node"   // Replaced by NodeNext
+    // "noFallthroughCasesInSwitch": true // Can be kept if desired, but not critical for fixing the module issue
   },
-  "include": ["src"]
+  "ts-node": {
+    // --- ts-node Specific Settings (Crucial for ESM) ---
+    "esm": true,                    // Explicitly tell ts-node this is an ESM project
+    "experimentalSpecifierResolution": "node", // Helps ts-node find modules like Node does
+    // "transpileOnly": true         // Optional: if you always use --transpile-only, you can set it here too
+  },
+  "include": [
+    "src/**/*"                      // Include all files within the src directory
+  ],
+  "exclude": [
+    "node_modules",                 // Exclude external dependencies
+    "dist"                          // Exclude the output directory
+  ]
 }
