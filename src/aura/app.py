@@ -9,19 +9,16 @@ from typing import List, Dict
 from datetime import datetime
 import uuid
 
-# --- Configuração de Logs ---
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# --- Inicialização do Flask ---
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 logger.info("Aplicação Flask iniciada e CORS configurado.")
 
-# --- Módulo de Contas Telegram ---
 try:
     from .features.modules.Accounts import (
         TelegramAccount,
@@ -33,7 +30,6 @@ try:
 except ImportError as e:
     logger.error(f"Falha ao importar o módulo 'Accounts': {e}")
 
-# --- Modelos de Dados de Chat em Memória ---
 @dataclass
 class Message:
     id: str
@@ -47,10 +43,8 @@ class Conversation:
     title: str
     messages: List[Message] = field(default_factory=list)
 
-# Armazenamento em memória
 _conversations: Dict[str, Conversation] = {}
 
-# --- Handlers Globais de Erro ---
 @app.errorhandler(404)
 def rota_nao_encontrada(e):
     logger.warning(f"Recurso não encontrado: {request.path}")
@@ -64,13 +58,11 @@ def erro_interno(e):
     logger.exception("Erro interno inesperado:")
     return jsonify({"erro": "Erro interno no servidor"}), 500
 
-# --- Endpoint Raiz ---
 @app.route("/", methods=["GET"])
 def raiz():
     logger.info("GET / - Endpoint raiz acessado.")
     return jsonify({"mensagem": "API Flask no ar! Use /api/..."}), 200
 
-# --- Endpoints de Accounts ---
 @app.route("/api/accounts", methods=["GET"])
 def obter_accounts():
     logger.info("GET /api/accounts - Requisição recebida.")
@@ -110,7 +102,6 @@ def criar_account():
         nova_acc: TelegramAccount = connectTelegram(api_key.strip(), bot_name.strip())
         logger.info(f"Conta conectada com sucesso: {nova_acc.id} - {nova_acc.botName}")
 
-        # Criar conversa automática para nova conta
         conv = Conversation(id=nova_acc.id, title=nova_acc.botName)
         msg = Message(id=uuid.uuid4().hex, sender="system", text=f"Conta '{nova_acc.botName}' conectada.")
         conv.messages.append(msg)
@@ -150,7 +141,6 @@ def deletar_account(account_id):
         logger.exception(f"Erro inesperado ao excluir conta ({account_id}):")
         return jsonify({"erro": "Erro interno ao excluir conta"}), 500
 
-# --- Webhook de Telegram para receber mensagens ---
 @app.route('/api/telegram/webhook/<account_id>', methods=['POST'])
 def telegram_webhook(account_id):
     update = request.get_json(silent=True)
@@ -165,7 +155,6 @@ def telegram_webhook(account_id):
     conv_id = str(chat.get('id'))
     title = chat.get('title') or chat.get('username') or conv_id
 
-    # cria conversa dinâmica se não existir
     if conv_id not in _conversations:
         _conversations[conv_id] = Conversation(id=conv_id, title=title)
         logger.info(f"Nova conversa iniciada via webhook: {conv_id} - {title}")
@@ -181,7 +170,6 @@ def telegram_webhook(account_id):
 
     return jsonify({"status": "ok"}), 200
 
-# --- Endpoints de Chat/Conversas ---
 @app.route('/api/conversations', methods=['GET'])
 def listar_conversas():
     logger.info('GET /api/conversations - listando conversas')
@@ -213,9 +201,6 @@ def enviar_mensagem(conv_id):
     logger.info(f"Mensagem adicionada via API de '{data['sender']}': {data['text']}")
     return jsonify(msg.__dict__), 201
 
-# endpoints adicionais inalterados...
-
-# --- Execução do Servidor ---
 if __name__ == '__main__':
     porta = int(os.environ.get('PORT', 3001))
     logger.info(f'Iniciando servidor Flask em 0.0.0.0:{porta}')
