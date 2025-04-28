@@ -147,9 +147,8 @@ src/
 ├── index.tsx                   # Ponto de entrada do React
 ├── main.tsx                    # Alternativa de boot no React
 ├── App.tsx                     # App wrapper genérico (raiz)
-├── styles/                     # Estilos globais do React
-│   ├── App.css
-│   └── index.css
+├────
+├── .gitgnore                   # git
 ├── tailwind.config.ts          # Config TailwindCSS
 ├── tsconfig.json               # Config TypeScript
 ├── package.json                # Dependências e scripts frontend
