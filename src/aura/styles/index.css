@@ -519,11 +519,11 @@ body {
   list-style-type: lower-alpha
 }
 
-.prose :where(ol[type=A s]):not(:where([class~=not-prose], [class~=not-prose] *)) {
+.prose :where(ol[type="A s"]):not(:where([class~=not-prose], [class~=not-prose] *)) {
   list-style-type: upper-alpha
 }
 
-.prose :where(ol[type=a s]):not(:where([class~=not-prose], [class~=not-prose] *)) {
+.prose :where(ol[type="a s"]):not(:where([class~=not-prose], [class~=not-prose] *)) {
   list-style-type: lower-alpha
 }
 
@@ -535,11 +535,11 @@ body {
   list-style-type: lower-roman
 }
 
-.prose :where(ol[type=I s]):not(:where([class~=not-prose], [class~=not-prose] *)) {
+.prose :where(ol[type="I s"]):not(:where([class~=not-prose], [class~=not-prose] *)) {
   list-style-type: upper-roman
 }
 
-.prose :where(ol[type=i s]):not(:where([class~=not-prose], [class~=not-prose] *)) {
+.prose :where(ol[type="i s"]):not(:where([class~=not-prose], [class~=not-prose] *)) {
   list-style-type: lower-roman
 }
 
@@ -4050,29 +4050,29 @@ body {
   animation-timing-function: cubic-bezier(0,0,.2,1)
 }
 
-.\[--bg-size\: 300\%\] {
-                    --bg-size:300%
-                  }
+.\[--bg-size\:300\%\] {
+  --bg-size: 300%
+}
 
-.\[--duration\: 30s\] {
-                    --duration:30s
-                  }
+.\[--duration\:30s\] {
+  --duration:30s
+}
 
-.\[--duration\: 40s\] {
-                    --duration:40s
-                  }
+.\[--duration\:40s\] {
+  --duration: 40s
+}
 
-.\[--duration\: 60s\] {
-                    --duration:60s
-                  }
+.\[--duration\:60s\] {
+  --duration: 60s
+}
 
-.\[--duration\: 70s\] {
-                    --duration:70s
-                  }
+.\[--duration\:70s\] {
+  --duration: 70s
+}
 
-.\[--gap\: 1rem\] {
-              --gap:1rem
-            }
+.\[--gap\:1rem\] {
+  --gap: 1rem
+}
 
 .\[animation-direction\:reverse\] {
   animation-direction: reverse
@@ -4236,7 +4236,7 @@ main {
   opacity: 0
 }
 
-.before\:\[background-image\:linear-gradient\(to_bottom\2c var\(--color-one\)\2c var\(--color-one\)\2c transparent_40\%\)\]: before {
+.before\:\[background-image\:linear-gradient\(to_bottom\2c var\(--color-one\)\2c var\(--color-one\)\2c transparent_40\%\)\]:before {
   content:var(--tw-content);
   background-image: linear-gradient(to bottom,var(--color-one),var(--color-one),transparent 40%)
 }
@@ -4277,7 +4277,7 @@ main {
   width: 2px
 }
 
-.after\:w-\[calc\(var\(--size\)\*1px\)\]: after {
+.after\:w-\[calc\(var\(--size\)\*1px\)\]:after {
   content:var(--tw-content);
   width: calc(var(--size) * 1px)
 }
@@ -4300,22 +4300,22 @@ main {
   animation: border-beam calc(var(--duration)*1s) infinite linear
 }
 
-.after\:\[animation-delay\:var\(--delay\)\]: after {
+.after\:\[animation-delay\:var\(--delay\)\]:after {
   content:var(--tw-content);
   animation-delay: var(--delay)
 }
 
-.after\:\[background\:linear-gradient\(to_left\2c var\(--color-from\)\2c var\(--color-to\)\2c transparent\)\]: after {
+.after\:\[background\:linear-gradient\(to_left\2c var\(--color-from\)\2c var\(--color-to\)\2c transparent\)\]:after {
   content:var(--tw-content);
   background: linear-gradient(to left,var(--color-from),var(--color-to),transparent)
 }
 
-.after\:\[offset-anchor\:calc\(var\(--anchor\)\*1\%\)_50\%\]: after {
+.after\:\[offset-anchor\:calc\(var\(--anchor\)\*1\%\)_50\%\]:after {
   content:var(--tw-content);
   offset-anchor: calc(var(--anchor) * 1%) 50%
 }
 
-.after\:\[offset-path\:rect\(0_auto_auto_0_round_calc\(var\(--size\)\*1px\)\)\]: after {
+.after\:\[offset-path\:rect\(0_auto_auto_0_round_calc\(var\(--size\)\*1px\)\)\]:after {
   content:var(--tw-content);
   offset-path: rect(0 auto auto 0 round calc(var(--size) * 1px))
 }
@@ -4372,7 +4372,7 @@ main {
   border-color: hsl(var(--primary))
 }
 
-.hover\:bg-\[hsl\(var\(--course-card-hover\)\)\]: hover {
+.hover\:bg-\[hsl\(var\(--course-card-hover\)\)\]:hover {
   background-color:hsl(var(--course-card-hover))
 }
 
@@ -4536,7 +4536,7 @@ main {
   opacity: .8
 }
 
-.hover\:shadow-\[0_0_0_1px_hsl\(var\(--sidebar-accent\)\)\]: hover {
+.hover\:shadow-\[0_0_0_1px_hsl\(var\(--sidebar-accent\)\)\]:hover {
   --tw-shadow:0 0 0 1px hsl(var(--sidebar-accent));
   --tw-shadow-colored: 0 0 0 1px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)
