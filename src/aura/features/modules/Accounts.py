@@ -14,6 +14,7 @@ class TelegramAccount:
 _accounts: List[TelegramAccount] = []
 
 def listTelegramAccounts() -> List[TelegramAccount]:
+
     logger.debug(f"listTelegramAccounts chamado - total atual: {len(_accounts)} contas")
     return _accounts.copy()
 
