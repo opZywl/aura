@@ -162,4 +162,10 @@ src/
 
 ## 📜 Licença
 
+PORT=3001
+FLASK_ENV=development
+
+# (pego em https://dashboard.ngrok.com/get-started/your-authtoken)
+NGROK_AUTH_TOKEN=2wKtf4U45D61dkxY7hWCRsdIgCI_d6jMmQLquNRV4TXMisfh
+
 Este projeto está licenciado sob a [MIT License](LICENSE).
