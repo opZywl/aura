@@ -13,10 +13,7 @@ const logos = [
     { src: eraLogo, alt: 'ERA' },
     { src: pirelliLogo, alt: 'Pirelli' },
     { src: desktopLogo, alt: 'Desktop' },
-    { src: linharesDistribuidoras, alt: 'LinharesDistribuidora' },
-    { src: googleLogo, alt: 'Google' },
-    { src: microsoftLogo, alt: 'Microsoft' },
-    { src: instagramLogo, alt: 'Instagram' },
+    { src: linharesDistribuidoras, alt: 'LinharesDistribuidora' }
 ];
 
 const Companies: React.FC = () => {
