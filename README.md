@@ -119,6 +119,15 @@ src/
 │   │   │   ├── Accounts.py
 │   │   │   └── Chat.py
 │   │   └── view/               # Componentes de página React/TSX
+│   │       ├── chat/
+│   │       │   ├── types.ts
+│   │       │   ├── IconWrapper.tsx
+│   │       │   ├── ChatHeader.tsx
+│   │       │   ├── ChatSidebar.tsx
+│   │       │   ├── ChatMessages.tsx
+│   │       │   ├── ChatInput.tsx
+│   │       │   ├── ChatInfo.tsx
+│   │       │   └── ChatNotification.tsx
 │   │       ├── Chat.tsx
 │   │       ├── Contas.tsx
 │   │       ├── Conversations.tsx
@@ -147,7 +156,6 @@ src/
 ├── index.tsx                   # Ponto de entrada do React
 ├── main.tsx                    # Alternativa de boot no React
 ├── App.tsx                     # App wrapper genérico (raiz)
-├────
 ├── .gitgnore                   # git
 ├── tailwind.config.ts          # Config TailwindCSS
 ├── tsconfig.json               # Config TypeScript
@@ -161,11 +169,5 @@ src/
 ---
 
 ## 📜 Licença
-
-PORT=3001
-FLASK_ENV=development
-
-# (pego em https://dashboard.ngrok.com/get-started/your-authtoken)
-NGROK_AUTH_TOKEN=2wKtf4U45D61dkxY7hWCRsdIgCI_d6jMmQLquNRV4TXMisfh
 
 Este projeto está licenciado sob a [MIT License](LICENSE).
