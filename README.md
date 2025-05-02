@@ -19,7 +19,6 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
 - Python 3.9+ instalado
 - Node.js 16+ e npm ou yarn
 - Git
-- ngrok (para desenvolvimento local com webhook do Telegram)
 
 ---
 
@@ -27,8 +26,8 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
 
 1. **Clone o repositório**
    ```bash
-   git clone https://github.com/SEU_USUARIO/aura-chat-bot.git
-   cd aura-chat-bot
+   git clone https://github.com/unaspht/aura/
+   cd no local do repositório
    ```
 
 2. **Backend Python**
@@ -50,33 +49,6 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
    # configure proxy no package.json:
    # "proxy": "http://localhost:3001"
    ```
-
-4. **ngrok (desenvolvimento local)**
-   ```bash
-   ngrok http 3001
-   ```
-   Copie o **URL HTTPS** gerado para configurar o webhook do Telegram.
-
----
-
-## ⚙️ Configuração do Webhook do Telegram
-
-1. Obtenha seu `ACCOUNT_ID`:
-   ```bash
-   curl http://localhost:3001/api/accounts
-   ```
-   Copie o campo `id` retornado.
-
-2. Envie o comando setWebhook:
-   ```bash
-   curl -F "url=https://SEU_NGROK_URL/api/telegram/webhook/ACCOUNT_ID" \
-        https://api.telegram.org/botSEU_BOT_TOKEN/setWebhook
-   ```
-   Você deve receber:
-   ```json
-   {"ok":true,"result":true,"description":"Webhook was set"}
-   ```
-
 ---
 
 ## ▶️ Como executar
@@ -94,11 +66,6 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
 3. **Abra** no navegador:
     - Frontend: `http://localhost:3000`
     - Backend (opcional): `http://localhost:3001`
-
-4. **Teste**
-    - Envie mensagem ao bot no Telegram.
-    - Verifique logs no console do Flask e painel do ngrok.
-    - Veja a conversa aparecer na sidebar do React.
 
 ---
 
