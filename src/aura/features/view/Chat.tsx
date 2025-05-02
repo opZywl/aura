@@ -1,194 +1,223 @@
-// src/features/view/Chat.tsx
-import React, { useState, useEffect, FormEvent } from 'react';
-import type { IconType } from 'react-icons';
-import {
-    FiHome,
-    FiUsers,
-    FiBell,
-    FiSettings,
-    FiSearch,
-    FiStar,
-    FiPaperclip,
-    FiSend,
-    FiDownload
-} from 'react-icons/fi';
+import React, {
+    useState,
+    useEffect,
+    useRef,
+    FormEvent,
+    KeyboardEvent
+} from 'react';
+import { Conversation, MessageType } from './chat/types';
+import { ChatSidebar }  from './chat/ChatSidebar';
+import { ChatMessages } from './chat/ChatMessages';
+import { ChatInput }    from './chat/ChatInput';
+import { ChatInfo }     from './chat/ChatInfo';
+import { ChatNotification, NotificationMode } from './chat/ChatNotification';
+import { IconWrapper }  from './chat/IconWrapper';
+import { FiHome, FiUsers, FiSettings, FiCheck } from 'react-icons/fi';
 
-export interface Conversation {
-    id: string;
-    title: string;
-    lastMessage?: string;
-    lastAt?: string;
+const notifLabels: Record<NotificationMode,string> = {
+    off: 'Notificações desativadas',
+    all: 'Notificar todas as mensagens',
+    awaiting: 'Notificar somente aguardando'
+};
+
+
+interface ToastProps {
+    visible: boolean;
+    message: string;
+    topOffset?: string;
 }
 
-export interface MessageType {
-    id: string;
-    sender: string;
-    text: string;
-    timestamp: string;
-}
-
-
-// Pequeno wrapper para evitar o erro TS2786 e padronizar uso de ícones
-const IconWrapper: React.FC<{
-    Icon: IconType;
-    size?: number;
-    className?: string;
-}> = ({ Icon, size = 24, className }) =>
-    React.createElement((Icon as any), { size, className });
+const Toast: React.FC<ToastProps> = ({
+    visible, message, topOffset = "1rem" }) => (
+    <div
+        style={{ top: topOffset }}
+        className={`
+      absolute left-1/2
+      transform -translate-x-1/2
+      bg-green-600 text-white px-6 py-3 rounded shadow-lg z-50
+      flex items-center space-x-2
+      transition-all duration-300 ease-out
+      ${visible ? "opacity-100 scale-100" : "opacity-0 scale-90"}
+    `}
+    >
+        <IconWrapper Icon={FiCheck} size={20} />
+        <span>{message}</span>
+    </div>
+);
 
 const Chat: React.FC = () => {
-    const [convs, setConvs] = useState<Conversation[]>([]);
-    const [sel, setSel] = useState<string | null>(null);
-    const [msgs, setMsgs] = useState<MessageType[]>([]);
-    const [txt, setTxt] = useState('');
-    const [ldr, setLdr] = useState(false);
+    const [convs, setConvs]               = useState<Conversation[]>([]);
+    const [sel, setSel]                   = useState<string|null>(null);
+    const [msgs, setMsgs]                 = useState<MessageType[]>([]);
+    const [txt, setTxt]                   = useState('');
+    const [filterView, setFilterView]     = useState<'ativo'|'aguardando'>('ativo');
+    const [searchVisible, setSearchVisible] = useState(false);
+    const [searchTerm, setSearchTerm]     = useState('');
+    const [loadingMsgs, setLoadingMsgs]   = useState(false);
+    const [showInfo, setShowInfo]         = useState(false);
 
-    // Carregar lista de conversas a cada 5s
+    const [notifMode, setNotifMode]     = useState<NotificationMode>('off');
+    const [unreadCount, setUnreadCount] = useState(0);
+    const prevMsgIds = useRef<Set<string>>(new Set());
+
+    const [toast, setToast] = useState<ToastProps>({ visible:false, message:'' });
+
+    const THRESHOLD = 30_000; // 30s
+
     useEffect(() => {
-        const fetchConvs = () =>
+        const load = () =>
             fetch('/api/conversations')
                 .then(r => r.json())
-                .then(d => setConvs(Array.isArray(d) ? d : []))
+                .then((data: Conversation[]) => setConvs(Array.isArray(data)? data : []))
                 .catch(console.error);
-
-        fetchConvs();
-        const id = setInterval(fetchConvs, 5000);
-        return () => clearInterval(id);
+        load();
+        const iv = setInterval(load, 5000);
+        return () => clearInterval(iv);
     }, []);
 
-    // Carregar mensagens ao selecionar conversa
     useEffect(() => {
         if (!sel) {
             setMsgs([]);
+            prevMsgIds.current.clear();
             return;
         }
-        setLdr(true);
-        fetch(`/api/conversations/${sel}/messages`)
-            .then(r => r.json())
-            .then(d => setMsgs(Array.isArray(d) ? d : []))
-            .catch(console.error)
-            .finally(() => setLdr(false));
+        setLoadingMsgs(true);
+        const loadMsgs = () =>
+            fetch(`/api/conversations/${sel}/messages`)
+                .then(r => r.json())
+                .then((data: MessageType[]) => {
+                    data.sort((a,b)=> new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                    setMsgs(data);
+                })
+                .catch(console.error)
+                .finally(() => setLoadingMsgs(false));
+        loadMsgs();
+        const iv = setInterval(loadMsgs, 5000);
+        return () => clearInterval(iv);
     }, [sel]);
 
-    // Enviar nova mensagem
-    const handleSend = (e: FormEvent) => {
-        e.preventDefault();
-        if (!sel || !txt.trim()) return;
-        fetch(`/api/conversations/${sel}/messages`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sender: 'you', text: txt.trim() })
-        })
-            .then(r => r.json())
-            .then((m: MessageType) => {
-                if (m && typeof m === 'object' && 'id' in m) {
-                    setMsgs(ms => [...ms, m]);
+    useEffect(() => {
+        if (notifMode==='off') {
+            prevMsgIds.current = new Set(msgs.map(m=>m.id));
+            setUnreadCount(0);
+            return;
+        }
+        const old = prevMsgIds.current;
+        const news = msgs.filter(m=>!old.has(m.id) && m.sender!=='you');
+
+        const now = Date.now();
+        const selConv = convs.find(c=>c.id===sel);
+        const isAwaiting = selConv?.lastAt
+            ? now - new Date(selConv.lastAt).getTime() >= THRESHOLD
+            : false;
+
+        if (news.length > 0 && (notifMode==='all' || (notifMode==='awaiting' && isAwaiting))) {
+            news.forEach(m => {
+                new Audio('/notifications/message.wav').play().catch(()=>{});
+                if (Notification.permission==='granted') {
+                    new Notification(selConv?.title||'Nova Mensagem', {
+                        body: m.text,
+                        silent: true
+                    });
                 }
-            })
+            });
+            setUnreadCount(c=>c + news.length);
+        }
+        prevMsgIds.current = new Set(msgs.map(m=>m.id));
+    }, [msgs, notifMode, sel, convs]);
+
+    const handleNotifChange = (mode: NotificationMode) => {
+        setNotifMode(mode);
+        const contact = convs.find(c=>c.id===sel)?.title || 'Contato';
+        setToast({ visible:true, message:`${notifLabels[mode]} para ${contact}` });
+    };
+
+    useEffect(() => {
+        if (!toast.visible) return;
+        const t = setTimeout(()=>setToast(t=>({...t,visible:false})), 3000);
+        return ()=>clearTimeout(t);
+    }, [toast.visible]);
+
+    const handleSend = (e:FormEvent) => {
+        e.preventDefault();
+        if (!sel||!txt.trim()) return;
+        fetch(`/api/conversations/${sel}/messages`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ sender:'you', text:txt.trim() })
+        })
+            .then(r=>r.json())
+            .then((m:MessageType)=>m.id && setMsgs(ms=>[...ms,m]))
             .catch(console.error)
-            .finally(() => setTxt(''));
+            .finally(()=>setTxt(''));
+    };
+
+    const handleSearchKey = (e:KeyboardEvent<HTMLInputElement>) => {
+        if (e.key!=='Enter'||!sel||!searchTerm.trim()) return;
+        e.preventDefault();
+        fetch(`/api/conversations/${sel}/messages`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ sender:'you', text:searchTerm.trim() })
+        })
+            .then(r=>r.json())
+            .then((m:MessageType)=>m.id && setMsgs(ms=>[...ms,m]))
+            .catch(console.error)
+            .finally(()=>setSearchTerm(''));
+    };
+
+    const nowVal = Date.now();
+    const detailed = convs.map(c=>({
+        ...c,
+        timeAgo: c.lastAt? nowVal - new Date(c.lastAt).getTime() : Infinity
+    }));
+    const activeConvs   = detailed.filter(d=>d.timeAgo<THRESHOLD);
+    const awaitingConvs = detailed.filter(d=>d.timeAgo>=THRESHOLD);
+
+    let displayed = filterView==='ativo' ? activeConvs : awaitingConvs;
+    if (searchVisible && searchTerm.trim()) {
+        const t = searchTerm.toLowerCase();
+        displayed = displayed.filter(c=>
+            c.title.toLowerCase().includes(t) ||
+            (c.lastMessage?.toLowerCase().includes(t) ?? false)
+        );
+    }
+
+    const handleSelect = (id:string) => {
+        setSel(id);
+        setShowInfo(false);
     };
 
     return (
         <div className="flex h-screen font-sans">
-            {/* ← NAV LATERAL */}
             <nav
                 className="w-16 flex flex-col items-center justify-between py-6"
-                style={{ backgroundColor: 'var(--sidebar-bg)' }}
+                style={{ backgroundColor:'var(--sidebar-bg)' }}
             >
-                <img
-                    src="/avatars/me.jpg"
-                    alt="Meu avatar"
-                    className="w-10 h-10 rounded-full"
-                />
-                <div className="space-y-6">
-                    {[FiHome, FiUsers, FiBell, FiSettings].map((Ic, i) => (
-                        <IconWrapper
-                            key={i}
-                            Icon={Ic}
-                            className="text-[var(--text-primary)] hover:scale-110 transition-transform cursor-pointer"
-                        />
-                    ))}
-                </div>
+                <IconWrapper Icon={FiHome}  className="text-[var(--text-primary)] hover:scale-110 cursor-pointer"/>
+                <IconWrapper Icon={FiUsers} className="text-[var(--text-primary)] hover:scale-110 cursor-pointer"/>
             </nav>
 
-            {/* ← SIDEBAR DE CONVERSAS */}
-            <aside
-                className="w-80 flex flex-col border-r"
-                style={{
-                    backgroundColor: 'var(--sidebar-bg)',
-                    borderColor: 'var(--border-color)'
-                }}
-            >
-                {/* Search */}
-                <div className="p-4">
-                    <div className="relative">
-                        <IconWrapper
-                            Icon={FiSearch}
-                            size={20}
-                            className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-                        />
-                        <input
-                            placeholder="Search in your inbox"
-                            className="w-full pl-12 pr-4 py-2 rounded-[var(--radius)] focus:outline-none"
-                            style={{
-                                backgroundColor: 'var(--input-bg)',
-                                color: 'var(--text-primary)'
-                            }}
-                        />
-                    </div>
-                </div>
-                {/* Lista */}
-                <div className="flex-1 overflow-y-auto px-2 space-y-2">
-                    {convs.length === 0 && (
-                        <p className="text-center text-[var(--text-muted)]">
-                            Nenhuma conversa
-                        </p>
-                    )}
-                    {convs.map(c => (
-                        <div
-                            key={c.id}
-                            onClick={() => setSel(c.id)}
-                            className={`
-                flex items-center justify-between p-3 rounded-[var(--radius)] cursor-pointer transition
-                ${
-                                sel === c.id
-                                    ? 'bg-gradient-to-r from-[var(--msg-purple-start)] to-[var(--msg-purple-end)] text-white'
-                                    : 'hover:bg-[var(--input-bg)] text-[var(--text-primary)]'
-                            }
-              `}
-                        >
-                            <div className="flex items-center space-x-3">
-                                <div className="w-9 h-9 rounded-full bg-gray-600 flex items-center justify-center text-sm text-white">
-                                    {c.title.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex flex-col overflow-hidden">
-                                    <span className="truncate font-medium">{c.title}</span>
-                                    {c.lastMessage && (
-                                        <span className="text-xs text-[var(--text-muted)] truncate">
-                      {c.lastMessage}
-                    </span>
-                                    )}
-                                </div>
-                            </div>
-                            {c.lastAt && (
-                                <span className="text-xs text-[var(--text-muted)]">
-                  {c.lastAt}
-                </span>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </aside>
+            <ChatSidebar
+                activeConvs={activeConvs}
+                awaitingConvs={awaitingConvs}
+                sel={sel}
+                filterView={filterView}
+                onFilterChange={setFilterView}
+                onSelect={handleSelect}
+                searchVisible={searchVisible}
+                searchTerm={searchTerm}
+                onSearchToggle={()=>setSearchVisible(v=>!v)}
+                onSearchChange={setSearchTerm}
+                onSearchKey={handleSearchKey}
+            />
 
-            {/* → ÁREA DE MENSAGENS */}
-            <main className="flex-1 flex flex-col">
-                {/* Header */}
-                <header
+            <main className="flex-1 flex flex-col relative">
+                <div
                     className="flex items-center justify-between px-6 py-4 border-b"
                     style={{
-                        backgroundColor: 'var(--header-bg)',
-                        borderColor: 'var(--border-color)'
+                        backgroundColor:'var(--header-bg)',
+                        borderColor:'var(--border-color)'
                     }}
                 >
                     {sel ? (
@@ -196,11 +225,12 @@ const Chat: React.FC = () => {
                             <img
                                 src="/avatars/contact.jpg"
                                 alt="Contato"
-                                className="w-12 h-12 rounded-full"
+                                className="w-12 h-12 rounded-full cursor-pointer"
+                                onClick={()=>setShowInfo(true)}
                             />
                             <div>
                                 <h3 className="font-semibold text-[var(--text-primary)]">
-                                    {convs.find(c => c.id === sel)?.title}
+                                    {convs.find(c=>c.id===sel)?.title}
                                 </h3>
                                 <span className="text-green-400 text-sm">Active Now</span>
                             </div>
@@ -210,135 +240,37 @@ const Chat: React.FC = () => {
               Selecione uma conversa
             </span>
                     )}
-                    <div className="flex space-x-4">
-                        <IconWrapper
-                            Icon={FiSearch}
-                            className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+
+                    <div className="flex items-center space-x-4 relative">
+                        <ChatNotification
+                            mode={notifMode}
+                            onChangeMode={handleNotifChange}
+                            contactName={convs.find(c=>c.id===sel)?.title}
                         />
+                        {unreadCount>0 && (
+                            <span className="absolute -top-4 -right-6 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                {unreadCount}
+              </span>
+                        )}
                         <IconWrapper
-                            Icon={FiStar}
-                            className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                            Icon={FiSettings}
+                            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
                         />
                     </div>
-                </header>
-
-                {/* Mensagens */}
-                <div
-                    className="flex-1 overflow-y-auto p-6 space-y-4"
-                    style={{ backgroundColor: 'var(--chat-bg)' }}
-                >
-                    {ldr && (
-                        <p className="text-center text-[var(--text-muted)]">
-                            Carregando mensagens…
-                        </p>
-                    )}
-                    {!ldr &&
-                        msgs.map(m => {
-                            const isYou = m.sender === 'you';
-                            return (
-                                <div
-                                    key={m.id}
-                                    className="max-w-xl p-4 rounded-[var(--radius)] flex flex-col"
-                                    style={{
-                                        background: isYou
-                                            ? `linear-gradient(135deg, var(--msg-orange-start), var(--msg-orange-end))`
-                                            : 'var(--msg-other-bg)',
-                                        alignSelf: isYou ? 'flex-end' : 'flex-start'
-                                    }}
-                                >
-                                    {!isYou && (
-                                        <span className="text-xs text-[var(--text-muted)]">
-                      {m.sender}
-                    </span>
-                                    )}
-                                    <p className="text-[var(--text-primary)]">{m.text}</p>
-                                    <span className="self-end text-2xs text-[var(--text-muted)]">
-                    {new Date(m.timestamp).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })}
-                  </span>
-                                </div>
-                            );
-                        })}
                 </div>
 
-                {/* Input */}
-                <form
-                    onSubmit={handleSend}
-                    className="flex items-center px-6 py-4 border-t"
-                    style={{
-                        backgroundColor: 'var(--input-bg)',
-                        borderColor: 'var(--border-color)'
-                    }}
-                >
-                    <IconWrapper
-                        Icon={FiPaperclip}
-                        className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                    />
-                    <input
-                        type="text"
-                        value={txt}
-                        onChange={e => setTxt(e.target.value)}
-                        placeholder="Type a message…"
-                        className="flex-1 px-4 py-2 rounded-[var(--radius)] focus:outline-none"
-                        style={{
-                            backgroundColor: 'var(--chat-bg)',
-                            color: 'var(--text-primary)'
-                        }}
-                    />
-                    <button type="submit" className="ml-4">
-                        <IconWrapper
-                            Icon={FiSend}
-                            size={28}
-                            className="text-[var(--text-primary)] hover:text-[var(--text-muted)]"
-                        />
-                    </button>
-                </form>
+                <ChatMessages msgs={msgs} loading={loadingMsgs}/>
+                <ChatInput text={txt} onChange={setTxt} onSend={handleSend}/>
+
+                <Toast visible={toast.visible} message={toast.message}/>
             </main>
 
-            {/* → Painel direito de informações */}
-            {sel && (
-                <aside
-                    className="w-80 flex flex-col p-6 border-l"
-                    style={{
-                        backgroundColor: 'var(--sidebar-bg)',
-                        borderColor: 'var(--border-color)'
-                    }}
-                >
-                    <img
-                        src="/avatars/contact.jpg"
-                        alt="Contato"
-                        className="w-24 h-24 rounded-full mx-auto"
-                    />
-                    <h4 className="mt-4 text-center text-[var(--text-primary)]">
-                        {convs.find(c => c.id === sel)?.title}
-                    </h4>
-                    <span className="text-green-400 text-center mb-6">
-            Active Now
-          </span>
-
-                    <h5 className="text-[var(--text-muted)] uppercase text-xs mb-2">
-                        Attachment
-                    </h5>
-                    <div className="grid grid-cols-3 gap-4">
-                        {[1, 2, 3].map(i => (
-                            <img
-                                key={i}
-                                src={`/attachments/${i}.jpg`}
-                                alt={`att${i}`}
-                                className="w-full h-20 object-cover rounded-[var(--radius)]"
-                            />
-                        ))}
-                    </div>
-
-                    <div className="mt-4 flex justify-center">
-                        <IconWrapper
-                            Icon={FiDownload}
-                            className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                        />
-                    </div>
-                </aside>
+            {showInfo && sel && (
+                <ChatInfo
+                    conv={convs.find(c=>c.id===sel)!}
+                    messages={msgs}
+                    onClose={()=>setShowInfo(false)}
+                />
             )}
         </div>
     );

@@ -63,6 +63,7 @@ class Conversation:
     messages: List[Message] = field(default_factory=list)
 
 _conversations: Dict[str, Conversation] = {}
+chat_to_account: Dict[str, str] = {}
 
 @app.errorhandler(404)
 def handle_404(e):
@@ -132,7 +133,6 @@ def deletar_account(account_id):
     logger.info(f"Conta e conversa associada excluída: {account_id}")
     return '', 204
 
-# Webhook do Telegram
 @app.route('/api/telegram/webhook/<account_id>', methods=['POST'])
 def telegram_webhook(account_id):
     update = request.get_json(silent=True) or {}
@@ -140,14 +140,19 @@ def telegram_webhook(account_id):
     if not msg:
         logger.warning("Webhook sem mensagem válida.")
         return jsonify({'status':'ignored'}), 200
+
     chat = msg.get('chat', {})
     conv_id = str(chat.get('id'))
-    title = chat.get('title') or chat.get('username') or conv_id
+    title   = chat.get('title') or chat.get('username') or conv_id
+
     if conv_id not in _conversations:
         _conversations[conv_id] = Conversation(id=conv_id, title=title)
-        logger.info(f"Nova conversa iniciada via webhook: {conv_id} - {title}")
+        logger.info(f"Nova conversa via webhook: {conv_id} - {title}")
+
+    chat_to_account[conv_id] = account_id
+
     sender = (msg.get('from') or {}).get('username') or 'desconhecido'
-    text = msg.get('text','')
+    text = msg.get('text', '')
     new_msg = Message(id=uuid.uuid4().hex, sender=sender, text=text)
     _conversations[conv_id].messages.append(new_msg)
     logger.info(f"Mensagem recebida de '{sender}' na conversa '{conv_id}': {text}")
@@ -155,29 +160,61 @@ def telegram_webhook(account_id):
 
 @app.route('/api/conversations', methods=['GET'])
 def listar_conversas():
+    contas = listTelegramAccounts()
+    account_ids = {acc.id for acc in contas}
     resumo = []
     for conv in _conversations.values():
+        if conv.id in account_ids:
+            continue
         resumo.append({
             'id': conv.id,
             'title': conv.title,
             'lastMessage': conv.messages[-1].text if conv.messages else None,
-            'lastAt': conv.messages[-1].timestamp if conv.messages else None
+            'lastAt':      conv.messages[-1].timestamp if conv.messages else None
         })
     return jsonify(resumo), 200
+
+@app.route('/api/conversations/<conv_id>/messages', methods=['GET'])
+def listar_mensagens(conv_id):
+    conv = _conversations.get(conv_id)
+    if not conv:
+        logger.warning(f"GET /api/conversations/{conv_id}/messages - conversa não encontrada")
+        return jsonify({'erro': 'Conversa não encontrada'}), 404
+    lista = [m.__dict__ for m in conv.messages]
+    logger.info(f"Listando {len(lista)} mensagens da conversa {conv_id}")
+    return jsonify(lista), 200
 
 @app.route('/api/conversations/<conv_id>/messages', methods=['POST'])
 def enviar_mensagem(conv_id):
     data = request.get_json(silent=True) or {}
     if not data.get('sender') or not data.get('text'):
-        logger.warning('Campos sender e text obrigatórios')
         return jsonify({'erro':'Campos sender e text obrigatórios'}), 400
+
     conv = _conversations.get(conv_id)
     if not conv:
-        logger.warning(f"Conversa não encontrada: {conv_id}")
         return jsonify({'erro':'Conversa não encontrada'}), 404
-    out_msg = Message(id=uuid.uuid4().hex, sender=data['sender'], text=data['text'])
+
+    out_msg = Message(id=uuid.uuid4().hex,
+                      sender=data['sender'],
+                      text=data['text'])
     conv.messages.append(out_msg)
     logger.info(f"Mensagem adicionada via API: {data['text']}")
+
+    account_id = chat_to_account.get(conv_id)
+    if account_id:
+        contas = listTelegramAccounts()
+        bot = next((c for c in contas if c.id == account_id), None)
+        if bot:
+            resp = requests.post(
+                f"https://api.telegram.org/bot{bot.apiKey}/sendMessage",
+                json={"chat_id": conv_id, "text": data['text']}
+            )
+            logger.info(f"sendMessage status={resp.status_code}")
+        else:
+            logger.warning(f"Bot não encontrado p/ account_id={account_id}")
+    else:
+        logger.warning(f"chat_id {conv_id} sem bot mapeado; não enviou no Telegram")
+
     return jsonify(out_msg.__dict__), 201
 
 if __name__ == '__main__':

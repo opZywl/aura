@@ -10,3 +10,7 @@ declare module '*.svg' {
     const content: string;
     export default content;
 }
+
+declare module '*.wav';
+declare module '*.mp3';
+declare module '*.ogg';
