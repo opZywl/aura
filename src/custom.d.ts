@@ -7,6 +7,8 @@ declare module 'tailwindcss' {
 declare module 'tailwindcss-animate'
 declare module '@tailwindcss/typography'
 declare module 'tailwindcss-animation-delay'
+declare module 'tailwindcss-filters'
+declare module 'lucide-react'
 
 declare module '*.png' {
     const value: string;

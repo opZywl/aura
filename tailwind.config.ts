@@ -1,6 +1,9 @@
+// tailwind.config.js
 import animatePlugin from 'tailwindcss-animate'
 import typographyPlugin from '@tailwindcss/typography'
 import animationDelayPlugin from 'tailwindcss-animation-delay'
+import { ArrowRight } from 'lucide-react';
+import filtersPlugin from 'tailwindcss-filters'
 
 /** @type {import('tailwindcss').Config} */
 const config = {
@@ -39,7 +42,9 @@ const config = {
         container: {
             center: true,
             padding: '2rem',
-            screens: { '2xl': '1400px' }
+            screens: {
+                '2xl': '1400px'
+            }
         },
         extend: {
             colors: {
@@ -112,7 +117,8 @@ const config = {
     plugins: [
         animatePlugin,
         typographyPlugin,
-        animationDelayPlugin
+        animationDelayPlugin,
+        filtersPlugin
     ]
 }
 
