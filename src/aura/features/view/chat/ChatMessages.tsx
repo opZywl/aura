@@ -1,45 +1,101 @@
-// src/features/view/chat/ChatMessages.tsx
-import React from 'react';
-import { MessageType } from './types';
+// src/aura/features/view/chat/ChatMessages.tsx
+import React, { useEffect, useRef } from 'react';
+import { Message, User, MessageBubbleProps } from './types';
+
+const formatTime = (date: Date): string => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+};
+
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isSender }) => {
+    const renderStatusIcon = () => {
+        if (!isSender || !message.status) return null;
+        if (message.status === 'sending') return null;
+
+        switch (message.status) {
+            case 'sent':
+                return <span className="chat-message-status-icon sent-icon">✓</span>;
+            case 'delivered':
+                return <span className="chat-message-status-icon delivered-icon">✓✓</span>;
+            case 'read':
+                return <span className="chat-message-status-icon read-icon">✓✓</span>;
+            case 'error':
+                return <span className="chat-message-status-icon error-icon">⚠️</span>;
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <div
+            className={`chat-message-bubble ${
+                isSender ? 'sent' : 'received'
+            } ${message.status === 'sending' && isSender ? 'sending-opacity' : ''}`}
+        >
+            <div className="chat-message-text">{message.text}</div>
+            <div className="chat-message-meta">
+                <span className="chat-message-time">
+                    {formatTime(message.timestamp)}
+                </span>
+                {isSender && renderStatusIcon()}
+            </div>
+        </div>
+    );
+};
 
 interface ChatMessagesProps {
-    msgs: MessageType[];
-    loading: boolean;
+    messages: Message[];
+    currentUser: User;
+    participants: User[];
 }
 
-export const ChatMessages: React.FC<ChatMessagesProps> = ({ msgs, loading }) => (
-    <div
-        className="flex-1 flex flex-col overflow-y-auto p-6 space-y-4"
-        style={{ backgroundColor: 'var(--chat-bg)' }}
-    >
-        {loading ? (
-            <p className="text-center text-[var(--text-muted)]">Carregando mensagens…</p>
-        ) : (
-            msgs.map(m => {
-                const isYou = m.sender === 'you';
+const ChatMessages: React.FC<ChatMessagesProps> = ({
+                                                       messages,
+                                                       currentUser,
+                                                       participants,
+                                                   }) => {
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+        messagesEndRef.current?.scrollIntoView({ behavior });
+    };
+
+    useEffect(() => {
+        scrollToBottom('auto');
+    }, [messages]);
+
+    if (!messages || messages.length === 0) {
+        return (
+            <div
+                className="chat-messages"
+                style={{
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    color: '#777',
+                }}
+            >
+                Nenhuma mensagem ainda. Envie uma para começar!
+            </div>
+        );
+    }
+
+    return (
+        <div className="chat-messages" ref={messagesContainerRef}>
+            {messages.map((msg, index) => {
+                const isSender = msg.senderId === currentUser.id;
                 return (
-                    <div key={m.id} className={isYou ? 'flex justify-end' : 'flex justify-start'}>
-                        <div
-                            className="min-w-[150px] max-w-[60%] px-4 py-2 rounded-lg flex flex-col break-words"
-                            style={{
-                                background: isYou
-                                    ? `linear-gradient(135deg, var(--msg-orange-start), var(--msg-orange-end))`
-                                    : 'var(--msg-other-bg)'
-                            }}
-                        >
-                            {!isYou && <span className="text-xs text-[var(--text-muted)]">{m.sender}</span>}
-                            <p className="text-[var(--text-primary)]">{m.text}</p>
-                            <span className="self-end text-2xs text-[var(--text-muted)]">
-                {new Date(m.timestamp + 'Z').toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                })}
-              </span>
-                        </div>
-                    </div>
+                    <MessageBubble
+                        key={`${msg.id}-${index}`}
+                        message={msg}
+                        isSender={isSender}
+                    />
                 );
-            })
-        )}
-    </div>
-);
+            })}
+            <div ref={messagesEndRef} />
+        </div>
+    );
+};
+
+export default ChatMessages;

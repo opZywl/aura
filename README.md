@@ -94,7 +94,8 @@ src/
 │   │       │   ├── ChatMessages.tsx
 │   │       │   ├── ChatInput.tsx
 │   │       │   ├── ChatInfo.tsx
-│   │       │   └── ChatNotification.tsx
+│   │       │   └── ChatNotificationDropdown.tsx
+│   │       │   └── ChatTemplate.tsx
 │   │       ├── Chat.tsx
 │   │       ├── Contas.tsx
 │   │       ├── Conversations.tsx

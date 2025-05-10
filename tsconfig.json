@@ -22,7 +22,8 @@
   },
   "include": [
     "src/**/*",
-    "tailwind.config.ts"
+    "tailwind.config.ts",
+    "src/aura/custom.d.ts"
   ],
   "exclude": [
     "node_modules",
