@@ -19,7 +19,6 @@ export interface User {
     createdAt?: Date;
 }
 
-
 export interface Message {
     id: string;
     senderId: string;
@@ -60,7 +59,10 @@ export interface MessageBubbleProps {
 export interface ChatInfoProps {
     contact?: User;
     onClose: () => void;
-    onUpdateContactDetails: (contactId: string, details: Partial<Pick<User, 'observation' | 'situation'>>) => void;
+    onUpdateContactDetails: (
+        contactId: string,
+        details: Partial<Pick<User, 'observation' | 'situation'>>
+    ) => void;
 }
 
 export type NotificationMode = 'off' | 'all' | 'awaiting';

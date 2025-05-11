@@ -16,21 +16,15 @@ const ChatInfo: React.FC<ChatInfoProps> = ({
                                                onClose,
                                                onUpdateContactDetails,
                                            }) => {
-    const [observationText, setObservationText] = useState('');
+    const [observationText, setObservationText] = useState<string>('');
     const [currentSituation, setCurrentSituation] = useState<ContactSituation | ''>('');
-    const [isEditingObservation, setIsEditingObservation] = useState(false);
+    const [isEditingObservation, setIsEditingObservation] = useState<boolean>(false);
 
     useEffect(() => {
-        if (contact) {
-            setObservationText(contact.observation || '');
-            setCurrentSituation(contact.situation || '');
-            setIsEditingObservation(false);
-        } else {
-            setObservationText('');
-            setCurrentSituation('');
-            setIsEditingObservation(false);
-        }
-    }, [contact]);
+        setObservationText(contact?.observation ?? '');
+        setCurrentSituation(contact?.situation ?? '');
+        setIsEditingObservation(false);
+    }, [contact?.id]);
 
     if (!contact) {
         return (
@@ -86,23 +80,19 @@ const ChatInfo: React.FC<ChatInfoProps> = ({
 
             <div className="chat-info-content">
                 <div className="chat-info-section observation-section">
-                    <label
-                        htmlFor="observation"
-                        className="chat-info-label prominent"
-                    >
+                    <label htmlFor="observation" className="chat-info-label prominent">
                         Observação
                     </label>
-
                     {isEditingObservation ? (
                         <div className="chat-info-observation-edit">
-                            <textarea
-                                id="observation"
-                                className="chat-info-textarea"
-                                value={observationText}
-                                onChange={e => setObservationText(e.target.value)}
-                                rows={4}
-                                placeholder="Adicione uma observação..."
-                            />
+              <textarea
+                  id="observation"
+                  className="chat-info-textarea"
+                  value={observationText}
+                  onChange={e => setObservationText(e.target.value)}
+                  rows={4}
+                  placeholder="Adicione uma observação..."
+              />
                             <div className="chat-info-observation-actions">
                                 <button
                                     onClick={handleSaveObservation}
@@ -137,8 +127,8 @@ const ChatInfo: React.FC<ChatInfoProps> = ({
                         >
                             {observationText || (
                                 <span className="chat-info-placeholder">
-                                    Nenhuma observação. Clique para adicionar.
-                                </span>
+                  Nenhuma observação. Clique para adicionar.
+                </span>
                             )}
                         </div>
                     )}
@@ -152,16 +142,15 @@ const ChatInfo: React.FC<ChatInfoProps> = ({
                 </div>
 
                 <div className="chat-info-field">
-                    <label className="chat-info-label">
-                        Quantidade de Mensagens
-                    </label>
+                    <label className="chat-info-label">Quantidade de Mensagens</label>
                     <div className="chat-info-value-box">
-                        {contact.messageCount !== undefined
+                        {typeof contact.messageCount === 'number'
                             ? contact.messageCount.toLocaleString()
                             : 'N/A'}
                     </div>
                 </div>
 
+                {/* Status (Chat) */}
                 <div className="chat-info-field">
                     <label className="chat-info-label">Status (Chat)</label>
                     <div
@@ -174,10 +163,7 @@ const ChatInfo: React.FC<ChatInfoProps> = ({
                 </div>
 
                 <div className="chat-info-field">
-                    <label
-                        htmlFor="situation"
-                        className="chat-info-label"
-                    >
+                    <label htmlFor="situation" className="chat-info-label">
                         Situação
                     </label>
                     <select

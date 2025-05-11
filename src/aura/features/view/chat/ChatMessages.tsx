@@ -1,101 +1,120 @@
 // src/aura/features/view/chat/ChatMessages.tsx
-import React, { useEffect, useRef } from 'react';
-import { Message, User, MessageBubbleProps } from './types';
+import React, { useEffect, useRef } from 'react'
+import { Message, User } from './types'
 
-const formatTime = (date: Date): string => {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-};
+export interface MessageBubbleProps {
+    message: Message
+    isSender: boolean
+}
+
+const formatTime = (date: Date): string =>
+    date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isSender }) => {
     const renderStatusIcon = () => {
-        if (!isSender || !message.status) return null;
-        if (message.status === 'sending') return null;
-
+        if (!isSender || !message.status || message.status === 'sending') return null
         switch (message.status) {
             case 'sent':
-                return <span className="chat-message-status-icon sent-icon">✓</span>;
+                return <span className="chat-message-status-icon sent-icon">✓</span>
             case 'delivered':
-                return <span className="chat-message-status-icon delivered-icon">✓✓</span>;
+                return <span className="chat-message-status-icon delivered-icon">✓✓</span>
             case 'read':
-                return <span className="chat-message-status-icon read-icon">✓✓</span>;
+                return <span className="chat-message-status-icon read-icon">✓✓</span>
             case 'error':
-                return <span className="chat-message-status-icon error-icon">⚠️</span>;
+                return <span className="chat-message-status-icon error-icon" title="Falha ao enviar">⚠️</span>
             default:
-                return null;
+                return null
         }
-    };
+    }
 
     return (
         <div
-            className={`chat-message-bubble ${
-                isSender ? 'sent' : 'received'
-            } ${message.status === 'sending' && isSender ? 'sending-opacity' : ''}`}
+            className={[
+                'chat-message-bubble',
+                isSender ? 'sent' : 'received',
+                isSender && message.status === 'sending' ? 'sending-opacity' : '',
+            ]
+                .filter(Boolean)
+                .join(' ')}
+            id={`message-${message.id}`}
         >
             <div className="chat-message-text">{message.text}</div>
             <div className="chat-message-meta">
-                <span className="chat-message-time">
-                    {formatTime(message.timestamp)}
-                </span>
-                {isSender && renderStatusIcon()}
+                <span className="chat-message-time">{formatTime(message.timestamp)}</span>
+                {renderStatusIcon()}
             </div>
         </div>
-    );
-};
+    )
+}
 
-interface ChatMessagesProps {
-    messages: Message[];
-    currentUser: User;
-    participants: User[];
+export interface ChatMessagesProps {
+    messages: Message[]
+    currentUser: User
+    participants: User[]
+    isLoading?: boolean
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
                                                        messages,
                                                        currentUser,
-                                                       participants,
+                                                       isLoading = false,
                                                    }) => {
-    const messagesContainerRef = useRef<HTMLDivElement>(null);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null)
+    const endRef = useRef<HTMLDivElement>(null)
 
     const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-        messagesEndRef.current?.scrollIntoView({ behavior });
-    };
+        endRef.current?.scrollIntoView({ behavior })
+    }
 
     useEffect(() => {
-        scrollToBottom('auto');
-    }, [messages]);
+        if (!isLoading && messages.length > 0) {
+            scrollToBottom('auto')
+        }
+    }, [messages, isLoading])
 
-    if (!messages || messages.length === 0) {
+    if (isLoading) {
         return (
             <div
                 className="chat-messages"
                 style={{
+                    display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
                     color: '#777',
+                    flexGrow: 1,
+                }}
+            >
+                Carregando mensagens...
+            </div>
+        )
+    }
+
+    if (messages.length === 0) {
+        return (
+            <div
+                className="chat-messages"
+                style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    color: '#777',
+                    flexGrow: 1,
                 }}
             >
                 Nenhuma mensagem ainda. Envie uma para começar!
             </div>
-        );
+        )
     }
 
     return (
-        <div className="chat-messages" ref={messagesContainerRef}>
-            {messages.map((msg, index) => {
-                const isSender = msg.senderId === currentUser.id;
-                return (
-                    <MessageBubble
-                        key={`${msg.id}-${index}`}
-                        message={msg}
-                        isSender={isSender}
-                    />
-                );
+        <div className="chat-messages" ref={containerRef}>
+            {messages.map(msg => {
+                const isSender = msg.senderId === currentUser.id
+                return <MessageBubble key={msg.id} message={msg} isSender={isSender} />
             })}
-            <div ref={messagesEndRef} />
+            <div ref={endRef} />
         </div>
-    );
-};
+    )
+}
 
-export default ChatMessages;
+export default ChatMessages
