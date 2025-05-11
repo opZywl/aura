@@ -28,14 +28,14 @@ const BACKEND_WS   = ''
 const toDate = (iso: string) =>
     new Date(iso.endsWith('Z') ? iso : iso + 'Z')
 
-const pickNotificationSound = (): string | null => {
+const pickSound = () => {
     const t = document.createElement('audio')
     if (t.canPlayType('audio/mpeg')) return '/notifications/message.mp3'
     if (t.canPlayType('audio/ogg'))  return '/notifications/message.ogg'
     if (t.canPlayType('audio/wav'))  return '/notifications/message.wav'
     return null
 }
-const audioSrc = pickNotificationSound()
+const audioSrc = pickSound()
 
 const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                                                        currentUser = {
@@ -71,9 +71,9 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
         if (!audioSrc) return
         const unlock = () => {
             if (!(window as any).__notifAudio) {
-                const elem = new Audio(audioSrc)
-                elem.volume = 0.9
-                ;(window as any).__notifAudio = elem
+                const a = new Audio(audioSrc)
+                a.volume = 0.9
+                ;(window as any).__notifAudio = a
             }
             window.removeEventListener('click', unlock)
             window.removeEventListener('keydown', unlock)
@@ -87,22 +87,10 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
     }, [])
 
     const playNotificationSound = () => {
-        if (!audioSrc) return
-        const unlocked = (window as any).__notifAudio as
-            | HTMLAudioElement
-            | undefined
-
-        if (unlocked) {
-            unlocked.currentTime = 0
-            unlocked.play().catch(() => {})
-        } else {
-            const once = () => {
-                playNotificationSound()
-                window.removeEventListener('click', once)
-                window.removeEventListener('keydown', once)
-            }
-            window.addEventListener('click', once, { once: true })
-            window.addEventListener('keydown', once, { once: true })
+        const player = (window as any).__notifAudio as HTMLAudioElement | undefined
+        if (player) {
+            player.currentTime = 0
+            player.play().catch(() => {})
         }
     }
 
@@ -135,9 +123,8 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
             try {
                 const res = await fetch(`${API_BASE_URL}/conversations`)
                 if (!res.ok) throw new Error()
-                const data: {
-                    id: string; title: string; lastMessage: string | null; lastAt: string | null
-                }[] = await res.json()
+                const data: { id: string; title: string; lastMessage: string | null; lastAt: string | null }[] =
+                    await res.json()
 
                 const contacts = data.map<User>(c => {
                     const id = `user_${c.id}`
@@ -163,7 +150,7 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                             senderId: other.id,
                             text: c.lastMessage,
                             timestamp: lastAt,
-                            status: 'read' as const        // 👈 literal fixado
+                            status: 'read' as const
                         }
                         : undefined
                     return {
@@ -195,9 +182,8 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
             try {
                 const res = await fetch(`${API_BASE_URL}/conversations`)
                 if (!res.ok) return
-                const data: {
-                    id: string; title: string; lastMessage: string | null; lastAt: string | null
-                }[] = await res.json()
+                const data: { id: string; title: string; lastMessage: string | null; lastAt: string | null }[] =
+                    await res.json()
 
                 setConversations(prev => {
                     let changed = false
@@ -229,35 +215,35 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                         } else {
                             const contactId = `user_${c.id}`
                             const saved = contactDetailsMap[contactId] || {}
-                            if (!knownUsers.find(u => u.id === contactId)) {
-                                setKnownUsers(u => [
-                                    ...u,
-                                    {
-                                        id: contactId,
-                                        name: c.title,
-                                        avatarSeed: c.title.slice(0, 2),
-                                        avatarColor: 'default',
-                                        observation: saved.observation,
-                                        situation: saved.situation,
-                                        createdAt: new Date()
-                                    }
-                                ])
-                            }
+
+                            const contact =
+                                knownUsers.find(u => u.id === contactId) ||
+                                {
+                                    id: contactId,
+                                    name: c.title,
+                                    avatarSeed: c.title.slice(0, 2),
+                                    avatarColor: 'default',
+                                    observation: saved.observation,
+                                    situation: saved.situation,
+                                    createdAt: new Date()
+                                }
+
                             const stub: Conversation = {
                                 id: c.id,
-                                participants: [
-                                    currentUser,
-                                    knownUsers.find(u => u.id === contactId)!
-                                ],
+                                participants: [currentUser, contact],
                                 lastMessage: lastMsg,
                                 unreadCount: 1,
-                                name: c.title,
-                                avatarSeed: c.title.slice(0, 2),
-                                avatarColor: 'default',
+                                name: contact.name,
+                                avatarSeed: contact.avatarSeed,
+                                avatarColor: contact.avatarColor,
                                 createdAt: lastAt
                             }
+
                             next = [stub, ...next]
-                            if (lastMsg) triggerNotification(lastMsg, c.title)
+                            if (!knownUsers.find(u => u.id === contactId)) {
+                                setKnownUsers(u => [...u, contact!])
+                            }
+                            if (lastMsg) triggerNotification(lastMsg, contact.name)
                             changed = true
                         }
                     })
@@ -268,14 +254,17 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
         }
         const iv = setInterval(poll, 5000)
         return () => clearInterval(iv)
-    }, [currentUser, knownUsers, activeConversationId, contactDetailsMap])
+    }, [
+        currentUser,
+        knownUsers,
+        activeConversationId,
+        contactDetailsMap
+    ])
 
     const fetchMessages = useCallback(
         async (convId: string) => {
             try {
-                const res = await fetch(
-                    `${API_BASE_URL}/conversations/${convId}/messages`
-                )
+                const res = await fetch(`${API_BASE_URL}/conversations/${convId}/messages`)
                 const data: any[] = await res.json()
                 setMessages(
                     data
@@ -353,7 +342,7 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                                 senderId: currentUser.id,
                                 text,
                                 timestamp: toDate(saved.timestamp),
-                                status: 'sent'
+                                status: 'sent' as const
                             }
                         }
                         : c
@@ -372,9 +361,7 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
             `${API_BASE_URL}/conversations/${activeConversationId}`,
             { method: 'DELETE' }
         ).catch(console.error)
-        setConversations(prev =>
-            prev.filter(c => c.id !== activeConversationId)
-        )
+        setConversations(prev => prev.filter(c => c.id !== activeConversationId))
         setActiveConversationId(null)
         setMessages([])
     }
@@ -511,12 +498,14 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
         () => conversations.find(c => c.id === activeConversationId) || null,
         [conversations, activeConversationId]
     )
-    const otherId =
-        activeConversation?.participants.find(p => p.id !== currentUser.id)?.id
-    const activeContact = useMemo(
-        () => knownUsers.find(u => u.id === otherId),
-        [knownUsers, otherId]
-    )
+
+    const activeContact = useMemo(() => {
+        if (!activeConversation) return undefined
+        const other = activeConversation.participants.find(
+            p => p.id !== currentUser.id
+        ) as User | undefined
+        return knownUsers.find(u => u.id === other?.id) ?? other
+    }, [activeConversation, knownUsers, currentUser.id])
 
     return (
         <div className="chat-app-container">
