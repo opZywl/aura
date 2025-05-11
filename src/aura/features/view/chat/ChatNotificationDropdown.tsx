@@ -31,10 +31,10 @@ export const ChatNotificationDropdown: React.FC<ChatNotificationDropdownProps> =
     }, [onClose]);
 
     const getAudioUrl = (): string | null => {
-        const audioElement = document.createElement('audio');
-        if (audioElement.canPlayType('audio/wav')) return '/notifications/message.wav';
-        if (audioElement.canPlayType('audio/mpeg')) return '/notifications/message.mp3';
-        if (audioElement.canPlayType('audio/ogg')) return '/notifications/message.ogg';
+        const audio = document.createElement('audio');
+        if (audio.canPlayType('audio/wav')) return '/notifications/message.wav';
+        if (audio.canPlayType('audio/mpeg')) return '/notifications/message.mp3';
+        if (audio.canPlayType('audio/ogg')) return '/notifications/message.ogg';
         console.warn('Nenhum formato de áudio suportado encontrado para notificação.');
         return null;
     };
@@ -47,17 +47,18 @@ export const ChatNotificationDropdown: React.FC<ChatNotificationDropdownProps> =
 
     const handleSelect = async (value: NotificationMode, label: string) => {
         let permissionGranted = false;
+
         if (typeof Notification !== 'undefined') {
             if (Notification.permission === 'granted') {
                 permissionGranted = true;
             } else if (Notification.permission === 'default') {
                 const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    permissionGranted = true;
-                    console.log('Permissão para notificações concedida.');
-                } else {
-                    console.log('Permissão para notificações negada.');
-                }
+                permissionGranted = permission === 'granted';
+                console.log(
+                    permissionGranted
+                        ? 'Permissão para notificações concedida.'
+                        : 'Permissão para notificações negada.'
+                );
             }
         } else {
             console.warn('API de Notificações do Navegador não disponível.');
@@ -65,8 +66,10 @@ export const ChatNotificationDropdown: React.FC<ChatNotificationDropdownProps> =
 
         const audioUrl = getAudioUrl();
         if (audioUrl) {
-            const audio = new Audio(audioUrl);
-            audio.play().catch(err => console.warn('Erro ao tocar áudio de notificação:', err));
+            const audioElem = new Audio(audioUrl);
+            audioElem.play().catch(err => console.warn('Erro ao tocar áudio:', err));
+
+            (window as any).__notifAudio = audioElem;
         }
 
         if (permissionGranted) {
@@ -96,7 +99,9 @@ export const ChatNotificationDropdown: React.FC<ChatNotificationDropdownProps> =
                     <div
                         key={opt.value}
                         onClick={() => handleSelect(opt.value, opt.label)}
-                        className={`chat-options-dropdown-item${isActive ? ' active-notification-mode' : ''}`}
+                        className={`chat-options-dropdown-item${
+                            isActive ? ' active-notification-mode' : ''
+                        }`}
                     >
                         {opt.label}
                     </div>
