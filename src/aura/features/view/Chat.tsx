@@ -1,4 +1,3 @@
-// src/aura/features/view/Chat.tsx
 import React, {
     useState,
     useEffect,
@@ -24,16 +23,19 @@ import '../../styles/index.css'
 
 type ViewMode = 'normal' | 'full'
 const API_BASE_URL = 'http://localhost:3001/api'
-const toDate = (iso: string): Date =>
+const BACKEND_WS   = ''
+
+const toDate = (iso: string) =>
     new Date(iso.endsWith('Z') ? iso : iso + 'Z')
 
 const pickNotificationSound = (): string | null => {
-    const tester = document.createElement('audio')
-    if (tester.canPlayType('audio/mpeg')) return '/notifications/message.mp3'
-    if (tester.canPlayType('audio/ogg')) return '/notifications/message.ogg'
-    if (tester.canPlayType('audio/wav')) return '/notifications/message.wav'
+    const t = document.createElement('audio')
+    if (t.canPlayType('audio/mpeg')) return '/notifications/message.mp3'
+    if (t.canPlayType('audio/ogg'))  return '/notifications/message.ogg'
+    if (t.canPlayType('audio/wav'))  return '/notifications/message.wav'
     return null
 }
+const audioSrc = pickNotificationSound()
 
 const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                                                        currentUser = {
@@ -47,14 +49,16 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                                                    }) => {
     const [knownUsers, setKnownUsers] = useState<User[]>([currentUser])
     const [conversations, setConversations] = useState<Conversation[]>([])
-    const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+    const [activeConversationId, setActiveConversationId] =
+        useState<string | null>(null)
     const [messages, setMessages] = useState<Message[]>([])
     const [viewMode, setViewMode] = useState<ViewMode>('normal')
-    const [searchTerm, setSearchTerm] = useState<string>('')
-    const [notificationMode, setNotificationMode] = useState<NotificationMode>('all')
+    const [searchTerm, setSearchTerm] = useState('')
+    const [notificationMode] = useState<NotificationMode>('all')
     const [isContactInfoPanelOpen, setContactInfoPanelOpen] = useState(false)
     const [isTemplatePanelOpen, setIsTemplatePanelOpen] = useState(false)
-    const [activeSidebarFilter, setActiveSidebarFilter] = useState<ActiveSidebarFilter>('all')
+    const [activeSidebarFilter, setActiveSidebarFilter] =
+        useState<ActiveSidebarFilter>('all')
 
     const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([])
     const pushToast = (text: string) => {
@@ -63,32 +67,79 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
         setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 5000)
     }
 
+    useEffect(() => {
+        if (!audioSrc) return
+        const unlock = () => {
+            if (!(window as any).__notifAudio) {
+                const elem = new Audio(audioSrc)
+                elem.volume = 0.9
+                ;(window as any).__notifAudio = elem
+            }
+            window.removeEventListener('click', unlock)
+            window.removeEventListener('keydown', unlock)
+        }
+        window.addEventListener('click', unlock)
+        window.addEventListener('keydown', unlock)
+        return () => {
+            window.removeEventListener('click', unlock)
+            window.removeEventListener('keydown', unlock)
+        }
+    }, [])
+
+    const playNotificationSound = () => {
+        if (!audioSrc) return
+        const unlocked = (window as any).__notifAudio as
+            | HTMLAudioElement
+            | undefined
+
+        if (unlocked) {
+            unlocked.currentTime = 0
+            unlocked.play().catch(() => {})
+        } else {
+            const once = () => {
+                playNotificationSound()
+                window.removeEventListener('click', once)
+                window.removeEventListener('keydown', once)
+            }
+            window.addEventListener('click', once, { once: true })
+            window.addEventListener('keydown', once, { once: true })
+        }
+    }
+
+    const triggerNotification = (msg: Message, sender: string) => {
+        playNotificationSound()
+        pushToast(`${sender}: ${msg.text}`)
+
+        if ('Notification' in window) {
+            const show = () =>
+                new Notification(sender, { body: msg.text, icon: '/favicon.ico' })
+            if (Notification.permission === 'granted') show()
+            else if (Notification.permission === 'default') {
+                Notification.requestPermission().then(p => p === 'granted' && show())
+            }
+        }
+    }
+
     const [contactDetailsMap, setContactDetailsMap] = useState<
         Record<string, { observation?: string; situation?: ContactSituation }>
     >(() => {
         try {
             return JSON.parse(localStorage.getItem('contactDetailsMap') || '{}')
-        } catch {
-            return {}
-        }
+        } catch { return {} }
     })
-    const persistDetailsMap = (next: typeof contactDetailsMap) => {
+    const persistDetailsMap = (next: typeof contactDetailsMap) =>
         localStorage.setItem('contactDetailsMap', JSON.stringify(next))
-    }
 
     useEffect(() => {
-        const init = async () => {
+        const load = async () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/conversations`)
-                if (!res.ok) throw new Error('Falha ao carregar conversas')
-                const data = (await res.json()) as Array<{
-                    id: string
-                    title: string
-                    lastMessage: string | null
-                    lastAt: string | null
-                }>
+                if (!res.ok) throw new Error()
+                const data: {
+                    id: string; title: string; lastMessage: string | null; lastAt: string | null
+                }[] = await res.json()
 
-                const contacts: User[] = data.map(c => {
+                const contacts = data.map<User>(c => {
                     const id = `user_${c.id}`
                     const saved = contactDetailsMap[id] || {}
                     return {
@@ -96,23 +147,23 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                         name: c.title,
                         avatarSeed: c.title.slice(0, 2),
                         avatarColor: 'default',
-                        observation: saved.observation || '',
-                        situation: saved.situation || '',
+                        observation: saved.observation,
+                        situation: saved.situation,
                         createdAt: new Date()
                     }
                 })
                 setKnownUsers([currentUser, ...contacts])
 
-                const convs: Conversation[] = data.map(c => {
+                const convs = data.map<Conversation>(c => {
                     const other = contacts.find(u => u.id === `user_${c.id}`)!
                     const lastAt = c.lastAt ? toDate(c.lastAt) : new Date()
-                    const lastMsg: Message | undefined = c.lastMessage
+                    const lastMsg = c.lastMessage
                         ? {
                             id: `msg_${c.id}`,
                             senderId: other.id,
                             text: c.lastMessage,
                             timestamp: lastAt,
-                            status: 'read'
+                            status: 'read' as const        // 👈 literal fixado
                         }
                         : undefined
                     return {
@@ -134,107 +185,138 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                 )
                 setConversations(convs)
                 if (convs.length) setActiveConversationId(convs[0].id)
-            } catch (err) {
-                console.error(err)
-            }
+            } catch { console.error('Falha ao carregar conversas') }
         }
-        init()
+        load()
     }, [])
+
+    useEffect(() => {
+        const poll = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/conversations`)
+                if (!res.ok) return
+                const data: {
+                    id: string; title: string; lastMessage: string | null; lastAt: string | null
+                }[] = await res.json()
+
+                setConversations(prev => {
+                    let changed = false
+                    let next = [...prev]
+
+                    data.forEach(c => {
+                        const idx = next.findIndex(v => v.id === c.id)
+                        const lastAt = c.lastAt ? toDate(c.lastAt) : new Date()
+                        const lastMsg = c.lastMessage
+                            ? {
+                                id: `msg_${c.id}`,
+                                senderId: `user_${c.id}`,
+                                text: c.lastMessage,
+                                timestamp: lastAt,
+                                status: 'delivered' as const
+                            }
+                            : undefined
+
+                        if (idx !== -1) {
+                            if (
+                                (!next[idx].lastMessage && lastMsg) ||
+                                next[idx].lastMessage?.text !== c.lastMessage
+                            ) {
+                                if (activeConversationId !== c.id && lastMsg)
+                                    triggerNotification(lastMsg, c.title)
+                                next[idx] = { ...next[idx], lastMessage: lastMsg }
+                                changed = true
+                            }
+                        } else {
+                            const contactId = `user_${c.id}`
+                            const saved = contactDetailsMap[contactId] || {}
+                            if (!knownUsers.find(u => u.id === contactId)) {
+                                setKnownUsers(u => [
+                                    ...u,
+                                    {
+                                        id: contactId,
+                                        name: c.title,
+                                        avatarSeed: c.title.slice(0, 2),
+                                        avatarColor: 'default',
+                                        observation: saved.observation,
+                                        situation: saved.situation,
+                                        createdAt: new Date()
+                                    }
+                                ])
+                            }
+                            const stub: Conversation = {
+                                id: c.id,
+                                participants: [
+                                    currentUser,
+                                    knownUsers.find(u => u.id === contactId)!
+                                ],
+                                lastMessage: lastMsg,
+                                unreadCount: 1,
+                                name: c.title,
+                                avatarSeed: c.title.slice(0, 2),
+                                avatarColor: 'default',
+                                createdAt: lastAt
+                            }
+                            next = [stub, ...next]
+                            if (lastMsg) triggerNotification(lastMsg, c.title)
+                            changed = true
+                        }
+                    })
+
+                    return changed ? next : prev
+                })
+            } catch {/* ignore */}
+        }
+        const iv = setInterval(poll, 5000)
+        return () => clearInterval(iv)
+    }, [currentUser, knownUsers, activeConversationId, contactDetailsMap])
 
     const fetchMessages = useCallback(
         async (convId: string) => {
             try {
-                const res = await fetch(`${API_BASE_URL}/conversations/${convId}/messages`)
-                const data = (await res.json()) as any[]
+                const res = await fetch(
+                    `${API_BASE_URL}/conversations/${convId}/messages`
+                )
+                const data: any[] = await res.json()
                 setMessages(
                     data
                         .filter(m => m.sender !== 'system')
                         .map(
-                            (m): Message => ({
-                                id: m.id,
-                                senderId: m.sender,
-                                text: m.text,
-                                timestamp: toDate(m.timestamp),
-                                status: m.sender === currentUser.id ? 'read' : 'delivered'
-                            })
+                            m =>
+                                ({
+                                    id: m.id,
+                                    senderId: m.sender,
+                                    text: m.text,
+                                    timestamp: toDate(m.timestamp),
+                                    status:
+                                        m.sender === currentUser.id ? 'read' : 'delivered'
+                                } as Message)
                         )
                 )
-            } catch (err) {
-                console.error('Erro ao carregar mensagens:', err)
-            }
+            } catch {}
         },
         [currentUser.id]
     )
 
     useEffect(() => {
-        if (!activeConversationId) {
-            setMessages([])
-            return
-        }
+        if (!activeConversationId) { setMessages([]); return }
         fetchMessages(activeConversationId)
-        const iv = setInterval(() => fetchMessages(activeConversationId!), 3000)
+        const iv = setInterval(() => fetchMessages(activeConversationId), 3000)
         return () => clearInterval(iv)
     }, [activeConversationId, fetchMessages])
 
-    const playNotificationSound = () => {
-        const unlocked = (window as any).__notifAudio as HTMLAudioElement | undefined
-        if (unlocked) {
-            unlocked.currentTime = 0
-            unlocked.play().catch(() => {})
-            return
-        }
-        const url = pickNotificationSound()
-        if (url) new Audio(url).play().catch(() => {})
-    }
-
-    const lastMsgIdNotified = useRef<string | null>(null)
-    const triggerNotification = (msg: Message, senderName: string) => {
-        playNotificationSound()
-        pushToast(`${senderName}: ${msg.text}`)
-
-        if ('Notification' in window) {
-            const notify = () =>
-                new Notification(senderName, {
-                    body: msg.text,
-                    icon: '/favicon.ico',
-                    silent: false
-                })
-            if (Notification.permission === 'granted') {
-                notify()
-            } else if (Notification.permission === 'default') {
-                Notification.requestPermission().then(p => p === 'granted' && notify())
-            }
-        }
-    }
-
+    const lastNotified = useRef<string | null>(null)
     useEffect(() => {
         if (!messages.length) return
         const last = messages[messages.length - 1]
-
         if (last.senderId === currentUser.id) return
-        if (lastMsgIdNotified.current === last.id) return
-
-        if (notificationMode === 'off') return
-        if (notificationMode === 'awaiting') {
-            const conv = conversations.find(c => c.id === activeConversationId)
-            if (conv && conv.lastMessage?.senderId === currentUser.id) return
-        }
-
+        if (lastNotified.current === last.id) return
         const sender =
             knownUsers.find(u => u.id === last.senderId)?.nickname ||
             knownUsers.find(u => u.id === last.senderId)?.name ||
-            'Nova mensagem'
-
+            'Contato'
         triggerNotification(last, sender)
-        lastMsgIdNotified.current = last.id
-    }, [
-        messages,
-        notificationMode,
-        currentUser.id,
-        knownUsers,
-        activeConversationId,
-        conversations
-    ])
+        lastNotified.current = last.id
+    }, [messages, knownUsers, currentUser.id])
 
     const handleSendMessage = async (text: string) => {
         if (!activeConversationId) return
@@ -258,13 +340,14 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                     body: JSON.stringify({ sender: currentUser.id, text })
                 }
             )
-            if (!res.ok) throw new Error(await res.text())
+            if (!res.ok) throw new Error()
             const saved = await res.json()
+            await fetchMessages(activeConversationId)
             setConversations(prev =>
-                prev.map(conv =>
-                    conv.id === activeConversationId
+                prev.map(c =>
+                    c.id === activeConversationId
                         ? {
-                            ...conv,
+                            ...c,
                             lastMessage: {
                                 id: saved.id,
                                 senderId: currentUser.id,
@@ -273,12 +356,10 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                                 status: 'sent'
                             }
                         }
-                        : conv
+                        : c
                 )
             )
-            await fetchMessages(activeConversationId)
-        } catch (err) {
-            console.error('Erro ao enviar mensagem:', err)
+        } catch {
             setMessages(prev =>
                 prev.map(m => (m.id === tmpId ? { ...m, status: 'error' } : m))
             )
@@ -287,42 +368,21 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
 
     const handleCloseConversation = async () => {
         if (!activeConversationId) return
-        try {
-            await fetch(`${API_BASE_URL}/conversations/${activeConversationId}`, {
-                method: 'DELETE'
-            })
-        } catch (err) {
-            console.error('Erro ao encerrar conversa:', err)
-        }
-        setConversations(prev => prev.filter(c => c.id !== activeConversationId))
+        await fetch(
+            `${API_BASE_URL}/conversations/${activeConversationId}`,
+            { method: 'DELETE' }
+        ).catch(console.error)
+        setConversations(prev =>
+            prev.filter(c => c.id !== activeConversationId)
+        )
         setActiveConversationId(null)
         setMessages([])
     }
 
-    const availableTemplates = useMemo(
-        () => [
-            { id: 'template_1', text: 'Seu código de identificação é {{1}}.', paramCount: 1 },
-            { id: 'template_2', text: 'Olá {{1}}, sua fatura vence em {{2}}.', paramCount: 2 },
-            { id: 'template_3', text: 'Bem-vindo à nossa plataforma! Seu onboarding começa agora.', paramCount: 0 }
-        ],
-        []
-    )
-
-    const handleSendTemplateMessage = async (
-        phoneNumber: string,
-        ddi: string,
-        templateId: string,
-        params: string[]
+    const handleUpdateContactNickname = (
+        contactId: string,
+        nick: string | null
     ) => {
-        const tpl = availableTemplates.find(t => t.id === templateId)
-        if (!tpl) return
-        let texto = tpl.text
-        params.forEach((p, i) => (texto = texto.replace(`{{${i + 1}}}`, p)))
-        await handleSendMessage(texto)
-        setIsTemplatePanelOpen(false)
-    }
-
-    const handleUpdateContactNickname = (contactId: string, nick: string | null) => {
         setKnownUsers(prev =>
             prev.map(u => (u.id === contactId ? { ...u, nickname: nick || undefined } : u))
         )
@@ -330,7 +390,7 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
             prev.map(conv => ({
                 ...conv,
                 name: conv.participants.some(p => p.id === contactId)
-                    ? nick || knownUsers.find(u => u.id === contactId)!.name
+                    ? nick || knownUsers.find(u => u.id === contactId)?.name
                     : conv.name
             }))
         )
@@ -340,12 +400,14 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
         contactId: string,
         details: Partial<Pick<User, 'observation' | 'situation'>>
     ) => {
-        setKnownUsers(p => p.map(u => (u.id === contactId ? { ...u, ...details } : u)))
-        setConversations(p =>
-            p.map(conv => ({
+        setKnownUsers(prev =>
+            prev.map(u => (u.id === contactId ? { ...u, ...details } : u))
+        )
+        setConversations(prev =>
+            prev.map(conv => ({
                 ...conv,
-                participants: conv.participants.map(c =>
-                    c.id === contactId ? { ...c, ...details } : c
+                participants: conv.participants.map(p =>
+                    p.id === contactId ? { ...p, ...details } : p
                 )
             }))
         )
@@ -356,14 +418,91 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
         })
     }
 
+    useEffect(() => {
+        if (!BACKEND_WS) return
+        const ws = new WebSocket(BACKEND_WS)
+
+        ws.addEventListener('message', evt => {
+            const incoming = JSON.parse(evt.data) as {
+                conversationId: string; id: string; senderId: string; text: string; timestamp: string
+            }
+
+            setConversations(prev => {
+                const idx = prev.findIndex(c => c.id === incoming.conversationId)
+
+                if (idx !== -1) {
+                    const upd: Conversation = {
+                        ...prev[idx],
+                        lastMessage: {
+                            id: incoming.id,
+                            senderId: incoming.senderId,
+                            text: incoming.text,
+                            timestamp: new Date(incoming.timestamp),
+                            status: 'delivered' as const
+                        },
+                        unreadCount:
+                            prev[idx].id === activeConversationId
+                                ? prev[idx].unreadCount ?? 0
+                                : (prev[idx].unreadCount ?? 0) + 1
+                    }
+                    if (activeConversationId !== upd.id)
+                        triggerNotification(upd.lastMessage!, upd.name || 'Contato')
+                    return [upd, ...prev.slice(0, idx), ...prev.slice(idx + 1)]
+                }
+
+                const contactId = `user_${incoming.conversationId}`
+                const saved = contactDetailsMap[contactId] || {}
+                let contact = knownUsers.find(u => u.id === contactId)
+                if (!contact) {
+                    contact = {
+                        id: contactId,
+                        name: incoming.senderId,
+                        avatarSeed: incoming.senderId.slice(0, 2),
+                        avatarColor: 'default',
+                        observation: saved.observation,
+                        situation: saved.situation,
+                        createdAt: new Date()
+                    }
+                    setKnownUsers(u => [...u, contact!])
+                }
+                const stub: Conversation = {
+                    id: incoming.conversationId,
+                    participants: [currentUser, contact!],
+                    lastMessage: {
+                        id: incoming.id,
+                        senderId: incoming.senderId,
+                        text: incoming.text,
+                        timestamp: new Date(incoming.timestamp),
+                        status: 'delivered' as const
+                    },
+                    unreadCount: 1,
+                    name: contact!.name,
+                    avatarSeed: contact!.avatarSeed,
+                    avatarColor: contact!.avatarColor,
+                    createdAt: new Date(incoming.timestamp)
+                }
+                triggerNotification(stub.lastMessage!, stub.name || 'Contato')
+                return [stub, ...prev]
+            })
+        })
+
+        return () => ws.close()
+    }, [
+        BACKEND_WS,
+        currentUser,
+        knownUsers,
+        contactDetailsMap,
+        activeConversationId
+    ])
+
     const filteredConversations = useMemo(() => {
         let list = conversations
         if (searchTerm.trim()) {
             const term = searchTerm.toLowerCase()
-            list = list.filter(conv => conv.name?.toLowerCase().includes(term))
+            list = list.filter(c => c.name?.toLowerCase().includes(term))
         }
         if (activeSidebarFilter === 'awaiting') {
-            list = list.filter(conv => conv.lastMessage?.senderId !== currentUser.id)
+            list = list.filter(c => c.lastMessage?.senderId !== currentUser.id)
         }
         return list
     }, [conversations, searchTerm, activeSidebarFilter, currentUser.id])
@@ -372,9 +511,10 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
         () => conversations.find(c => c.id === activeConversationId) || null,
         [conversations, activeConversationId]
     )
-    const otherId = activeConversation?.participants.find(p => p.id !== currentUser.id)?.id
+    const otherId =
+        activeConversation?.participants.find(p => p.id !== currentUser.id)?.id
     const activeContact = useMemo(
-        () => (otherId ? knownUsers.find(u => u.id === otherId) : undefined),
+        () => knownUsers.find(u => u.id === otherId),
         [knownUsers, otherId]
     )
 
@@ -384,7 +524,9 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                 className={`
           chat-layout
           ${viewMode === 'normal' ? 'normal-mode' : 'full-mode'}
-          ${(isContactInfoPanelOpen || isTemplatePanelOpen) ? 'with-side-panel' : ''}
+          ${
+                    isContactInfoPanelOpen || isTemplatePanelOpen ? 'with-side-panel' : ''
+                }
         `}
             >
                 <ChatSidebar
@@ -403,18 +545,20 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                     activeFilter={activeSidebarFilter}
                     onChangeFilter={setActiveSidebarFilter}
                     totalActiveCount={filteredConversations.length}
-                    totalAwaitingCount={filteredConversations.filter(
-                        c => c.lastMessage?.senderId !== currentUser.id
-                    ).length}
+                    totalAwaitingCount={
+                        filteredConversations.filter(
+                            c => c.lastMessage?.senderId !== currentUser.id
+                        ).length
+                    }
                 />
 
                 <div className="chat-main">
                     {isTemplatePanelOpen ? (
                         <ChatTemplate
-                            onSendTemplate={handleSendTemplateMessage}
+                            onSendTemplate={() => {}}
                             onClose={() => setIsTemplatePanelOpen(false)}
                         />
-                    ) : (
+                    ) : activeConversationId ? (
                         <>
                             {activeContact && (
                                 <ChatHeader
@@ -430,27 +574,23 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                                         setContactInfoPanelOpen(true)
                                         setIsTemplatePanelOpen(false)
                                     }}
-                                    onChangeNotificationMode={setNotificationMode}
+                                    onChangeNotificationMode={() => {}}
                                     onUpdateContactNickname={handleUpdateContactNickname}
                                     onCloseConversation={handleCloseConversation}
                                 />
                             )}
 
-                            {activeConversationId ? (
-                                <>
-                                    <ChatMessages
-                                        messages={messages}
-                                        currentUser={currentUser}
-                                        participants={activeConversation?.participants || []}
-                                    />
-                                    <ChatInput onSendMessage={handleSendMessage} />
-                                </>
-                            ) : (
-                                <div className="chat-empty-prompt">
-                                    Selecione uma conversa para começar.
-                                </div>
-                            )}
+                            <ChatMessages
+                                messages={messages}
+                                currentUser={currentUser}
+                                participants={activeConversation?.participants || []}
+                            />
+                            <ChatInput onSendMessage={handleSendMessage} />
                         </>
+                    ) : (
+                        <div className="chat-empty-prompt">
+                            Selecione uma conversa para começar.
+                        </div>
                     )}
                 </div>
 
