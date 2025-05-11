@@ -28,25 +28,28 @@ const BACKEND_WS   = ''
 const toDate = (iso: string) =>
     new Date(iso.endsWith('Z') ? iso : iso + 'Z')
 
-const pickSound = () => {
+const pickSound = (): string | null => {
     const t = document.createElement('audio')
     if (t.canPlayType('audio/mpeg')) return '/notifications/message.mp3'
     if (t.canPlayType('audio/ogg'))  return '/notifications/message.ogg'
     if (t.canPlayType('audio/wav'))  return '/notifications/message.wav'
+    console.warn('Nenhum formato de áudio suportado encontrado para notificação (pickSound).');
     return null
 }
 const audioSrc = pickSound()
 
 const ChatPage: React.FC<Partial<ChatAppProps>> = ({
-                                                       currentUser = {
-                                                           id: 'user_currentUser',
-                                                           name: 'Você',
-                                                           avatarSeed: 'VC',
-                                                           avatarColor: 'default',
-                                                           phoneNumber: '550000000000',
-                                                           createdAt: new Date()
-                                                       }
+                                                       currentUser: initialCurrentUser
                                                    }) => {
+    const currentUser = initialCurrentUser || {
+        id: 'user_currentUser',
+        name: 'Você',
+        avatarSeed: 'VC',
+        avatarColor: 'default',
+        phoneNumber: '550000000000',
+        createdAt: new Date()
+    };
+
     const [knownUsers, setKnownUsers] = useState<User[]>([currentUser])
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [activeConversationId, setActiveConversationId] =
@@ -54,334 +57,391 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
     const [messages, setMessages] = useState<Message[]>([])
     const [viewMode, setViewMode] = useState<ViewMode>('normal')
     const [searchTerm, setSearchTerm] = useState('')
-    const [notificationMode] = useState<NotificationMode>('all')
+    const [notificationMode, setNotificationMode] =
+        useState<NotificationMode>('all')
     const [isContactInfoPanelOpen, setContactInfoPanelOpen] = useState(false)
     const [isTemplatePanelOpen, setIsTemplatePanelOpen] = useState(false)
     const [activeSidebarFilter, setActiveSidebarFilter] =
         useState<ActiveSidebarFilter>('all')
 
     const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([])
-    const pushToast = (text: string) => {
+    const pushToast = useCallback((text: string) => {
         const id = Date.now()
         setToasts(p => [...p, { id, text }])
         setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 5000)
-    }
-
-    useEffect(() => {
-        if (!audioSrc) return
-        const unlock = () => {
-            if (!(window as any).__notifAudio) {
-                const a = new Audio(audioSrc)
-                a.volume = 0.9
-                ;(window as any).__notifAudio = a
-            }
-            window.removeEventListener('click', unlock)
-            window.removeEventListener('keydown', unlock)
-        }
-        window.addEventListener('click', unlock)
-        window.addEventListener('keydown', unlock)
-        return () => {
-            window.removeEventListener('click', unlock)
-            window.removeEventListener('keydown', unlock)
-        }
     }, [])
 
-    const playNotificationSound = () => {
+    useEffect(() => {
+        if (!audioSrc) return;
+        const unlockAudioContext = () => {
+            if (!(window as any).__notifAudio) {
+                const audio = new Audio(audioSrc!);
+                audio.volume = 0.9;
+                (window as any).__notifAudio = audio;
+            }
+        };
+        window.addEventListener('click', unlockAudioContext, { once: true });
+        window.addEventListener('keydown', unlockAudioContext, { once: true });
+        return () => {
+            window.removeEventListener('click', unlockAudioContext);
+            window.removeEventListener('keydown', unlockAudioContext);
+        };
+    }, []);
+
+    const playNotificationSound = useCallback(() => {
         const player = (window as any).__notifAudio as HTMLAudioElement | undefined
         if (player) {
             player.currentTime = 0
-            player.play().catch(() => {})
+            player.play().catch(error => console.warn('Erro ao tocar som de notificação:', error))
         }
-    }
+    }, [])
 
-    const triggerNotification = (msg: Message, sender: string) => {
-        playNotificationSound()
-        pushToast(`${sender}: ${msg.text}`)
+    const triggerNotification = useCallback((
+        msg: Message,
+        senderName: string,
+        convId: string
+    ) => {
+        if (notificationMode === 'off') return;
 
-        if ('Notification' in window) {
-            const show = () =>
-                new Notification(sender, { body: msg.text, icon: '/favicon.ico' })
-            if (Notification.permission === 'granted') show()
-            else if (Notification.permission === 'default') {
-                Notification.requestPermission().then(p => p === 'granted' && show())
+        const isMessageFromSelf = msg.senderId === currentUser.id;
+        const isChatActiveAndFocused = convId === activeConversationId && document.hasFocus();
+
+        if (notificationMode === 'awaiting') {
+            if (isMessageFromSelf || isChatActiveAndFocused) return;
+        } else if (notificationMode === 'all') {
+            if (isMessageFromSelf && isChatActiveAndFocused) {
+
+                // return;
             }
         }
-    }
+
+        playNotificationSound();
+        if (!isMessageFromSelf) {
+            pushToast(`${senderName}: ${msg.text}`);
+        }
+
+        if ('Notification' in window && Notification.permission === 'granted' && !isMessageFromSelf) {
+            new Notification(senderName, {
+                body: msg.text, icon: '/favicon.ico', tag: convId, renotify: true,
+            });
+        } else if ('Notification' in window && Notification.permission === 'default' && !isMessageFromSelf) {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    new Notification(senderName, {
+                        body: msg.text, icon: '/favicon.ico', tag: convId, renotify: true,
+                    });
+                }
+            });
+        }
+    }, [notificationMode, currentUser.id, activeConversationId, playNotificationSound, pushToast]);
 
     const [contactDetailsMap, setContactDetailsMap] = useState<
         Record<string, { observation?: string; situation?: ContactSituation }>
     >(() => {
         try {
-            return JSON.parse(localStorage.getItem('contactDetailsMap') || '{}')
+            const stored = localStorage.getItem('contactDetailsMap');
+            return stored ? JSON.parse(stored) : {};
         } catch { return {} }
-    })
-    const persistDetailsMap = (next: typeof contactDetailsMap) =>
-        localStorage.setItem('contactDetailsMap', JSON.stringify(next))
+    });
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                const res = await fetch(`${API_BASE_URL}/conversations`)
-                if (!res.ok) throw new Error()
-                const data: { id: string; title: string; lastMessage: string | null; lastAt: string | null }[] =
-                    await res.json()
-
-                const contacts = data.map<User>(c => {
-                    const id = `user_${c.id}`
-                    const saved = contactDetailsMap[id] || {}
-                    return {
-                        id,
-                        name: c.title,
-                        avatarSeed: c.title.slice(0, 2),
-                        avatarColor: 'default',
-                        observation: saved.observation,
-                        situation: saved.situation,
-                        createdAt: new Date()
-                    }
-                })
-                setKnownUsers([currentUser, ...contacts])
-
-                const convs = data.map<Conversation>(c => {
-                    const other = contacts.find(u => u.id === `user_${c.id}`)!
-                    const lastAt = c.lastAt ? toDate(c.lastAt) : new Date()
-                    const lastMsg = c.lastMessage
-                        ? {
-                            id: `msg_${c.id}`,
-                            senderId: other.id,
-                            text: c.lastMessage,
-                            timestamp: lastAt,
-                            status: 'read' as const
-                        }
-                        : undefined
-                    return {
-                        id: c.id,
-                        participants: [currentUser, other],
-                        lastMessage: lastMsg,
-                        unreadCount:
-                            lastMsg && lastMsg.senderId !== currentUser.id ? 1 : 0,
-                        name: other.nickname || other.name,
-                        avatarSeed: other.avatarSeed,
-                        avatarColor: other.avatarColor,
-                        createdAt: lastAt
-                    }
-                })
-                convs.sort(
-                    (a, b) =>
-                        (b.lastMessage?.timestamp.getTime() || 0) -
-                        (a.lastMessage?.timestamp.getTime() || 0)
-                )
-                setConversations(convs)
-                if (convs.length) setActiveConversationId(convs[0].id)
-            } catch { console.error('Falha ao carregar conversas') }
+    const persistDetailsMap = useCallback((next: typeof contactDetailsMap) => {
+        try {
+            localStorage.setItem('contactDetailsMap', JSON.stringify(next));
+        } catch (e) {
+            console.error("Failed to persist contact details map:", e);
         }
-        load()
-    }, [])
+    }, []);
 
     useEffect(() => {
-        const poll = async () => {
+        const loadInitialConversations = async () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/conversations`)
-                if (!res.ok) return
-                const data: { id: string; title: string; lastMessage: string | null; lastAt: string | null }[] =
-                    await res.json()
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                const data: {
+                    id: string; title: string; lastMessage: string | null; lastAt: string | null;
+                }[] = await res.json()
 
-                setConversations(prev => {
-                    let changed = false
-                    let next = [...prev]
+                const newKnownUsers = [...knownUsers];
+                const loadedConversations = data.map<Conversation>(c => {
+                    const contactId = `user_${c.id}`;
+                    let contact = newKnownUsers.find(u => u.id === contactId);
+                    const savedDetails = contactDetailsMap[contactId] || {};
 
-                    data.forEach(c => {
-                        const idx = next.findIndex(v => v.id === c.id)
-                        const lastAt = c.lastAt ? toDate(c.lastAt) : new Date()
-                        const lastMsg = c.lastMessage
+                    if (!contact) {
+                        contact = {
+                            id: contactId, name: c.title, avatarSeed: c.title.slice(0, 2).toUpperCase(),
+                            avatarColor: 'default', observation: savedDetails.observation,
+                            situation: savedDetails.situation, createdAt: new Date()
+                        };
+                        newKnownUsers.push(contact);
+                    } else {
+                        contact = { ...contact, ...savedDetails, nickname: contact.nickname };
+                    }
+
+
+                    const lastMessageTimestamp = c.lastAt ? toDate(c.lastAt) : new Date(0);
+                    const lastMsg: Message | undefined = c.lastMessage
+                        ? {
+                            id: `msg_initial_${c.id}_${Date.now()}`, senderId: contact.id,
+                            text: c.lastMessage, timestamp: lastMessageTimestamp, status: 'read'
+                        }
+                        : undefined;
+
+                    return {
+                        id: c.id, participants: [currentUser, contact], lastMessage: lastMsg,
+                        unreadCount: (lastMsg && lastMsg.senderId !== currentUser.id) ? 1 : 0,
+                        name: contact.nickname || contact.name, avatarSeed: contact.avatarSeed,
+                        avatarColor: contact.avatarColor, createdAt: lastMessageTimestamp
+                    };
+                });
+
+                loadedConversations.sort(
+                    (a, b) =>
+                        (b.lastMessage?.timestamp.getTime() || b.createdAt.getTime()) -
+                        (a.lastMessage?.timestamp.getTime() || a.createdAt.getTime())
+                );
+
+                setKnownUsers(newKnownUsers);
+                setConversations(loadedConversations);
+                if (loadedConversations.length > 0) {
+                    setActiveConversationId(loadedConversations[0].id);
+                }
+            } catch (error) {
+                console.error('Falha ao carregar conversas iniciais:', error);
+                pushToast('Erro ao carregar conversas.');
+            }
+        };
+        loadInitialConversations();
+    }, [currentUser.id, persistDetailsMap]);
+
+    useEffect(() => {
+        const pollConversations = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/conversations`);
+                if (!res.ok) { console.warn(`Polling conversations failed: ${res.status}`); return; }
+                const data: {
+                    id: string; title: string; lastMessage: string | null; lastAt: string | null;
+                }[] = await res.json();
+
+                setConversations(prevConvs => {
+                    let conversationsChanged = false;
+                    let nextConvs = [...prevConvs];
+
+                    let tempKnownUsers = [...knownUsers];
+                    let knownUsersUpdatedInLoop = false;
+
+
+                    data.forEach(apiConv => {
+                        const existingConvIndex = nextConvs.findIndex(c => c.id === apiConv.id);
+                        const lastMessageTimestamp = apiConv.lastAt ? toDate(apiConv.lastAt) : new Date();
+                        const contactIdForLastMessage = `user_${apiConv.id}`;
+
+                        const lastMsg: Message | undefined = apiConv.lastMessage
                             ? {
-                                id: `msg_${c.id}`,
-                                senderId: `user_${c.id}`,
-                                text: c.lastMessage,
-                                timestamp: lastAt,
-                                status: 'delivered' as const
+                                id: `msg_poll_${apiConv.id}_${Date.now()}`, senderId: contactIdForLastMessage,
+                                text: apiConv.lastMessage, timestamp: lastMessageTimestamp, status: 'delivered',
                             }
-                            : undefined
+                            : undefined;
 
-                        if (idx !== -1) {
+                        if (existingConvIndex !== -1) {
+                            const currentConv = nextConvs[existingConvIndex];
                             if (
-                                (!next[idx].lastMessage && lastMsg) ||
-                                next[idx].lastMessage?.text !== c.lastMessage
+                                (!currentConv.lastMessage && lastMsg) ||
+                                (currentConv.lastMessage && lastMsg && currentConv.lastMessage.text !== lastMsg.text) ||
+                                (currentConv.lastMessage && lastMsg && currentConv.lastMessage.timestamp.getTime() < lastMsg.timestamp.getTime())
                             ) {
-                                if (activeConversationId !== c.id && lastMsg)
-                                    triggerNotification(lastMsg, c.title)
-                                next[idx] = { ...next[idx], lastMessage: lastMsg }
-                                changed = true
+                                const updatedConv = { ...currentConv, lastMessage: lastMsg };
+                                if (lastMsg && lastMsg.senderId !== currentUser.id) {
+                                    updatedConv.unreadCount = (updatedConv.unreadCount || 0) + 1;
+                                    const sender = tempKnownUsers.find(u => u.id === lastMsg.senderId);
+                                    triggerNotification(lastMsg, sender?.name || apiConv.title, apiConv.id);
+                                }
+                                nextConvs[existingConvIndex] = updatedConv;
+                                conversationsChanged = true;
                             }
                         } else {
-                            const contactId = `user_${c.id}`
-                            const saved = contactDetailsMap[contactId] || {}
-
-                            const contact =
-                                knownUsers.find(u => u.id === contactId) ||
-                                {
-                                    id: contactId,
-                                    name: c.title,
-                                    avatarSeed: c.title.slice(0, 2),
-                                    avatarColor: 'default',
-                                    observation: saved.observation,
-                                    situation: saved.situation,
-                                    createdAt: new Date()
-                                }
-
-                            const stub: Conversation = {
-                                id: c.id,
-                                participants: [currentUser, contact],
-                                lastMessage: lastMsg,
-                                unreadCount: 1,
-                                name: contact.name,
-                                avatarSeed: contact.avatarSeed,
-                                avatarColor: contact.avatarColor,
-                                createdAt: lastAt
+                            const contactId = `user_${apiConv.id}`;
+                            let contact = tempKnownUsers.find(u => u.id === contactId);
+                            const savedDetails = contactDetailsMap[contactId] || {};
+                            if (!contact) {
+                                contact = {
+                                    id: contactId, name: apiConv.title, avatarSeed: apiConv.title.slice(0, 2).toUpperCase(),
+                                    avatarColor: 'default', observation: savedDetails.observation,
+                                    situation: savedDetails.situation, createdAt: new Date(),
+                                };
+                                tempKnownUsers.push(contact);
+                                knownUsersUpdatedInLoop = true;
+                            } else {
+                                contact = {...contact, ...savedDetails, nickname: contact.nickname};
+                                tempKnownUsers = tempKnownUsers.map(u => u.id === contactId ? contact! : u);
+                                knownUsersUpdatedInLoop = true;
                             }
 
-                            next = [stub, ...next]
-                            if (!knownUsers.find(u => u.id === contactId)) {
-                                setKnownUsers(u => [...u, contact!])
+
+                            const newConversation: Conversation = {
+                                id: apiConv.id, participants: [currentUser, contact!], lastMessage: lastMsg,
+                                unreadCount: (lastMsg && lastMsg.senderId !== currentUser.id) ? 1 : 0,
+                                name: contact!.nickname || contact!.name, avatarSeed: contact!.avatarSeed,
+                                avatarColor: contact!.avatarColor, createdAt: lastMessageTimestamp,
+                            };
+                            nextConvs = [newConversation, ...nextConvs];
+                            if (lastMsg && lastMsg.senderId !== currentUser.id) {
+                                triggerNotification(lastMsg, contact!.name, apiConv.id);
                             }
-                            if (lastMsg) triggerNotification(lastMsg, contact.name)
-                            changed = true
+                            conversationsChanged = true;
                         }
-                    })
+                    });
 
-                    return changed ? next : prev
-                })
-            } catch {/* ignore */}
-        }
-        const iv = setInterval(poll, 5000)
-        return () => clearInterval(iv)
-    }, [
-        currentUser,
-        knownUsers,
-        activeConversationId,
-        contactDetailsMap
-    ])
+                    if (knownUsersUpdatedInLoop) {
+                        setKnownUsers(tempKnownUsers);
+                    }
+
+                    if (conversationsChanged) {
+                        nextConvs.sort(
+                            (a, b) =>
+                                (b.lastMessage?.timestamp.getTime() || b.createdAt.getTime()) -
+                                (a.lastMessage?.timestamp.getTime() || a.createdAt.getTime())
+                        );
+                        return nextConvs;
+                    }
+                    return prevConvs;
+                });
+            } catch (error) { console.error('Erro durante polling de conversas:', error); }
+        };
+        const intervalId = setInterval(pollConversations, 5000);
+        return () => clearInterval(intervalId);
+    }, [currentUser.id, triggerNotification, contactDetailsMap, knownUsers]);
 
     const fetchMessages = useCallback(
         async (convId: string) => {
+            if (!convId) return;
             try {
                 const res = await fetch(`${API_BASE_URL}/conversations/${convId}/messages`)
-                const data: any[] = await res.json()
-                setMessages(
-                    data
-                        .filter(m => m.sender !== 'system')
-                        .map(
-                            m =>
-                                ({
-                                    id: m.id,
-                                    senderId: m.sender,
-                                    text: m.text,
-                                    timestamp: toDate(m.timestamp),
-                                    status:
-                                        m.sender === currentUser.id ? 'read' : 'delivered'
-                                } as Message)
-                        )
-                )
-            } catch {}
-        },
-        [currentUser.id]
-    )
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                const data: {
+                    id: string; sender: string; text: string; timestamp: string;
+                }[] = await res.json();
+                const newMessages = data
+                    .filter(m => m.sender !== 'system')
+                    .map(m => ({
+                        id: m.id, senderId: m.sender, text: m.text,
+                        timestamp: toDate(m.timestamp),
+                        status: m.sender === currentUser.id ? 'read' : 'delivered'
+                    } as Message));
+                setMessages(newMessages);
+                setConversations(prev => prev.map(c => c.id === convId ? { ...c, unreadCount: 0 } : c));
+            } catch (error) {
+                console.error(`Falha ao carregar mensagens para ${convId}:`, error);
+                pushToast('Erro ao carregar mensagens.');
+            }
+        }, [currentUser.id, pushToast]
+    );
 
     useEffect(() => {
-        if (!activeConversationId) { setMessages([]); return }
-        fetchMessages(activeConversationId)
-        const iv = setInterval(() => fetchMessages(activeConversationId), 3000)
-        return () => clearInterval(iv)
-    }, [activeConversationId, fetchMessages])
+        if (!activeConversationId) { setMessages([]); return; }
+        fetchMessages(activeConversationId);
+        const intervalId = setInterval(() => fetchMessages(activeConversationId!), 3000);
+        return () => clearInterval(intervalId);
+    }, [activeConversationId, fetchMessages]);
 
-    const lastNotified = useRef<string | null>(null)
+    const lastNotifiedMessageId = useRef<string | null>(null);
     useEffect(() => {
-        if (!messages.length) return
-        const last = messages[messages.length - 1]
-        if (last.senderId === currentUser.id) return
-        if (lastNotified.current === last.id) return
-        const sender =
-            knownUsers.find(u => u.id === last.senderId)?.nickname ||
-            knownUsers.find(u => u.id === last.senderId)?.name ||
-            'Contato'
-        triggerNotification(last, sender)
-        lastNotified.current = last.id
-    }, [messages, knownUsers, currentUser.id])
+        if (!messages.length || !activeConversationId) return;
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage.senderId === currentUser.id || lastMessage.id === lastNotifiedMessageId.current) return;
+        const contact = knownUsers.find(u => u.id === lastMessage.senderId);
+        triggerNotification(lastMessage, contact?.name || 'Nova mensagem', activeConversationId);
+        lastNotifiedMessageId.current = lastMessage.id;
+    }, [messages, currentUser.id, activeConversationId, knownUsers, triggerNotification]);
+
+    interface SavedMessageAPIResponse { id: string; timestamp: string; }
 
     const handleSendMessage = async (text: string) => {
-        if (!activeConversationId) return
-        const tmpId = `tmp_${Date.now()}`
-        setMessages(prev => [
-            ...prev,
-            {
-                id: tmpId,
-                senderId: currentUser.id,
-                text,
-                timestamp: new Date(),
-                status: 'sending'
-            }
-        ])
+        if (!activeConversationId || !text.trim()) return;
+        const tempId = `tmp_${Date.now()}`;
+        const newMessageToSend: Message = {
+            id: tempId, senderId: currentUser.id, text,
+            timestamp: new Date(), status: 'sending'
+        };
+        setMessages(prev => [...prev, newMessageToSend]);
         try {
             const res = await fetch(
                 `${API_BASE_URL}/conversations/${activeConversationId}/messages`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sender: currentUser.id, text })
-                }
-            )
-            if (!res.ok) throw new Error()
-            const saved = await res.json()
-            await fetchMessages(activeConversationId)
-            setConversations(prev =>
-                prev.map(c =>
-                    c.id === activeConversationId
-                        ? {
-                            ...c,
-                            lastMessage: {
-                                id: saved.id,
-                                senderId: currentUser.id,
-                                text,
-                                timestamp: toDate(saved.timestamp),
-                                status: 'sent' as const
-                            }
-                        }
-                        : c
-                )
-            )
-        } catch {
+                { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sender: currentUser.id, text }) }
+            );
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const savedMessageData = await res.json() as SavedMessageAPIResponse;
             setMessages(prev =>
-                prev.map(m => (m.id === tmpId ? { ...m, status: 'error' } : m))
-            )
+                prev.map(m => m.id === tempId ? {
+                    ...m, id: savedMessageData.id,
+                    timestamp: toDate(savedMessageData.timestamp), status: 'sent'
+                } : m)
+            );
+            const finalLastMessage: Message = {
+                id: savedMessageData.id, senderId: currentUser.id, text,
+                timestamp: toDate(savedMessageData.timestamp), status: 'sent'
+            };
+            setConversations(prev =>
+                prev.map(c => c.id === activeConversationId ? { ...c, lastMessage: finalLastMessage } : c)
+                    .sort((a, b) =>
+                        (b.lastMessage?.timestamp.getTime() || b.createdAt.getTime()) -
+                        (a.lastMessage?.timestamp.getTime() || a.createdAt.getTime())
+                    )
+            );
+        } catch (error) {
+            console.error('Falha ao enviar mensagem:', error);
+            pushToast('Erro ao enviar mensagem.');
+            setMessages(prev => prev.map(m => (m.id === tempId ? { ...m, status: 'error' } : m)));
         }
-    }
+    };
 
     const handleCloseConversation = async () => {
-        if (!activeConversationId) return
-        await fetch(
-            `${API_BASE_URL}/conversations/${activeConversationId}`,
-            { method: 'DELETE' }
-        ).catch(console.error)
-        setConversations(prev => prev.filter(c => c.id !== activeConversationId))
-        setActiveConversationId(null)
-        setMessages([])
-    }
+        if (!activeConversationId) return;
+        const conversationToClose = activeConversationId;
+        setActiveConversationId(null);
+        setMessages([]);
+        setConversations(prev => prev.filter(c => c.id !== conversationToClose));
+        try {
+            const res = await fetch(`${API_BASE_URL}/conversations/${conversationToClose}`, { method: 'DELETE' });
+            if (!res.ok) {
+                console.error(`Falha ao encerrar conversa ${conversationToClose}: ${res.status}`);
+                pushToast('Erro ao encerrar conversa.');
+            } else {
+                pushToast('Conversa encerrada.');
+            }
+        } catch (error) {
+            console.error(`Falha ao encerrar conversa ${conversationToClose}:`, error);
+            pushToast('Erro ao encerrar conversa.');
+        }
+    };
 
-    const handleUpdateContactNickname = (
-        contactId: string,
-        nick: string | null
-    ) => {
+    const handleUpdateContactNickname = (contactId: string, nick: string | null) => {
+        const newNickname = nick || undefined;
+        const contactUserObject = knownUsers.find(u => u.id === contactId);
+        const baseName = contactUserObject?.name;
+
         setKnownUsers(prev =>
-            prev.map(u => (u.id === contactId ? { ...u, nickname: nick || undefined } : u))
-        )
+            prev.map(u => (u.id === contactId ? { ...u, nickname: newNickname } : u))
+        );
+
         setConversations(prev =>
-            prev.map(conv => ({
-                ...conv,
-                name: conv.participants.some(p => p.id === contactId)
-                    ? nick || knownUsers.find(u => u.id === contactId)?.name
-                    : conv.name
-            }))
-        )
-    }
+            prev.map(conv => {
+                const isParticipantInConv = conv.participants.some(p => p.id === contactId);
+                if (isParticipantInConv) {
+                    const updatedConvName = newNickname || baseName || 'Desconhecido';
+                    return {
+                        ...conv,
+                        name: updatedConvName,
+                        participants: conv.participants.map(p =>
+                            p.id === contactId ? { ...p, nickname: newNickname } : p
+                        )
+                    };
+                }
+                return conv;
+            })
+        );
+    };
 
     const handleUpdateContactDetails = (
         contactId: string,
@@ -389,7 +449,7 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
     ) => {
         setKnownUsers(prev =>
             prev.map(u => (u.id === contactId ? { ...u, ...details } : u))
-        )
+        );
         setConversations(prev =>
             prev.map(conv => ({
                 ...conv,
@@ -397,192 +457,180 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                     p.id === contactId ? { ...p, ...details } : p
                 )
             }))
-        )
+        );
         setContactDetailsMap(prev => {
-            const next = { ...prev, [contactId]: { ...prev[contactId], ...details } }
-            persistDetailsMap(next)
-            return next
-        })
-    }
+            const next = { ...prev, [contactId]: { ...(prev[contactId] || {}), ...details } };
+            persistDetailsMap(next);
+            return next;
+        });
+    };
 
     useEffect(() => {
-        if (!BACKEND_WS) return
-        const ws = new WebSocket(BACKEND_WS)
+        if (!BACKEND_WS) return;
+        const ws = new WebSocket(BACKEND_WS);
+        ws.onopen = () => console.log('WebSocket conectado');
+        ws.onclose = () => console.log('WebSocket desconectado');
+        ws.onerror = (error) => console.error('WebSocket erro:', error);
+        ws.onmessage = (event) => {
+            try {
+                const incoming = JSON.parse(event.data as string) as {
+                    conversationId: string; id: string; senderId: string; text: string; timestamp: string;
+                };
+                if (incoming.conversationId === activeConversationId) {
+                    const newMessage: Message = {
+                        id: incoming.id, senderId: incoming.senderId, text: incoming.text,
+                        timestamp: toDate(incoming.timestamp), status: 'delivered',
+                    };
+                    setMessages(prev => [...prev, newMessage]);
+                }
+                setConversations(prevConvs => {
+                    const convIndex = prevConvs.findIndex(c => c.id === incoming.conversationId);
+                    const newLastMessage: Message = {
+                        id: incoming.id, senderId: incoming.senderId, text: incoming.text,
+                        timestamp: toDate(incoming.timestamp), status: 'delivered',
+                    };
+                    let updatedConvs = [...prevConvs];
+                    let contactForNotification: User | undefined;
+                    let tempKnownUsers = [...knownUsers];
+                    let knownUsersChanged = false;
 
-        ws.addEventListener('message', evt => {
-            const incoming = JSON.parse(evt.data) as {
-                conversationId: string; id: string; senderId: string; text: string; timestamp: string
-            }
-
-            setConversations(prev => {
-                const idx = prev.findIndex(c => c.id === incoming.conversationId)
-
-                if (idx !== -1) {
-                    const upd: Conversation = {
-                        ...prev[idx],
-                        lastMessage: {
-                            id: incoming.id,
-                            senderId: incoming.senderId,
-                            text: incoming.text,
-                            timestamp: new Date(incoming.timestamp),
-                            status: 'delivered' as const
-                        },
-                        unreadCount:
-                            prev[idx].id === activeConversationId
-                                ? prev[idx].unreadCount ?? 0
-                                : (prev[idx].unreadCount ?? 0) + 1
+                    if (convIndex !== -1) {
+                        const existingConv = updatedConvs[convIndex];
+                        contactForNotification = existingConv.participants.find(p => p.id === incoming.senderId);
+                        updatedConvs[convIndex] = {
+                            ...existingConv, lastMessage: newLastMessage,
+                            unreadCount: incoming.conversationId === activeConversationId && document.hasFocus()
+                                ? existingConv.unreadCount
+                                : (existingConv.unreadCount || 0) + (incoming.senderId !== currentUser.id ? 1 : 0),
+                        };
+                        const convToMove = updatedConvs.splice(convIndex, 1)[0];
+                        updatedConvs.unshift(convToMove);
+                    } else {
+                        let contact = tempKnownUsers.find(u => u.id === incoming.senderId);
+                        const savedDetails = contactDetailsMap[incoming.senderId] || {};
+                        if (!contact) {
+                            contact = {
+                                id: incoming.senderId, name: `Usuário ${incoming.senderId.slice(-4)}`,
+                                avatarSeed: incoming.senderId.slice(0, 2).toUpperCase(), avatarColor: 'default',
+                                observation: savedDetails.observation, situation: savedDetails.situation,
+                                createdAt: new Date(),
+                            };
+                            tempKnownUsers.push(contact);
+                            knownUsersChanged = true;
+                        } else {
+                            contact = {...contact, ...savedDetails, nickname: contact.nickname};
+                            tempKnownUsers = tempKnownUsers.map(u => u.id === incoming.senderId ? contact! : u);
+                            knownUsersChanged = true;
+                        }
+                        contactForNotification = contact;
+                        const newConv: Conversation = {
+                            id: incoming.conversationId, participants: [currentUser, contact!],
+                            lastMessage: newLastMessage,
+                            unreadCount: (incoming.senderId !== currentUser.id) ? 1 : 0,
+                            name: contact!.nickname || contact!.name, avatarSeed: contact!.avatarSeed,
+                            avatarColor: contact!.avatarColor, createdAt: toDate(incoming.timestamp),
+                        };
+                        updatedConvs.unshift(newConv);
                     }
-                    if (activeConversationId !== upd.id)
-                        triggerNotification(upd.lastMessage!, upd.name || 'Contato')
-                    return [upd, ...prev.slice(0, idx), ...prev.slice(idx + 1)]
-                }
-
-                const contactId = `user_${incoming.conversationId}`
-                const saved = contactDetailsMap[contactId] || {}
-                let contact = knownUsers.find(u => u.id === contactId)
-                if (!contact) {
-                    contact = {
-                        id: contactId,
-                        name: incoming.senderId,
-                        avatarSeed: incoming.senderId.slice(0, 2),
-                        avatarColor: 'default',
-                        observation: saved.observation,
-                        situation: saved.situation,
-                        createdAt: new Date()
+                    if (knownUsersChanged) {
+                        setKnownUsers(tempKnownUsers);
                     }
-                    setKnownUsers(u => [...u, contact!])
-                }
-                const stub: Conversation = {
-                    id: incoming.conversationId,
-                    participants: [currentUser, contact!],
-                    lastMessage: {
-                        id: incoming.id,
-                        senderId: incoming.senderId,
-                        text: incoming.text,
-                        timestamp: new Date(incoming.timestamp),
-                        status: 'delivered' as const
-                    },
-                    unreadCount: 1,
-                    name: contact!.name,
-                    avatarSeed: contact!.avatarSeed,
-                    avatarColor: contact!.avatarColor,
-                    createdAt: new Date(incoming.timestamp)
-                }
-                triggerNotification(stub.lastMessage!, stub.name || 'Contato')
-                return [stub, ...prev]
-            })
-        })
-
-        return () => ws.close()
-    }, [
-        BACKEND_WS,
-        currentUser,
-        knownUsers,
-        contactDetailsMap,
-        activeConversationId
-    ])
+                    if (incoming.senderId !== currentUser.id) {
+                        triggerNotification(newLastMessage, contactForNotification?.name || 'Nova mensagem', incoming.conversationId);
+                    }
+                    return updatedConvs;
+                });
+            } catch (e) { console.error("Erro ao processar mensagem WebSocket:", e, event.data); }
+        };
+        return () => { if (ws.readyState === WebSocket.OPEN) ws.close(); };
+    }, [currentUser.id, activeConversationId, triggerNotification, contactDetailsMap, knownUsers]);
 
     const filteredConversations = useMemo(() => {
-        let list = conversations
+        let list = conversations;
         if (searchTerm.trim()) {
-            const term = searchTerm.toLowerCase()
-            list = list.filter(c => c.name?.toLowerCase().includes(term))
+            const lowerSearchTerm = searchTerm.toLowerCase();
+            list = list.filter(c =>
+                (c.name?.toLowerCase() || '').includes(lowerSearchTerm) ||
+                c.participants.some(p => p.id !== currentUser.id && (p.phoneNumber?.includes(searchTerm.trim()) || (p.name?.toLowerCase() || '').includes(lowerSearchTerm)))
+            );
         }
         if (activeSidebarFilter === 'awaiting') {
-            list = list.filter(c => c.lastMessage?.senderId !== currentUser.id)
+            list = list.filter(c => (c.lastMessage?.senderId !== currentUser.id) || (c.unreadCount && c.unreadCount > 0));
         }
-        return list
-    }, [conversations, searchTerm, activeSidebarFilter, currentUser.id])
+        return list;
+    }, [conversations, searchTerm, activeSidebarFilter, currentUser.id]);
 
     const activeConversation = useMemo(
         () => conversations.find(c => c.id === activeConversationId) || null,
         [conversations, activeConversationId]
-    )
+    );
 
     const activeContact = useMemo(() => {
-        if (!activeConversation) return undefined
-        const other = activeConversation.participants.find(
-            p => p.id !== currentUser.id
-        ) as User | undefined
-        return knownUsers.find(u => u.id === other?.id) ?? other
-    }, [activeConversation, knownUsers, currentUser.id])
+        if (!activeConversation) return undefined;
+        const otherParticipantInfo = activeConversation.participants.find(p => p.id !== currentUser.id);
+        return knownUsers.find(u => u.id === otherParticipantInfo?.id) ?? otherParticipantInfo;
+    }, [activeConversation, knownUsers, currentUser.id]);
 
     return (
         <div className="chat-app-container">
             <div
-                className={`
-          chat-layout
-          ${viewMode === 'normal' ? 'normal-mode' : 'full-mode'}
-          ${
-                    isContactInfoPanelOpen || isTemplatePanelOpen ? 'with-side-panel' : ''
-                }
-        `}
-            >
+                className={`chat-layout ${viewMode === 'normal' ? 'normal-mode' : 'full-mode'} ${isContactInfoPanelOpen || isTemplatePanelOpen ? 'with-side-panel' : ''}`}>
                 <ChatSidebar
                     conversations={filteredConversations}
                     activeConversationId={activeConversationId}
                     onConversationSelect={id => {
-                        setActiveConversationId(id)
-                        setContactInfoPanelOpen(false)
-                        setIsTemplatePanelOpen(false)
+                        setActiveConversationId(id); setContactInfoPanelOpen(false);
+                        setIsTemplatePanelOpen(false); setMessages([]);
+                        lastNotifiedMessageId.current = null;
                     }}
-                    currentUser={currentUser}
-                    knownUsers={knownUsers}
-                    onNewChat={() => setIsTemplatePanelOpen(true)}
-                    searchTerm={searchTerm}
-                    onSearchTermChange={setSearchTerm}
-                    activeFilter={activeSidebarFilter}
-                    onChangeFilter={setActiveSidebarFilter}
-                    totalActiveCount={filteredConversations.length}
-                    totalAwaitingCount={
-                        filteredConversations.filter(
-                            c => c.lastMessage?.senderId !== currentUser.id
-                        ).length
-                    }
+                    currentUser={currentUser} knownUsers={knownUsers}
+                    onNewChat={() => {
+                        setActiveConversationId(null); setIsTemplatePanelOpen(true);
+                        setContactInfoPanelOpen(false);
+                    }}
+                    searchTerm={searchTerm} onSearchTermChange={setSearchTerm}
+                    activeFilter={activeSidebarFilter} onChangeFilter={setActiveSidebarFilter}
+                    totalActiveCount={conversations.length}
+                    totalAwaitingCount={conversations.filter(c => (c.lastMessage?.senderId !== currentUser.id) || (c.unreadCount && c.unreadCount > 0)).length}
                 />
-
                 <div className="chat-main">
                     {isTemplatePanelOpen ? (
                         <ChatTemplate
-                            onSendTemplate={() => {}}
+                            onSendTemplate={(templateText: string) => {
+                                setIsTemplatePanelOpen(false);
+                            }}
                             onClose={() => setIsTemplatePanelOpen(false)}
                         />
-                    ) : activeConversationId ? (
+                    ) : activeConversationId && activeContact ? (
                         <>
-                            {activeContact && (
-                                <ChatHeader
-                                    contact={activeContact}
-                                    viewMode={viewMode}
-                                    notificationMode={notificationMode}
-                                    onViewModeChange={setViewMode}
-                                    onToggleTheme={() => {
-                                        document.body.classList.toggle('theme-dark')
-                                        document.body.classList.toggle('theme-light')
-                                    }}
-                                    onShowContactInfo={() => {
-                                        setContactInfoPanelOpen(true)
-                                        setIsTemplatePanelOpen(false)
-                                    }}
-                                    onChangeNotificationMode={() => {}}
-                                    onUpdateContactNickname={handleUpdateContactNickname}
-                                    onCloseConversation={handleCloseConversation}
-                                />
-                            )}
-
-                            <ChatMessages
-                                messages={messages}
-                                currentUser={currentUser}
-                                participants={activeConversation?.participants || []}
+                            <ChatHeader
+                                contact={activeContact} viewMode={viewMode}
+                                notificationMode={notificationMode}
+                                onViewModeChange={setViewMode}
+                                onToggleTheme={() => {
+                                    const currentTheme = document.body.classList.contains('theme-dark') ? 'theme-dark' : 'theme-light';
+                                    document.body.classList.replace(currentTheme, currentTheme === 'theme-dark' ? 'theme-light' : 'theme-dark');
+                                }}
+                                onShowContactInfo={() => {
+                                    setContactInfoPanelOpen(true); setIsTemplatePanelOpen(false);
+                                }}
+                                onChangeNotificationMode={setNotificationMode}
+                                onUpdateContactNickname={handleUpdateContactNickname}
+                                onCloseConversation={handleCloseConversation}
                             />
-                            <ChatInput onSendMessage={handleSendMessage} />
+                            <ChatMessages
+                                messages={messages} currentUser={currentUser}
+                                participants={activeConversation?.participants || [currentUser, activeContact]}
+                            />
+                            <ChatInput onSendMessage={handleSendMessage} disabled={!activeConversationId} />
                         </>
                     ) : (
                         <div className="chat-empty-prompt">
-                            Selecione uma conversa para começar.
+                            {!activeConversationId && !isTemplatePanelOpen && "Selecione uma conversa para começar ou inicie uma nova."}
+                            {activeConversationId && !activeContact && "Carregando dados do contato..."}
                         </div>
                     )}
                 </div>
-
                 {isContactInfoPanelOpen && activeContact && (
                     <ChatInfo
                         contact={activeContact}
@@ -591,16 +639,10 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
                     />
                 )}
             </div>
-
             <div className="chat-toast-container">
-                {toasts.map(t => (
-                    <div key={t.id} className="chat-toast">
-                        {t.text}
-                    </div>
-                ))}
+                {toasts.map(t => ( <div key={t.id} className="chat-toast" role="alert">{t.text}</div> ))}
             </div>
         </div>
-    )
-}
-
-export default ChatPage
+    );
+};
+export default ChatPage;
