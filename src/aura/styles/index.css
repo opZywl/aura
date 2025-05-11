@@ -2235,3 +2235,73 @@ button, [role="button"] {
     padding:20px;
     text-align:center;
 }
+
+.chat-header-finish-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.chat-header-finish-btn:hover {
+    background: #37565f;
+}
+
+.finish-icon {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.finish-text {
+    line-height: 1;
+}
+
+.finish-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.finish-modal {
+    background: #1f1f1f;
+    padding: 1.5rem 2rem;
+    border-radius: .5rem;
+    width: 90%;
+    max-width: 280px;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0,0,0,.4);
+}
+
+.finish-modal-title {
+    margin-bottom: 1.25rem;
+    font-size: 1.05rem;
+    color: #fff;
+}
+
+.finish-modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.finish-btn-confirm,
+.finish-btn-cancel {
+    flex: 1;
+    padding: .5rem 0;
+    border: none;
+    border-radius: .375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+}
+
+.finish-btn-confirm { background:#22c55e; color:#111; }
+.finish-btn-cancel  { background:#ef4444; color:#fff; }
+
+.finish-btn-confirm:hover,
+.finish-btn-cancel:hover { opacity:.85; }
