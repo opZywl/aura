@@ -2,8 +2,12 @@ import uuid
 import logging
 from typing import List
 from dataclasses import dataclass
+import time
 
 logger = logging.getLogger(__name__)
+
+LOG_INTERVAL_SECONDS_LIST_ACCOUNTS = 30
+_last_log_time_list_accounts = 0
 
 @dataclass
 class TelegramAccount:
@@ -14,8 +18,13 @@ class TelegramAccount:
 _accounts: List[TelegramAccount] = []
 
 def listTelegramAccounts() -> List[TelegramAccount]:
+    global _last_log_time_list_accounts
 
-    logger.debug(f"listTelegramAccounts chamado - total atual: {len(_accounts)} contas")
+    current_time = time.time()
+
+    if (current_time - _last_log_time_list_accounts) >= LOG_INTERVAL_SECONDS_LIST_ACCOUNTS:
+        logger.debug(f"listTelegramAccounts chamado (intervalo {LOG_INTERVAL_SECONDS_LIST_ACCOUNTS}s) - total atual: {len(_accounts)} contas")
+        _last_log_time_list_accounts = current_time
     return _accounts.copy()
 
 def connectTelegram(apiKey: str, botName: str) -> TelegramAccount:
