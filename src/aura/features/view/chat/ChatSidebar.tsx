@@ -1,6 +1,8 @@
 // src/aura/features/view/chat/ChatSidebar.tsx
 import React, { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import ChatThemes from './ChatThemes'
+import themeIcon from '../../../../resources/theme.svg';
 
 import IconWrapper from './IconWrapper'
 import {
@@ -158,7 +160,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
     const toggleDetailedView = () => setDetailedView(prev => !prev)
 
     const openBackConfirm = (e: React.MouseEvent) => {
-        e.preventDefault() // impede a navegação imediata
+        e.preventDefault()
         setShowBackConfirm(true)
     }
 
@@ -171,7 +173,17 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
     const mainNav = [
         { id: 'new', icon: '+', action: onNewChat, active: true },
-        { id: 'users', icon: '👤', action: () => console.log('Users futura') }
+        {
+            id: 'themes',
+            icon: (
+                <img
+                    src={themeIcon}
+                    alt="Themes"
+                    className="theme-icon"
+                />
+            ),
+            action: () => console.log('themes')
+        }
     ]
 
     const fullConvs = useMemo(
@@ -209,7 +221,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         {mainNav.map(i => (
                             <div
                                 key={i.id}
-                                className={`chat-sidebar-nav-icon ${i.active ? 'active' : ''}`}
+                                className={
+                                    `chat-sidebar-nav-icon ${i.active ? 'active' : ''}` +
+                                    (i.id === 'themes' ? ' theme-container' : '')
+                                }
                                 onClick={i.action}
                                 title={i.id}
                             >
@@ -220,13 +235,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
                     <div className="chat-sidebar-icon-nav-footer">
                         <div
-                            className={`chat-sidebar-nav-icon ${
+                            className={`back-btn sidebar-back-btn ${
                                 detailedView ? 'settings-active' : ''
                             }`}
                             onClick={toggleDetailedView}
-                            title="Configurações"
+                            title="Detalhes"
                         >
-                            ⚙️
+                            Detalhes
                         </div>
 
                         <Link
@@ -246,7 +261,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             🔍
                             <input
                                 type="text"
-                                placeholder="Chats"
+                                placeholder="Pesquisar"
                                 className="chat-sidebar-search-input"
                                 value={searchTerm}
                                 onChange={e => onSearchTermChange(e.target.value)}

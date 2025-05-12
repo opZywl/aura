@@ -2305,3 +2305,31 @@ button, [role="button"] {
 
 .finish-btn-confirm:hover,
 .finish-btn-cancel:hover { opacity:.85; }
+
+
+.theme-icon {
+    @apply w-12 h-12;
+}
+
+.theme-icon {
+    width: 50px;
+    height: 50px;
+}
+
+.theme-container {
+    width: 3rem;
+    height: 3rem;
+}
+
+.chat-sidebar-nav-icon.theme-container {
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.chat-sidebar-nav-icon.theme-container img {
+    transform: scale(2);
+    transform-origin: center center;
+}
