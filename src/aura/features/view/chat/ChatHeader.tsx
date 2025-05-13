@@ -1,6 +1,10 @@
 // src/aura/features/view/chat/ChatHeader.tsx
 import React, { useState, useEffect, useRef } from 'react'
 import IconWrapper from './IconWrapper'
+import refreshIcon from '../../../../resources/refresh.svg';
+import successIcon from '../../../../resources/sucess.svg';
+import cancelIcon from '../../../../resources/cancel.svg';
+
 import { User } from './types'
 import {
     ChatNotificationDropdown,
@@ -37,7 +41,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         useState(false)
     const [isEditingNickname, setIsEditingNickname] = useState(false)
     const [editableNickname, setEditableNickname] = useState('')
-    const [showFinishConfirm, setShowFinishConfirm] = useState(false) // ← novo
+    const [showFinishConfirm, setShowFinishConfirm] = useState(false)
 
     const optionsMenuRef = useRef<HTMLDivElement>(null)
     const nicknameInputRef = useRef<HTMLInputElement>(null)
@@ -159,24 +163,27 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
                                     />
                                     <button
                                         onClick={handleSaveNickname}
-                                        className="chat-nickname-edit-button save"
+                                        className="back-btn"
                                         title="Salvar Apelido"
                                     >
-                                        <span className="chat-edit-action-icon">💾</span>
+                                        <img src={successIcon} alt="" className="icon" />
+                                        <span>Salvar</span>
                                     </button>
                                     <button
                                         onClick={handleResetNickname}
-                                        className="chat-nickname-edit-button reset"
+                                        className="back-btn"
                                         title="Resetar para nome original"
                                     >
-                                        <span className="chat-edit-action-icon">🔄</span>
+                                        <img src={refreshIcon} alt="" className="icon" />
+                                        <span>Resetar</span>
                                     </button>
                                     <button
                                         onClick={handleCancelEditNickname}
-                                        className="chat-nickname-edit-button cancel"
+                                        className="back-btn"
                                         title="Cancelar Edição"
                                     >
-                                        <span className="chat-edit-action-icon">❌</span>
+                                        <img src={cancelIcon} alt="" className="icon" />
+                                        <span>Sair</span>
                                     </button>
                                 </div>
                             ) : (
@@ -258,21 +265,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
                                     >
                                         <ResolutionDropdownIcon />{' '}
                                         {viewMode === 'normal' ? 'Tela Cheia' : 'Modo Normal'}
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            onToggleTheme()
-                                            setOptionsMenuOpen(false)
-                                        }}
-                                        className="chat-options-dropdown-item"
-                                    >
-                    <span
-                        title="Mudar Tema"
-                        className="chat-dropdown-icon"
-                    >
-                      🎨
-                    </span>{' '}
-                                        Mudar Tema
                                     </button>
                                     {contact && (
                                         <button

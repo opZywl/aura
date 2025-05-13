@@ -1,5 +1,6 @@
 // src/aura/features/view/chat/ChatTemplate.tsx
 import React, { useState, useEffect } from 'react';
+import cancelIcon from "../../../../resources/cancel.svg";
 
 interface ChatTemplateProps {
     onSendTemplate: (
@@ -85,10 +86,11 @@ const ChatTemplate: React.FC<ChatTemplateProps> = ({ onSendTemplate, onClose }) 
                 <h2>Nova mensagem ativa</h2>
                 <button
                     onClick={onClose}
-                    className="chat-template-close-button"
+                    className="back-btn"
                     title="Fechar"
                 >
-                    ❌
+                    <img src={cancelIcon} alt="" className="icon" />
+                    <span>Sair</span>
                 </button>
             </div>
 

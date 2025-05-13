@@ -1,5 +1,6 @@
 // src/aura/features/view/chat/ChatInfo.tsx
 import React, { useState, useEffect } from 'react';
+import cancelIcon from '../../../../resources/cancel.svg';
 import { User, ContactSituation } from './types';
 
 interface ChatInfoProps {
@@ -33,10 +34,11 @@ const ChatInfo: React.FC<ChatInfoProps> = ({
                     <h3>Dados do Cliente</h3>
                     <button
                         onClick={onClose}
-                        className="chat-info-close-button"
+                        className="back-btn"
                         title="Fechar"
                     >
-                        <span className="chat-header-main-icon">❌</span>
+                        <img src={cancelIcon} alt="" className="icon" />
+                        <span>Sair</span>
                     </button>
                 </div>
                 <div className="chat-info-content-empty">
@@ -71,10 +73,11 @@ const ChatInfo: React.FC<ChatInfoProps> = ({
                 <h3>Dados do Cliente</h3>
                 <button
                     onClick={onClose}
-                    className="chat-info-close-button"
+                    className="back-btn"
                     title="Fechar Informações"
                 >
-                    <span className="chat-header-main-icon">❌</span>
+                    <img src={cancelIcon} alt="" className="icon" />
+                    <span>Sair</span>
                 </button>
             </div>
 

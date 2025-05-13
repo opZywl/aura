@@ -609,7 +609,21 @@ button, [role="button"] {
     background: transparent;
     color: #fff;
     transition: background .2s;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
 }
+.back-btn .icon {
+    width: 1em;
+    height: 1em;
+    max-width: 1em;
+    max-height: 1em;
+    object-fit: contain;
+}
+
+
 .back-btn:hover {
     background: #111;
 }
@@ -623,6 +637,10 @@ button, [role="button"] {
     font-size: 0.85rem;
     line-height: 1;
     border-color: #7a7a7a;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .back-btn-confirm,

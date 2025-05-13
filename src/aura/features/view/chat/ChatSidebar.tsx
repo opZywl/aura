@@ -1,8 +1,6 @@
 // src/aura/features/view/chat/ChatSidebar.tsx
 import React, { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import ChatThemes from './ChatThemes'
-import themeIcon from '../../../../resources/theme.svg';
 
 import IconWrapper from './IconWrapper'
 import {
@@ -173,6 +171,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
     const mainNav = [
         { id: 'new', icon: '+', action: onNewChat, active: true },
+        /*
         {
             id: 'themes',
             icon: (
@@ -184,6 +183,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             ),
             action: () => console.log('themes')
         }
+
+        */
     ]
 
     const fullConvs = useMemo(
@@ -294,22 +295,26 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
                     <div className="chat-sidebar-filters">
                         <button
-                            className={`chat-filter-button ${activeFilter === 'all' ? 'active' : ''}`}
+                            className={`chat-filter-button ${activeFilter==='all'? 'active':''}`}
                             onClick={() => onChangeFilter('all')}
                         >
-                            <span className="chat-filter-badge total-badge">{totalActiveCount}</span>
-                            Ativo
+                            <div className="chat-filter-button-content">
+    <span className="chat-filter-badge total-badge">
+      {totalActiveCount}
+    </span>
+                                <span className="chat-filter-label">Ativo</span>
+                            </div>
                         </button>
                         <button
-                            className={`chat-filter-button ${
-                                activeFilter === 'awaiting' ? 'active' : ''
-                            }`}
+                            className={`chat-filter-button ${activeFilter==='awaiting'? 'active':''}`}
                             onClick={() => onChangeFilter('awaiting')}
                         >
-              <span className="chat-filter-badge awaiting-badge">
-                {totalAwaitingCount}
-              </span>
-                            Aguardando
+                            <div className="chat-filter-button-content">
+    <span className="chat-filter-badge awaiting-badge">
+      {totalAwaitingCount}
+    </span>
+                                <span className="chat-filter-label">Aguardando</span>
+                            </div>
                         </button>
                     </div>
                 </div>
