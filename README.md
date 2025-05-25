@@ -64,8 +64,8 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
    ```
 
 3. **Abra** no navegador:
-    - Frontend: `http://localhost:3000`
-    - Backend (opcional): `http://localhost:3001`
+   - Frontend: `http://localhost:3000`
+   - Backend (opcional): `http://localhost:3001`
 
 ---
 

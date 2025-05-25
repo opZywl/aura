@@ -1,17 +1,18 @@
-/* src/components/Companies/Companies.tsx */
-import React from 'react';
-import unaspLogo from '../../resources/carrossel/Unasp.svg';
-import eraLogo from '../../resources/carrossel/ERA.svg';
-import pirelliLogo from '../../resources/carrossel/Pirelli.svg';
-import desktopLogo from '../../resources/carrossel/Desktop.svg';
-import linharesDistribuidoras from '../../resources/carrossel/LinharesDistribuidora.svg';
+// src/aura/components/Companies.tsx
 
-const logos = [
-    { src: unaspLogo, alt: 'Unasp' },
-    { src: eraLogo, alt: 'ERA' },
-    { src: pirelliLogo, alt: 'Pirelli' },
-    { src: desktopLogo, alt: 'Desktop' },
-    { src: linharesDistribuidoras, alt: 'LinharesDistribuidora' }
+import React from 'react';
+
+interface LogoItem {
+    path: string;
+    alt: string;
+}
+
+const logos: LogoItem[] = [
+    { path: '/carrossel/Unasp.svg',                alt: 'Unasp' },
+    { path: '/carrossel/ERA.svg',                  alt: 'ERA' },
+    { path: '/carrossel/Pirelli.svg',              alt: 'Pirelli' },
+    { path: '/carrossel/Desktop.svg',              alt: 'Desktop' },
+    { path: '/carrossel/LinharesDistribuidora.svg',alt: 'Linhares Distribuidora' },
 ];
 
 const Companies: React.FC = () => (
@@ -32,23 +33,25 @@ const Companies: React.FC = () => (
                         } as React.CSSProperties
                     }
                 >
+                    {/* sequência original */}
                     <div className="flex flex-row gap-8">
-                        {logos.map((logo) => (
+                        {logos.map(({ path, alt }) => (
                             <img
-                                key={logo.alt}
-                                src={logo.src}
-                                alt={logo.alt}
+                                key={alt}
+                                src={path}
+                                alt={alt}
                                 className="companies-logo h-10 w-28"
                             />
                         ))}
                     </div>
 
+                    {/* duplicação para looping */}
                     <div className="flex flex-row gap-8">
-                        {logos.map((logo) => (
+                        {logos.map(({ path, alt }) => (
                             <img
-                                key={`${logo.alt}-dup`}
-                                src={logo.src}
-                                alt={logo.alt}
+                                key={`${alt}-dup`}
+                                src={path}
+                                alt={alt}
                                 className="companies-logo h-10 w-28"
                             />
                         ))}

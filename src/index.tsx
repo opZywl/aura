@@ -1,11 +1,17 @@
+// index.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+
+// importa o “wrapper” que você vai criar em src/aura/main.tsx
+import Main from './main';
+
+// estilos globais (caso ainda não importe dentro do Main)
 import './aura/styles/index.css';
 
-const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-root.render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>
-);
+ReactDOM
+    .createRoot(document.getElementById('root') as HTMLElement)
+    .render(
+        <React.StrictMode>
+            <Main />
+        </React.StrictMode>
+    );

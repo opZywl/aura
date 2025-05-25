@@ -1,3 +1,4 @@
+"use client";
 import React, {
     useState,
     useEffect,
@@ -29,13 +30,19 @@ const toDate = (iso: string) =>
     new Date(iso.endsWith('Z') ? iso : iso + 'Z')
 
 const pickSound = (): string | null => {
-    const t = document.createElement('audio')
-    if (t.canPlayType('audio/mpeg')) return '/notifications/message.mp3'
-    if (t.canPlayType('audio/ogg'))  return '/notifications/message.ogg'
-    if (t.canPlayType('audio/wav'))  return '/notifications/message.wav'
-    console.warn('Nenhum formato de áudio suportado encontrado para notificação (pickSound).');
-    return null
-}
+    if (typeof document === "undefined") {
+        // durante SSR, document não existe
+        return null;
+    }
+    const t = document.createElement("audio");
+    if (t.canPlayType("audio/mpeg")) return "/notifications/message.mp3";
+    if (t.canPlayType("audio/ogg")) return "/notifications/message.ogg";
+    if (t.canPlayType("audio/wav")) return "/notifications/message.wav";
+    console.warn(
+        "Nenhum formato de áudio suportado encontrado para notificação (pickSound)."
+    );
+    return null;
+};
 const audioSrc = pickSound()
 
 const ChatPage: React.FC<Partial<ChatAppProps>> = ({
@@ -122,13 +129,13 @@ const ChatPage: React.FC<Partial<ChatAppProps>> = ({
 
         if ('Notification' in window && Notification.permission === 'granted' && !isMessageFromSelf) {
             new Notification(senderName, {
-                body: msg.text, icon: '/favicon.ico', tag: convId, renotify: true,
+                body: msg.text, icon: '/favicon.ico', tag: convId,
             });
         } else if ('Notification' in window && Notification.permission === 'default' && !isMessageFromSelf) {
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
                     new Notification(senderName, {
-                        body: msg.text, icon: '/favicon.ico', tag: convId, renotify: true,
+                        body: msg.text, icon: '/favicon.ico', tag: convId,
                     });
                 }
             });

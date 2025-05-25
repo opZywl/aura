@@ -1,5 +1,7 @@
+// src/aura/components/Footer.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+
 import logo from '../../resources/seta.png';
 import xLogo from '../../resources/x_logo.jpg';
 import linkedinLogo from '../../resources/linkedin.png';
@@ -31,6 +33,10 @@ const legalLinks = [
     { name: 'Feedback', to: '/feedback' },
 ];
 
+// Helper para extrair a string src de StaticImageData ou usar string direta
+const getSrc = (img: any): string =>
+    typeof img === 'string' ? img : img.src;
+
 const Footer: React.FC<FooterProps> = ({ theme }) => {
     const bgClass = theme === 'light' ? 'bg-white' : 'bg-gray-900';
     const textClass = theme === 'light' ? 'text-black' : 'text-white';
@@ -39,7 +45,6 @@ const Footer: React.FC<FooterProps> = ({ theme }) => {
             ? 'cursor-pointer text-sm font-medium text-gray-600 duration-200 hover:text-gray-800'
             : 'cursor-pointer text-sm font-medium text-gray-400 duration-200 hover:text-gray-200';
     const headingClass = 'mb-6 text-sm font-medium uppercase tracking-tighter';
-
     const iconClass =
         theme === 'light'
             ? 'fill-gray-500 text-gray-500 hover:fill-gray-300 hover:text-gray-300'
@@ -52,7 +57,7 @@ const Footer: React.FC<FooterProps> = ({ theme }) => {
                     {/* Branding */}
                     <div className="mb-12 flex flex-col gap-4">
                         <Link className="flex items-center gap-2" to="/">
-                            <img src={logo} alt="Aura AI Logo" className="h-8 w-8" />
+                            <img src={getSrc(logo)} alt="Aura AI Logo" className="h-8 w-8" />
                             <span className="self-center whitespace-nowrap text-2xl font-semibold">
                 Aura
               </span>
@@ -77,15 +82,15 @@ const Footer: React.FC<FooterProps> = ({ theme }) => {
                         <div>
                             <h2 className={headingClass}>Contribuidores</h2>
                             <ul className="grid gap-2">
-                                {contributorLinks.map((contributor) => (
-                                    <li key={contributor.name}>
+                                {contributorLinks.map((c) => (
+                                    <li key={c.name}>
                                         <a
+                                            className={linkClass}
+                                            href={c.href}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className={linkClass}
-                                            href={contributor.href}
                                         >
-                                            {contributor.name}
+                                            {c.name}
                                         </a>
                                     </li>
                                 ))}
@@ -121,30 +126,38 @@ const Footer: React.FC<FooterProps> = ({ theme }) => {
                 <div className="flex flex-col gap-2 rounded-md border border-gray-700 px-8 py-4 sm:flex sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex space-x-5 sm:justify-center">
                         <a
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className={iconClass}
                             href="https://twitter.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
                         >
-                            <img src={xLogo} alt="X logo" className="h-8 w-8" />
+                            <img src={getSrc(xLogo)} alt="X logo" className="h-8 w-8" />
                             <span className="sr-only">X</span>
                         </a>
                         <a
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className={iconClass}
                             href="https://www.linkedin.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
                         >
-                            <img src={linkedinLogo} alt="LinkedIn logo" className="h-8 w-8" />
+                            <img
+                                src={getSrc(linkedinLogo)}
+                                alt="LinkedIn logo"
+                                className="h-8 w-8"
+                            />
                             <span className="sr-only">LinkedIn</span>
                         </a>
                         <a
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className={iconClass}
                             href="https://github.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
                         >
-                            <img src={githubLogo} alt="GitHub logo" className="h-8 w-8" />
+                            <img
+                                src={getSrc(githubLogo)}
+                                alt="GitHub logo"
+                                className="h-8 w-8"
+                            />
                             <span className="sr-only">GitHub</span>
                         </a>
                     </div>
