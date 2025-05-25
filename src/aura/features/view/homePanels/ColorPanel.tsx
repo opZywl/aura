@@ -19,14 +19,14 @@ const ColorPanel: React.FC = () => {
     const [customColor3, setCustomColor3] = useState("#ec4899")
 
     useEffect(() => {
-        console.log("🎨 ColorPanel render - showColorPanel:", showColorPanel)
+        console.log("🎨 Renderização do ColorPanel - showColorPanel:", showColorPanel)
     }, [showColorPanel])
 
     if (!showColorPanel) return null
 
     const createCustomGradient = () => {
         const customGradient = {
-            name: "Custom",
+            name: "Personalizado",
             primary: `linear-gradient(135deg, ${customColor1} 0%, ${customColor2} 100%)`,
             secondary: `linear-gradient(135deg, ${customColor1}CC 0%, ${customColor2}CC 100%)`,
             accent: `linear-gradient(135deg, ${customColor1} 0%, ${customColor2} 50%, ${customColor3} 100%)`,
@@ -37,13 +37,13 @@ const ColorPanel: React.FC = () => {
 
     return (
         <>
-            {/* Backdrop */}
+            {/* Tela de Fundo */}
             <div
                 className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300"
                 onClick={() => setShowColorPanel(false)}
             />
 
-            {/* Panel */}
+            {/* Painel */}
             <div
                 className="fixed right-4 top-20 w-80 rounded-xl shadow-2xl z-50 transition-all duration-300 transform max-h-[80vh] overflow-y-auto scale-100 opacity-100"
                 style={{
@@ -55,7 +55,7 @@ const ColorPanel: React.FC = () => {
                     boxShadow: `0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px var(--glow-color)`,
                 }}
             >
-                {/* Header */}
+                {/* Cabeçalho */}
                 <div
                     className="flex items-center justify-between p-4 border-b sticky top-0 z-10"
                     style={{
@@ -85,7 +85,7 @@ const ColorPanel: React.FC = () => {
                                 filter: `drop-shadow(0 0 8px var(--glow-color))`,
                             }}
                         >
-                            Color Themes
+                            Temas de Cores
                         </h3>
                     </div>
                     <button
@@ -104,7 +104,6 @@ const ColorPanel: React.FC = () => {
                     </button>
                 </div>
 
-                {/* Custom Color Creator */}
                 <div
                     className="p-4 border-b"
                     style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}
@@ -118,7 +117,7 @@ const ColorPanel: React.FC = () => {
                             filter: `drop-shadow(0 0 6px var(--glow-color))`,
                         }}
                     >
-                        Create Custom Theme
+                        Criar Tema Personalizado
                     </h4>
                     <div className="space-y-3">
                         {[customColor1, customColor2, customColor3].map((col, i) => (
@@ -142,12 +141,12 @@ const ColorPanel: React.FC = () => {
                                     }`}
                                     style={{ textShadow: `0 0 6px var(--glow-color)` }}
                                 >
-                  {i === 0
-                      ? "Primary Color"
-                      : i === 1
-                          ? "Secondary Color"
-                          : "Accent Color"}
-                </span>
+                                    {i === 0
+                                        ? "Cor Primária"
+                                        : i === 1
+                                            ? "Cor Secundária"
+                                            : "Cor de Destaque"}
+                                </span>
                             </div>
                         ))}
                         <button
@@ -169,13 +168,12 @@ const ColorPanel: React.FC = () => {
                                 className="text-white font-medium"
                                 style={{ textShadow: "0 0 10px rgba(255, 255, 255, 0.8)" }}
                             >
-                Apply Custom
-              </span>
+                                Aplicar Personalizado
+                            </span>
                         </button>
                     </div>
                 </div>
 
-                {/* Preset Themes */}
                 <div className="p-4 space-y-3">
                     <h4
                         className={`font-medium mb-3 ${
@@ -186,12 +184,11 @@ const ColorPanel: React.FC = () => {
                             filter: `drop-shadow(0 0 6px var(--glow-color))`,
                         }}
                     >
-                        Preset Themes
+                        Temas Predefinidos
                     </h4>
 
                     {gradientThemes.map((gradient, index) => {
                         const isActive = currentGradient.name === gradient.name
-                        // define ring-offset color class dependendo do tema
                         const ringOffsetClass =
                             theme === "dark" ? "ring-offset-gray-900" : "ring-offset-white"
 
@@ -212,7 +209,6 @@ const ColorPanel: React.FC = () => {
                                     boxShadow: `0 0 10px ${gradient.glow}`,
                                 }}
                             >
-                                {/* Glow effect on hover */}
                                 <div
                                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"
                                     style={{
@@ -224,7 +220,6 @@ const ColorPanel: React.FC = () => {
                                 />
 
                                 <div className="relative z-10 flex items-center space-x-3">
-                                    {/* Color Preview */}
                                     <div className="flex space-x-1">
                                         {[gradient.primary, gradient.secondary, gradient.accent].map(
                                             (bg, i) => (
@@ -240,7 +235,6 @@ const ColorPanel: React.FC = () => {
                                         )}
                                     </div>
 
-                                    {/* Name */}
                                     <div className="flex-1 text-left">
                                         <div
                                             className={`font-medium ${
@@ -256,11 +250,10 @@ const ColorPanel: React.FC = () => {
                                             }`}
                                             style={{ textShadow: `0 0 6px ${gradient.glow}` }}
                                         >
-                                            {isActive ? "Active" : "Click to apply"}
+                                            {isActive ? "Ativo" : "Clique para aplicar"}
                                         </div>
                                     </div>
 
-                                    {/* Preview Bar */}
                                     <div
                                         className="w-16 h-8 rounded-lg shadow-lg"
                                         style={{
@@ -274,7 +267,6 @@ const ColorPanel: React.FC = () => {
                     })}
                 </div>
 
-                {/* Footer */}
                 <div
                     className="p-4 border-t"
                     style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}
@@ -285,7 +277,7 @@ const ColorPanel: React.FC = () => {
                         }`}
                         style={{ textShadow: `0 0 6px var(--glow-color)` }}
                     >
-                        Choose a color theme to customize your dashboard
+                        Escolha um tema de cor para personalizar seu painel
                     </p>
                 </div>
             </div>

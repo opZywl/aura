@@ -7,7 +7,7 @@ import {
     Package,
     Users,
     TrendingUp,
-    Bell,
+    Home,
     MessageSquare,
     Settings,
     Layers,
@@ -50,17 +50,21 @@ const Sidebar: React.FC = () => {
             hasSubmenu: true,
             onClick: () => navigate("/features/view/conta"),
         },
-        { icon: TrendingUp, label: "Analytics" },
+         {
+           icon: Home,
+           label: "Lobby",
+           onClick: () => navigate("/")
+         },
     ];
 
     const insights: MenuItem[] = [
-        { icon: Bell, label: "Notification" },
+        { icon: TrendingUp, label: "Analytics" },
         {
             icon: MessageSquare,
             label: "Chat",
             onClick: () => navigate("/features/view/chat"),
         },
-        { icon: Settings, label: "Settingxs", hasSubmenu: true },
+        { icon: Settings, label: "Settings", hasSubmenu: true },
     ];
 
     const elements: MenuItem[] = [
@@ -257,7 +261,7 @@ const Sidebar: React.FC = () => {
                 )}
 
                 {renderMenuSection("MENU", menuItems)}
-                {renderMenuSection("ADMIN TOOLS", adminTools)}
+                {renderMenuSection("TOOLS", adminTools)}
                 {renderMenuSection("INSIGHTS", insights)}
                 {renderMenuSection("ELEMENTS", elements)}
                 {renderMenuSection("THEMES", themes)}
@@ -318,7 +322,7 @@ const Sidebar: React.FC = () => {
                                 filter: `drop-shadow(0 0 10px var(--glow-color))`,
                             }}
                         >
-                            LET'S UPGRADE TO PRO ACCOUNT
+                            EM DESENVOLVIMENTO!!!!!!!
                         </h4>
                         <p
                             className={`text-xs mb-4 transition-all duration-300 ${
@@ -331,7 +335,7 @@ const Sidebar: React.FC = () => {
                                 filter: `drop-shadow(0 0 8px var(--glow-color))`,
                             }}
                         >
-                            Lorem ipsum dolor sit amet consectetur adipiscing elit.
+                            pix onnnn.
                         </p>
                         <button className="w-full relative overflow-hidden rounded-lg py-2.5 px-4 text-sm font-medium text-white transition-all duration-300 group/btn hover:scale-105">
                             <div

@@ -35,7 +35,7 @@ const UserAccount: React.FC = () => {
             textShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
           }}
         >
-          OL
+          LC
         </span>
       </div>
       <span
@@ -46,7 +46,7 @@ const UserAccount: React.FC = () => {
           textShadow: theme === "dark" ? "0 0 10px rgba(59, 130, 246, 0.4)" : "0 0 8px rgba(59, 130, 246, 0.3)",
         }}
       >
-        My Account
+        Lucas
       </span>
       <ChevronDown
         className={`w-4 h-4 transition-all duration-300 relative z-10 ${

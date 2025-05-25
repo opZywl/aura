@@ -76,7 +76,7 @@ const Header: React.FC = () => {
             filter: `drop-shadow(0 0 8px var(--glow-color))`,
           }}
         >
-          EN
+          PT-BR
         </span>
         <ChevronDown
           className={`w-4 h-4 transition-all duration-300 cursor-pointer transform hover:scale-110 hover:rotate-180 ${
