@@ -96,6 +96,13 @@ src/
 │   │       │   ├── ChatInfo.tsx
 │   │       │   └── ChatNotificationDropdown.tsx
 │   │       │   └── ChatTemplate.tsx
+│   │       ├── lobby/
+│   │       │   ├──contexts
+│   │       │   ├──SettingsContext.tsx
+│   │       │──── IconWrapper.tsx
+│   │       │── IconWrapper.tsx
+│   │       │──IconWrapper.tsx
+│   │       │── IconWrapper.tsx
 │   │       ├── Chat.tsx
 │   │       ├── Contas.tsx
 │   │       ├── Conversations.tsx

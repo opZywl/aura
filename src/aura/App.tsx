@@ -2,12 +2,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-    Routes,
-    Route,
-    useLocation,
-    Navigate
-} from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+
+import { ThemeProvider as NextThemeProvider } from "next-themes";
+import { SettingsProvider as LobbySettingsProvider } from "./features/view/lobby/settings-context";
 
 import Header from "./components/Header";
 import Hero from "./components/Hero";
@@ -20,11 +18,13 @@ import CRM from "./pages/CRM";
 import Privacidade from "./pages/Privacidade";
 import Prompts from "./pages/Prompts";
 import Terms from "./pages/Terms";
-import Login from "./pages/Login";
 import Tecnologias from "./pages/Tecnologias";
 import Orientadores from "./pages/Orientadores";
 import Feedback from "./pages/Feedback";
+import Login from "./pages/Login";
 
+// páginas internas
+import Lobby from "./features/view/Lobby";
 import Home from "./features/view/Home";
 import Contas from "./features/view/Contas";
 import Chat from "./features/view/Chat";
@@ -41,20 +41,36 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
     const location = useLocation();
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
 
+    if (location.pathname === "/lobby") {
+        return (
+            <NextThemeProvider
+                attribute="class"
+                defaultTheme="dark"
+                enableSystem={false}
+                disableTransitionOnChange={false}
+            >
+                <LobbySettingsProvider>
+                    <Lobby />
+                </LobbySettingsProvider>
+            </NextThemeProvider>
+        );
+    }
+
     const paginasSemHeader = [
         "/artigo",
         "/changelog",
         "/crm",
-        "/github",
         "/privacidade",
         "/prompts",
         "/terms",
         "/tecnologias",
         "/orientadores",
-        "/feedback"
+        "/feedback",
     ];
     const paginasSemFooter = [...paginasSemHeader];
-    const hideHeaderFooter = location.pathname.startsWith("/features/view");
+    const hideHeaderFooter =
+        location.pathname.startsWith("/features/view") ||
+        false;
 
     return (
         <div
@@ -62,15 +78,16 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
                 theme === "dark" ? "dark" : ""
             }`}
         >
-            {!paginasSemHeader.includes(location.pathname) &&
-                !hideHeaderFooter && (
-                    <Header toggleTheme={toggleTheme} theme={theme} />
-                )}
+            {/* Header global */}
+            {!paginasSemHeader.includes(location.pathname) && !hideHeaderFooter && (
+                <Header toggleTheme={toggleTheme} theme={theme} />
+            )}
 
             <main className="mx-auto flex-1 overflow-auto">
                 <Routes>
                     <Route path="/" element={<Hero />} />
 
+                    {/* Páginas públicas */}
                     <Route path="/artigo" element={<Artigo />} />
                     <Route path="/changelog" element={<Changelog />} />
                     <Route path="/crm" element={<CRM />} />
@@ -81,61 +98,43 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
                     <Route path="/orientadores" element={<Orientadores />} />
                     <Route path="/feedback" element={<Feedback />} />
 
+                    {/* Login */}
                     <Route path="/login" element={<Login theme={theme} />} />
 
+                    {/* Rotas protegidas */}
                     <Route
                         path="/features/view/home"
-                        element={
-                            isLoggedIn ? <Home /> : <Navigate to="/login" />
-                        }
+                        element={isLoggedIn ? <Home /> : <Navigate to="/login" />}
                     />
                     <Route
                         path="/features/view/conta"
-                        element={
-                            isLoggedIn ? <Contas /> : <Navigate to="/login" />
-                        }
+                        element={isLoggedIn ? <Contas /> : <Navigate to="/login" />}
                     />
                     <Route
                         path="/features/view/chat"
-                        element={
-                            isLoggedIn ? <Chat /> : <Navigate to="/login" />
-                        }
+                        element={isLoggedIn ? <Chat /> : <Navigate to="/login" />}
                     />
                     <Route
                         path="/features/view/settings"
-                        element={
-                            isLoggedIn ? (
-                                <SettingsComponent />
-                            ) : (
-                                <Navigate to="/login" />
-                            )
-                        }
+                        element={isLoggedIn ? <SettingsComponent /> : <Navigate to="/login" />}
                     />
                     <Route
                         path="/features/view/teste"
-                        element={
-                            isLoggedIn ? <Teste /> : <Navigate to="/login" />
-                        }
+                        element={isLoggedIn ? <Teste /> : <Navigate to="/login" />}
                     />
                     <Route
                         path="/features/view/conversations"
                         element={
-                            isLoggedIn ? (
-                                <Conversations />
-                            ) : (
-                                <Navigate to="/login" />
-                            )
+                            isLoggedIn ? <Conversations /> : <Navigate to="/login" />
                         }
                     />
 
+                    {/* Catch-all */}
                     <Route
                         path="*"
                         element={
                             isLoggedIn ? (
-                                <Navigate
-                                    to="/features/view/home"
-                                    replace
-                                />
+                                <Navigate to="/features/view/home" replace />
                             ) : (
                                 <Navigate to="/login" replace />
                             )
@@ -143,20 +142,16 @@ const AppContent: React.FC<AppContentProps> = ({ toggleTheme, theme }) => {
                     />
                 </Routes>
 
+                {/* spacer extra (não aparece em /features/view) */}
                 {!hideHeaderFooter && (
-                    <section
-                        style={{
-                            backgroundColor: "#000",
-                            height: "400px"
-                        }}
-                    />
+                    <section style={{ backgroundColor: "#000", height: "400px" }} />
                 )}
             </main>
 
-            {!paginasSemFooter.includes(location.pathname) &&
-                !hideHeaderFooter && (
-                    <Footer theme={theme} />
-                )}
+            {/* Footer global */}
+            {!paginasSemFooter.includes(location.pathname) && !hideHeaderFooter && (
+                <Footer theme={theme} />
+            )}
         </div>
     );
 };
@@ -168,9 +163,7 @@ const App: React.FC = () => {
             ? storedTheme
             : "dark";
 
-    const [theme, setTheme] = useState<"light" | "dark">(
-        initialTheme
-    );
+    const [theme, setTheme] = useState<"light" | "dark">(initialTheme);
 
     const toggleTheme = () => {
         const newTheme = theme === "light" ? "dark" : "light";

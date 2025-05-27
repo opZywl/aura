@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",                     // raiz do projeto
+    "paths": {
+      "@/*": ["src/*"]                  // "@/foo" → "src/foo"
+    },
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "target": "ES6",
@@ -13,17 +17,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "typeRoots": ["./node_modules/@types", "./src"],
-    /*
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    */
-    "paths": {
-      "@/*": ["./*"]
-    }
+    "typeRoots": ["./node_modules/@types", "./src"]
   },
   "include": [
     "src/**/*",

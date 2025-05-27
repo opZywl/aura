@@ -1,16 +1,17 @@
-// tailwind.config.js
-import animatePlugin from "tailwindcss-animate";
-import typographyPlugin from "@tailwindcss/typography";
-import animationDelayPlugin from "tailwindcss-animation-delay";
-import filtersPlugin from "tailwindcss-filters";
+import animatePlugin from "tailwindcss-animate"
+import typographyPlugin from "@tailwindcss/typography"
+import animationDelayPlugin from "tailwindcss-animation-delay"
+import filtersPlugin from "tailwindcss-filters"
 
-/** @type {import('tailwindcss').Config} */
 const config = {
-  darkMode: "class",
+  darkMode: ["class"],
   content: [
     "./src/**/*.{ts,tsx,js,jsx,html}",
     "./public/index.html",
-    "*.{js,ts,jsx,tsx,mdx}"
+    "*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
   ],
   safelist: [
     "text-balance",
@@ -119,7 +120,6 @@ const config = {
         spin: {
           to: { transform: "rotate(1turn)" }
         },
-        // Home Dashboard specific animations
         "chart-glow": {
           "0%, 100%": { filter: "drop-shadow(0 0 5px rgba(59, 130, 246, 0.3))" },
           "50%": { filter: "drop-shadow(0 0 15px rgba(59, 130, 246, 0.6))" }
@@ -135,19 +135,28 @@ const config = {
         "draw-path": {
           to: { strokeDashoffset: "0" }
         },
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
         "home-shimmer": {
           "0%": { transform: "translateX(-100%) translateY(-100%) rotate(45deg)" },
           "100%": { transform: "translateX(100%) translateY(100%) rotate(45deg)" }
         }
       },
       animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
         marquee: "marquee 40s linear infinite",
         "fade-in": "fadeIn 1s var(--animation-delay,0s) ease forwards",
         gradient: "gradient 8s linear infinite",
         pulse: "pulse 2s cubic-bezier(.4,0,.6,1) infinite",
         shimmer: "shimmer 8s infinite",
         spin: "spin 1s linear infinite",
-        // Home Dashboard specific animations
         "chart-glow": "chart-glow 3s ease-in-out infinite",
         "chart-pulse": "chart-pulse 2s ease-in-out infinite",
         "dot-pulse": "dot-pulse 2s ease-in-out infinite",
@@ -168,11 +177,14 @@ const config = {
       width: {
         shimmer: "100px"
       },
-      // Home Dashboard specific extensions
       backgroundImage: {
-        "home-gradient-primary": "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-        "home-gradient-secondary": "linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)",
-        "home-sidebar-dark": "linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 50%, #0a0a0a 100%)",
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+        "home-gradient-primary":
+            "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+        "home-gradient-secondary":
+            "linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)",
+        "home-sidebar-dark":
+            "linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 50%, #0a0a0a 100%)",
         "home-sidebar-light": "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
         "home-header-dark": "linear-gradient(90deg, #1a1a1a 0%, #0f0f0f 100%)",
         "home-header-light": "linear-gradient(90deg, #ffffff 0%, #f8fafc 100%)",
@@ -247,11 +259,11 @@ const config = {
           strokeDashoffset: theme("strokeDashoffset.home-path"),
           animation: "draw-path 2s ease-in-out forwards"
         }
-      };
+      }
 
-      addUtilities(homeUtilities);
+      addUtilities(homeUtilities)
     }
   ]
-};
+}
 
-export default config;
+export default config
