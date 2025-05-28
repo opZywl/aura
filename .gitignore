@@ -16,7 +16,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-src/aura/features/view/lobby/lib/
 lib64/
 parts/
 sdist/
