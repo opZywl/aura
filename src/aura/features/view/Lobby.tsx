@@ -356,7 +356,7 @@ function HomeContent() {
                 whileHover={reducedMotion ? {} : { scale: 1.05 }}
                 whileTap={reducedMotion ? {} : { scale: 0.95 }}
               >
-                <Link to="https://n8n.io" target="_blank" rel="noopener noreferrer">
+                <Link to="https://lucas-lima.xyz" target="_blank" rel="noopener noreferrer">
                   <Button
                     className={`text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 rounded-xl shadow-lg w-full sm:w-auto ${
     theme === "dark"
