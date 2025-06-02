@@ -66,8 +66,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Load settings from localStorage
   useEffect(() => {
     const loadSetting = (key: string, defaultValue: any) => {
-      const saved = localStorage.getItem(key)
-      return saved !== null ? JSON.parse(saved) : defaultValue
+      try {
+        const saved = localStorage.getItem(key)
+        return saved !== null ? JSON.parse(saved) : defaultValue
+      } catch {
+        return defaultValue
+      }
     }
 
     setAnimationsEnabled(loadSetting("animationsEnabled", true))

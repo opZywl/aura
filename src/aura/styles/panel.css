@@ -1,0 +1,84 @@
+/* Stable time text that only changes with dark/light mode, not themes */
+.chat-time-stable {
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+/* Dark mode time color */
+.dark .chat-time-stable {
+  color: #9ca3af !important;
+}
+
+/* Light mode time color */
+.light .chat-time-stable,
+:root .chat-time-stable {
+  color: #6b7280 !important;
+}
+
+/* Prevent theme effects from affecting time text */
+.chat-time-stable {
+  background: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  animation: none !important;
+}
+
+/* Enhanced sidebar icon styles for better visibility */
+.sidebar-icon-dark {
+  color: #f8fafc;
+  transition: all 0.3s ease;
+}
+
+.sidebar-icon-dark:hover {
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+.sidebar-icon-light {
+  color: #1f2937; /* Darker color for better visibility in light mode */
+  transition: all 0.3s ease;
+}
+
+.sidebar-icon-light:hover {
+  color: #111827; /* Even darker on hover */
+  transform: scale(1.1);
+}
+
+/* Control sidebar wrapper styles */
+.control-sidebar-dark {
+  background: linear-gradient(180deg, #0a0a0a 0%, #000000 50%, #0a0a0a 100%);
+  border-color: #374151;
+}
+
+.control-sidebar-light {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 50%, #ffffff 100%);
+  border-color: #d1d5db;
+}
+
+/* Status text colors that respect theme */
+.status-text-dark {
+  color: #f3f4f6;
+}
+
+.status-text-light {
+  color: #1f2937;
+}
+
+/* Header text colors that respect theme */
+.header-text-dark {
+  color: #f9fafb;
+}
+
+.header-text-light {
+  color: #111827;
+}
+
+/* Filter button text colors */
+.filter-text-dark {
+  color: #e5e7eb;
+}
+
+.filter-text-light {
+  color: #374151;
+}

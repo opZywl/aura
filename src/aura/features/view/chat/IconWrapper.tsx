@@ -1,52 +1,43 @@
-// src/aura/features/view/chat/IconWrapper.tsx
-import React from 'react';
+"use client"
+
+import type { ReactNode } from "react"
+import { cn } from "@/lib/utils"
 
 interface IconWrapperProps {
-    seed: string;
-    color?: 'blue' | 'green' | 'red' | 'default' | string;
-    size?: number;
-    fontSize?: number;
-    isImage?: boolean;
-    imageUrl?: string;
-    children?: React.ReactNode;
+  children: ReactNode
+  size?: "sm" | "md" | "lg"
+  variant?: "default" | "ghost" | "outline"
+  className?: string
+  onClick?: () => void
 }
 
-const IconWrapper: React.FC<IconWrapperProps> = ({
-                                                     seed,
-                                                     color = 'default',
-                                                     size = 40,
-                                                     fontSize = 18,
-                                                     isImage = false,
-                                                     imageUrl,
-                                                     children
-                                                 }) => {
-    const initials = seed.substring(0, 2).toUpperCase();
+export default function IconWrapper({
+  children,
+  size = "md",
+  variant = "default",
+  className,
+  onClick,
+}: IconWrapperProps) {
+  const baseClasses = "inline-flex items-center justify-center rounded-lg transition-all duration-200"
 
-    const style: React.CSSProperties = {
-        width: `${size}px`,
-        height: `${size}px`,
-        fontSize: `${fontSize}px`,
-    };
+  const sizeClasses = {
+    sm: "w-8 h-8 p-1.5",
+    md: "w-10 h-10 p-2",
+    lg: "w-12 h-12 p-3",
+  }
 
-    if (isImage && imageUrl) {
-        return (
-            <img src={imageUrl} alt={seed} className="chat-icon-wrapper" style={{...style, objectFit: 'cover'}} />
-        );
-    }
+  const variantClasses = {
+    default: "bg-primary text-primary-foreground hover:bg-primary/90",
+    ghost: "hover:bg-accent hover:text-accent-foreground",
+    outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+  }
 
-    if (children) {
-        return (
-            <div className={`chat-icon-wrapper ${typeof color === 'string' && ['blue', 'green', 'red', 'default'].includes(color) ? color : ''}`} style={typeof color === 'string' && !['blue', 'green', 'red', 'default'].includes(color) ? {...style, backgroundColor: color} : style}>
-                {children}
-            </div>
-        )
-    }
-
-    return (
-        <div className={`chat-icon-wrapper ${color}`} style={style}>
-            {initials}
-        </div>
-    );
-};
-
-export default IconWrapper;
+  return (
+    <div
+      className={cn(baseClasses, sizeClasses[size], variantClasses[variant], onClick && "cursor-pointer", className)}
+      onClick={onClick}
+    >
+      {children}
+    </div>
+  )
+}

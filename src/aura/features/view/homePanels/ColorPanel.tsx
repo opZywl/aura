@@ -1,288 +1,482 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import type React from "react"
+import { useState, useEffect } from "react"
 import { X, Palette, Plus } from "lucide-react"
 import { useTheme } from "./ThemeContext"
+import { useLanguage } from "../../../contexts/LanguageContext"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
 
 const ColorPanel: React.FC = () => {
-    const {
-        showColorPanel,
-        setShowColorPanel,
-        gradientThemes,
-        currentGradient,
-        setGradientTheme,
-        theme,
-    } = useTheme()
+  const {
+    showColorPanel,
+    setShowColorPanel,
+    gradientThemes,
+    currentGradient,
+    setGradientTheme,
+    theme,
+    glowIntensity,
+    setGlowIntensity,
+    glowThickness,
+    setGlowThickness,
+    glowAnimation,
+    setGlowAnimation,
+    fadeMode,
+    setFadeMode,
+    fadeColor1,
+    setFadeColor1,
+    fadeColor2,
+    setFadeColor2,
+    fadeSpeed,
+    setFadeSpeed,
+    glowEnabled,
+    setGlowEnabled,
+    fadeEnabled,
+    setFadeEnabled,
+    applyGlowFadeSettings,
+  } = useTheme()
 
-    const [customColor1, setCustomColor1] = useState("#3b82f6")
-    const [customColor2, setCustomColor2] = useState("#8b5cf6")
-    const [customColor3, setCustomColor3] = useState("#ec4899")
+  const { t } = useLanguage()
+  const [customColor1, setCustomColor1] = useState("#3b82f6")
+  const [customColor2, setCustomColor2] = useState("#8b5cf6")
+  const [customColor3, setCustomColor3] = useState("#ec4899")
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
-    useEffect(() => {
-        console.log("🎨 Renderização do ColorPanel - showColorPanel:", showColorPanel)
-    }, [showColorPanel])
+  useEffect(() => {
+    console.log("🎨 Renderização do ColorPanel - showColorPanel:", showColorPanel)
+  }, [showColorPanel])
 
-    if (!showColorPanel) return null
-
-    const createCustomGradient = () => {
-        const customGradient = {
-            name: "Personalizado",
-            primary: `linear-gradient(135deg, ${customColor1} 0%, ${customColor2} 100%)`,
-            secondary: `linear-gradient(135deg, ${customColor1}CC 0%, ${customColor2}CC 100%)`,
-            accent: `linear-gradient(135deg, ${customColor1} 0%, ${customColor2} 50%, ${customColor3} 100%)`,
-            glow: `${customColor1}99`,
-        }
-        setGradientTheme(customGradient)
+  const createCustomGradient = () => {
+    const customGradient = {
+      name: t("colorPanel.createCustomTheme"),
+      primary: `linear-gradient(135deg, ${customColor1} 0%, ${customColor2} 100%)`,
+      secondary: `linear-gradient(135deg, ${customColor1}CC 0%, ${customColor2}CC 100%)`,
+      accent: `linear-gradient(135deg, ${customColor1} 0%, ${customColor2} 50%, ${customColor3} 100%)`,
+      glow: `${customColor1}99`,
     }
+    setGradientTheme(customGradient)
+  }
 
-    return (
-        <>
-            {/* Tela de Fundo */}
-            <div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300"
-                onClick={() => setShowColorPanel(false)}
-            />
+  const saveSettings = () => {
+    try {
+      const settings = {
+        glowEnabled,
+        glowIntensity,
+        glowThickness,
+        glowAnimation,
+        fadeEnabled,
+        fadeMode,
+        fadeColor1,
+        fadeColor2,
+        fadeSpeed,
+      }
+      localStorage.setItem("panel-glow-fade-settings", JSON.stringify(settings))
+      setHasUnsavedChanges(false)
 
-            {/* Painel */}
-            <div
-                className="fixed right-4 top-20 w-80 rounded-xl shadow-2xl z-50 transition-all duration-300 transform max-h-[80vh] overflow-y-auto scale-100 opacity-100"
-                style={{
-                    background:
-                        theme === "dark"
-                            ? "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)"
-                            : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-                    border: theme === "dark" ? "1px solid #3a3a3a" : "1px solid #e2e8f0",
-                    boxShadow: `0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px var(--glow-color)`,
-                }}
-            >
-                {/* Cabeçalho */}
-                <div
-                    className="flex items-center justify-between p-4 border-b sticky top-0 z-10"
-                    style={{
-                        borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0",
-                        background:
-                            theme === "dark"
-                                ? "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)"
-                                : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-                    }}
-                >
-                    <div className="flex items-center space-x-2">
-                        <Palette
-                            className={`w-5 h-5 ${
-                                theme === "dark" ? "text-blue-400" : "text-blue-600"
-                            }`}
-                            style={{
-                                filter: `drop-shadow(0 0 8px var(--glow-color)) drop-shadow(0 0 16px var(--glow-color))`,
-                                textShadow: `0 0 10px var(--glow-color)`,
-                            }}
-                        />
-                        <h3
-                            className={`font-semibold ${
-                                theme === "dark" ? "text-white" : "text-gray-900"
-                            }`}
-                            style={{
-                                textShadow: `0 0 10px var(--glow-color)`,
-                                filter: `drop-shadow(0 0 8px var(--glow-color))`,
-                            }}
-                        >
-                            Temas de Cores
-                        </h3>
-                    </div>
-                    <button
-                        onClick={() => setShowColorPanel(false)}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
-                            theme === "dark"
-                                ? "hover:bg-gray-700 text-gray-400 hover:text-white"
-                                : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
-                        }`}
-                        style={{ filter: `drop-shadow(0 0 6px var(--glow-color))` }}
-                    >
-                        <X
-                            className="w-4 h-4"
-                            style={{ textShadow: `0 0 8px var(--glow-color)` }}
-                        />
-                    </button>
-                </div>
+      // Aplicar as configurações imediatamente
+      applyGlowFadeSettings()
 
-                <div
-                    className="p-4 border-b"
-                    style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}
-                >
-                    <h4
-                        className={`font-medium mb-3 ${
-                            theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                        style={{
-                            textShadow: `0 0 8px var(--glow-color)`,
-                            filter: `drop-shadow(0 0 6px var(--glow-color))`,
-                        }}
-                    >
-                        Criar Tema Personalizado
-                    </h4>
-                    <div className="space-y-3">
-                        {[customColor1, customColor2, customColor3].map((col, i) => (
-                            <div key={i} className="flex items-center space-x-2">
-                                <input
-                                    type="color"
-                                    value={col}
-                                    onChange={(e) =>
-                                        i === 0
-                                            ? setCustomColor1(e.target.value)
-                                            : i === 1
-                                                ? setCustomColor2(e.target.value)
-                                                : setCustomColor3(e.target.value)
-                                    }
-                                    className="w-8 h-8 rounded border-0 cursor-pointer"
-                                    style={{ boxShadow: `0 0 10px var(--glow-color)` }}
-                                />
-                                <span
-                                    className={`text-sm ${
-                                        theme === "dark" ? "text-gray-300" : "text-gray-700"
-                                    }`}
-                                    style={{ textShadow: `0 0 6px var(--glow-color)` }}
-                                >
-                                    {i === 0
-                                        ? "Cor Primária"
-                                        : i === 1
-                                            ? "Cor Secundária"
-                                            : "Cor de Destaque"}
-                                </span>
-                            </div>
-                        ))}
-                        <button
-                            onClick={createCustomGradient}
-                            className="w-full p-2 rounded-lg transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2"
-                            style={{
-                                background: "var(--gradient-accent)",
-                                boxShadow: `0 0 15px var(--glow-color)`,
-                            }}
-                        >
-                            <Plus
-                                className="w-4 h-4 text-white"
-                                style={{
-                                    filter: "drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))",
-                                    textShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
-                                }}
-                            />
-                            <span
-                                className="text-white font-medium"
-                                style={{ textShadow: "0 0 10px rgba(255, 255, 255, 0.8)" }}
-                            >
-                                Aplicar Personalizado
-                            </span>
-                        </button>
-                    </div>
-                </div>
+      console.log("✅ Configurações salvas e aplicadas:", settings)
 
-                <div className="p-4 space-y-3">
-                    <h4
-                        className={`font-medium mb-3 ${
-                            theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                        style={{
-                            textShadow: `0 0 8px var(--glow-color)`,
-                            filter: `drop-shadow(0 0 6px var(--glow-color))`,
-                        }}
-                    >
-                        Temas Predefinidos
-                    </h4>
+      // Feedback visual
+      const root = document.documentElement
+      root.style.setProperty("--save-feedback", "rgba(34, 197, 94, 0.5)")
+      setTimeout(() => {
+        root.style.setProperty("--save-feedback", "transparent")
+      }, 1000)
+    } catch (error) {
+      console.error("❌ Erro ao salvar configurações:", error)
+    }
+  }
 
-                    {gradientThemes.map((gradient, index) => {
-                        const isActive = currentGradient.name === gradient.name
-                        const ringOffsetClass =
-                            theme === "dark" ? "ring-offset-gray-900" : "ring-offset-white"
+  const resetSettings = () => {
+    setGlowEnabled(true)
+    setGlowIntensity(100)
+    setGlowThickness(20)
+    setGlowAnimation(false)
+    setFadeEnabled(true)
+    setFadeMode("singular")
+    setFadeColor1("#3b82f6")
+    setFadeColor2("#8b5cf6")
+    setFadeSpeed(3)
+    setHasUnsavedChanges(true)
+  }
 
-                        return (
-                            <button
-                                key={index}
-                                onClick={() => setGradientTheme(gradient)}
-                                className={`w-full p-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] group relative overflow-hidden ${
-                                    isActive
-                                        ? `ring-2 ring-blue-500 ring-offset-2 ${ringOffsetClass}`
-                                        : ""
-                                }`}
-                                style={{
-                                    background: theme === "dark" ? "#2a2a2a" : "#f8fafc",
-                                    border: theme === "dark"
-                                        ? "1px solid #3a3a3a"
-                                        : "1px solid #e2e8f0",
-                                    boxShadow: `0 0 10px ${gradient.glow}`,
-                                }}
-                            >
-                                <div
-                                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"
-                                    style={{
-                                        background: `linear-gradient(135deg, ${gradient.glow.replace(
-                                            "0.6",
-                                            "0.1"
-                                        )}, ${gradient.glow.replace("0.6", "0.05")})`,
-                                    }}
-                                />
+  // Detectar mudanças não salvas
+  useEffect(() => {
+    setHasUnsavedChanges(true)
+  }, [
+    glowEnabled,
+    glowIntensity,
+    glowThickness,
+    glowAnimation,
+    fadeEnabled,
+    fadeMode,
+    fadeColor1,
+    fadeColor2,
+    fadeSpeed,
+  ])
 
-                                <div className="relative z-10 flex items-center space-x-3">
-                                    <div className="flex space-x-1">
-                                        {[gradient.primary, gradient.secondary, gradient.accent].map(
-                                            (bg, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="w-6 h-6 rounded-full shadow-lg"
-                                                    style={{
-                                                        background: bg,
-                                                        boxShadow: `0 0 10px ${gradient.glow}`,
-                                                    }}
-                                                />
-                                            )
-                                        )}
-                                    </div>
+  if (!showColorPanel) return null
 
-                                    <div className="flex-1 text-left">
-                                        <div
-                                            className={`font-medium ${
-                                                theme === "dark" ? "text-white" : "text-gray-900"
-                                            }`}
-                                            style={{ textShadow: `0 0 8px ${gradient.glow}` }}
-                                        >
-                                            {gradient.name}
-                                        </div>
-                                        <div
-                                            className={`text-xs ${
-                                                theme === "dark" ? "text-gray-400" : "text-gray-600"
-                                            }`}
-                                            style={{ textShadow: `0 0 6px ${gradient.glow}` }}
-                                        >
-                                            {isActive ? "Ativo" : "Clique para aplicar"}
-                                        </div>
-                                    </div>
+  // Verificação de segurança para gradientThemes
+  const safeGradientThemes = gradientThemes || []
 
-                                    <div
-                                        className="w-16 h-8 rounded-lg shadow-lg"
-                                        style={{
-                                            background: gradient.accent,
-                                            boxShadow: `0 0 15px ${gradient.glow}`,
-                                        }}
-                                    />
-                                </div>
-                            </button>
-                        )
-                    })}
-                </div>
+  return (
+    <>
+      {/* Tela de Fundo */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300"
+        onClick={() => setShowColorPanel(false)}
+      />
 
-                <div
-                    className="p-4 border-t"
-                    style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}
-                >
-                    <p
-                        className={`text-xs text-center ${
-                            theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }`}
-                        style={{ textShadow: `0 0 6px var(--glow-color)` }}
-                    >
-                        Escolha um tema de cor para personalizar seu painel
-                    </p>
-                </div>
+      {/* Painel */}
+      <div
+        className="fixed right-4 top-20 w-80 rounded-xl shadow-2xl z-50 transition-all duration-300 transform max-h-[80vh] overflow-y-auto scale-100 opacity-100 panel-scrollbar"
+        style={{
+          background:
+            theme === "dark"
+              ? "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)"
+              : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+          border: theme === "dark" ? "1px solid #3a3a3a" : "1px solid #e2e8f0",
+          boxShadow: `0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px var(--glow-color)`,
+        }}
+      >
+        {/* Cabeçalho com Navbar Bonita */}
+        <div
+          className="sticky top-0 z-10 border-b"
+          style={{
+            borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0",
+            background:
+              theme === "dark"
+                ? "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)"
+                : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+          }}
+        >
+          {/* Header Principal */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center space-x-2">
+              <Palette className={`w-5 h-5 ${theme === "dark" ? "text-blue-400" : "text-blue-600"} glow-title`} />
+              <h3 className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
+                {t("colorPanel.title")}
+              </h3>
             </div>
-        </>
-    )
+            <button
+              onClick={() => setShowColorPanel(false)}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110 panel-glow ${
+                theme === "dark"
+                  ? "hover:bg-gray-700 text-gray-400 hover:text-white"
+                  : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <X className="w-4 h-4 glow-title" />
+            </button>
+          </div>
+
+          {/* Navbar de Navegação */}
+          <div className="px-4 pb-3">
+            <div className={`flex space-x-1 p-1 rounded-lg ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-100/50"}`}>
+              <button
+                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 panel-glow ${
+                  theme === "dark" ? "text-blue-400 bg-blue-500/20 shadow-lg" : "text-blue-600 bg-blue-100 shadow-md"
+                }`}
+              >
+                {t("colorPanel.colorsAndThemes")}
+              </button>
+            </div>
+          </div>
+
+          {/* Indicador de Mudanças Não Salvas */}
+          {hasUnsavedChanges && (
+            <div
+              className={`px-4 py-2 text-xs text-center ${
+                theme === "dark" ? "text-yellow-400 bg-yellow-500/10" : "text-yellow-600 bg-yellow-100"
+              }`}
+            >
+              {t("colorPanel.unsavedChanges")}
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 border-b" style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}>
+          <h4 className={`font-medium mb-3 ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
+            {t("colorPanel.createCustomTheme")}
+          </h4>
+          <div className="space-y-3">
+            {[customColor1, customColor2, customColor3].map((col, i) => (
+              <div key={i} className="flex items-center space-x-2">
+                <input
+                  type="color"
+                  value={col}
+                  onChange={(e) =>
+                    i === 0
+                      ? setCustomColor1(e.target.value)
+                      : i === 1
+                        ? setCustomColor2(e.target.value)
+                        : setCustomColor3(e.target.value)
+                  }
+                  className="w-8 h-8 rounded border-0 cursor-pointer panel-glow"
+                />
+                <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} fade-text`}>
+                  {i === 0
+                    ? t("colorPanel.primaryColor")
+                    : i === 1
+                      ? t("colorPanel.secondaryColor")
+                      : t("colorPanel.accentColor")}
+                </span>
+              </div>
+            ))}
+            <button
+              onClick={createCustomGradient}
+              className="w-full p-2 rounded-lg transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2 panel-glow"
+              style={{
+                background: "var(--gradient-accent)",
+              }}
+            >
+              <Plus className="w-4 h-4 text-white glow-title" />
+              <span className="text-white font-medium glow-title">{t("colorPanel.applyCustom")}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <h4 className={`font-medium mb-3 ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
+            {t("colorPanel.predefinedThemes")}
+          </h4>
+
+          {safeGradientThemes.map((gradient, index) => {
+            const isActive = currentGradient?.name === gradient.name
+            const ringOffsetClass = theme === "dark" ? "ring-offset-gray-900" : "ring-offset-white"
+
+            return (
+              <button
+                key={index}
+                onClick={() => setGradientTheme(gradient)}
+                className={`w-full p-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] group relative overflow-hidden panel-glow ${
+                  isActive ? `ring-2 ring-blue-500 ring-offset-2 ${ringOffsetClass}` : ""
+                }`}
+                style={{
+                  background: theme === "dark" ? "#2a2a2a" : "#f8fafc",
+                  border: theme === "dark" ? "1px solid #3a3a3a" : "1px solid #e2e8f0",
+                }}
+              >
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${gradient.glow?.replace(
+                      "0.6",
+                      "0.1",
+                    )}, ${gradient.glow?.replace("0.6", "0.05")})`,
+                  }}
+                />
+
+                <div className="relative z-10 flex items-center space-x-3">
+                  <div className="flex space-x-1">
+                    {[gradient.primary, gradient.secondary, gradient.accent].map((bg, i) => (
+                      <div
+                        key={i}
+                        className="w-6 h-6 rounded-full shadow-lg panel-glow"
+                        style={{
+                          background: bg,
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="flex-1 text-left">
+                    <div className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
+                      {gradient.name}
+                    </div>
+                    <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} fade-text`}>
+                      {isActive ? t("common.active") : t("colorPanel.clickToApply")}
+                    </div>
+                  </div>
+
+                  <div
+                    className="w-16 h-8 rounded-lg shadow-lg panel-glow"
+                    style={{
+                      background: gradient.accent,
+                    }}
+                  />
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Seção Glow */}
+        <div className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
+              {t("colorPanel.glowSettings")}
+            </h4>
+            <Switch checked={glowEnabled} onCheckedChange={setGlowEnabled} />
+          </div>
+
+          {glowEnabled && (
+            <>
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} fade-text`}>
+                    {t("colorPanel.glowIntensity")}
+                  </span>
+                  <span className="text-blue-400 text-sm glow-title">{glowIntensity}%</span>
+                </div>
+                <Slider
+                  value={[glowIntensity]}
+                  onValueChange={([v]) => setGlowIntensity(v)}
+                  min={0}
+                  max={200}
+                  step={5}
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} fade-text`}>
+                    {t("colorPanel.glowThickness")}
+                  </span>
+                  <span className="text-blue-400 text-sm glow-title">{glowThickness}px</span>
+                </div>
+                <Slider
+                  value={[glowThickness]}
+                  onValueChange={([v]) => setGlowThickness(v)}
+                  min={5}
+                  max={50}
+                  step={1}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} fade-text`}>
+                  {t("colorPanel.glowAnimation")}
+                </span>
+                <Switch checked={glowAnimation} onCheckedChange={setGlowAnimation} />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Seção Fade */}
+        <div className="p-4 space-y-3 border-t" style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}>
+          <div className="flex items-center justify-between">
+            <h4 className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
+              {t("colorPanel.fadeEffects")}
+            </h4>
+            <Switch checked={fadeEnabled} onCheckedChange={setFadeEnabled} />
+          </div>
+
+          {fadeEnabled && (
+            <>
+              <div>
+                <label
+                  className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} text-sm mb-2 block fade-text`}
+                >
+                  {t("colorPanel.fadeMode")}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setFadeMode("singular")}
+                    className={`p-2 rounded text-sm transition-colors panel-glow ${
+                      fadeMode === "singular"
+                        ? `bg-blue-500 text-white hover:bg-blue-600`
+                        : `${theme === "dark" ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`
+                    }`}
+                  >
+                    {t("colorPanel.singular")}
+                  </button>
+                  <button
+                    onClick={() => setFadeMode("movement")}
+                    className={`p-2 rounded text-sm transition-colors panel-glow ${
+                      fadeMode === "movement"
+                        ? `bg-blue-500 text-white hover:bg-blue-600`
+                        : `${theme === "dark" ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`
+                    }`}
+                  >
+                    {t("colorPanel.movement")}
+                  </button>
+                </div>
+              </div>
+
+              {fadeMode === "movement" && (
+                <>
+                  <div>
+                    <label
+                      className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} text-sm mb-2 block fade-text`}
+                    >
+                      {t("colorPanel.primaryColorFade")}
+                    </label>
+                    <input
+                      type="color"
+                      value={fadeColor1}
+                      onChange={(e) => setFadeColor1(e.target.value)}
+                      className="w-full h-10 rounded border-0 cursor-pointer panel-glow"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} text-sm mb-2 block fade-text`}
+                    >
+                      {t("colorPanel.secondaryColorFade")}
+                    </label>
+                    <input
+                      type="color"
+                      value={fadeColor2}
+                      onChange={(e) => setFadeColor2(e.target.value)}
+                      className="w-full h-10 rounded border-0 cursor-pointer panel-glow"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} fade-text`}>
+                        {t("colorPanel.movementSpeed")}
+                      </span>
+                      <span className="text-blue-400 text-sm glow-title">{fadeSpeed}s</span>
+                    </div>
+                    <Slider value={[fadeSpeed]} onValueChange={([v]) => setFadeSpeed(v)} min={1} max={10} step={0.5} />
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Botões de Ação */}
+        <div className="p-4 border-t space-y-2" style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={saveSettings}
+              disabled={!hasUnsavedChanges}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 panel-glow ${
+                hasUnsavedChanges
+                  ? "bg-green-500 text-white hover:bg-green-600 shadow-lg hover:shadow-green-500/25"
+                  : "bg-gray-400 text-gray-200 cursor-not-allowed"
+              }`}
+            >
+              {t("colorPanel.saveSettings")}
+            </button>
+            <button
+              onClick={resetSettings}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 panel-glow ${
+                theme === "dark" ? "bg-red-600 text-white hover:bg-red-700" : "bg-red-500 text-white hover:bg-red-600"
+              } shadow-lg hover:shadow-red-500/25`}
+            >
+              {t("colorPanel.resetSettings")}
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 border-t" style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}>
+          <p className={`text-xs text-center ${theme === "dark" ? "text-gray-400" : "text-gray-600"} fade-text`}>
+            {t("colorPanel.chooseColorTheme")}
+          </p>
+        </div>
+      </div>
+    </>
+  )
 }
 
 export default ColorPanel

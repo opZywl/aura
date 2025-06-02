@@ -1,75 +1,51 @@
-// src/aura/features/view/chat/types.ts
-
-export type UserChatStatus = 'online' | 'offline' | 'digitando...' | 'ausente' | string;
-
-export type ContactSituation = 'aguardando' | 'em_atendimento' | 'resolvido' | 'pendente' | string | '';
-
-export interface User {
-    id: string;
-    name: string;
-    nickname?: string;
-    avatarSeed: string;
-    avatarColor?: 'blue' | 'green' | 'red' | 'default';
-    status?: UserChatStatus;
-    phoneNumber?: string;
-    messageCount?: number;
-    observation?: string;
-    situation?: ContactSituation;
-    tags?: string[];
-    createdAt?: Date;
-}
-
 export interface Message {
-    id: string;
-    senderId: string;
-    text: string;
-    timestamp: Date;
-    status?: 'sending' | 'sent' | 'delivered' | 'read' | 'error';
+  id: string
+  content: string
+  role: "user" | "assistant" | "system"
+  timestamp: Date
+  status: "sent" | "delivered" | "read" | "error"
 }
 
 export interface Conversation {
-    id: string;
-    participants: User[];
-    lastMessage?: Message;
-    unreadCount?: number;
-    name?: string;
-    avatarSeed?: string;
-    avatarColor?: 'blue' | 'green' | 'red' | 'default';
-    createdAt: Date;
+  id: string
+  title: string
+  lastMessage?: string
+  messages: Message[]
+  unreadCount: number
+  status: string
+  createdAt: Date
+  updatedAt: Date
+  isPinned: boolean
+  situacao?: string
+  isArchived?: boolean
+  showDetails?: boolean
 }
 
-export interface ChatAppProps {
-    currentUser: User;
+export interface AIAgent {
+  id: string
+  name: string
+  status: "online" | "offline" | "away"
 }
 
-export interface ConversationItemProps {
-    conversation: Conversation;
-    isActive: boolean;
-    onClick: () => void;
-    currentUser: User;
-    isDetailedView?: boolean;
+export interface ChatSettings {
+  theme: "dark" | "light"
+  glowEffects: boolean
+  animations: boolean
+  sounds: boolean
+  notifications: boolean
+  isFullscreen: boolean
 }
 
-export interface MessageBubbleProps {
-    message: Message;
-    isSender: boolean;
-    sender?: User;
-}
-
-export interface ChatInfoProps {
-    contact?: User;
-    onClose: () => void;
-    onUpdateContactDetails: (
-        contactId: string,
-        details: Partial<Pick<User, 'observation' | 'situation'>>
-    ) => void;
-}
-
-export type NotificationMode = 'off' | 'all' | 'awaiting';
-
-export interface ChatNotificationDropdownProps {
-    currentMode: NotificationMode;
-    onChangeMode: (mode: NotificationMode) => void;
-    contactName?: string;
-    onClose: () => void;
+export interface ThemeSettings {
+  glowEffects: boolean
+  textAnimations: boolean
+  glowIntensity: number
+  glowThickness: number
+  glowAnimation: boolean
+  fadeMode: string
+  fadeColor1: string
+  fadeColor2: string
+  fadeSpeed: number
+  fadeEnabled: boolean
+  currentGradient: string
 }

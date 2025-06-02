@@ -1,14 +1,27 @@
-# Arquivos compilados e cache do Python
+# =========================
+# DEPENDÊNCIAS E PACOTES
+# =========================
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Arquivos de lock (opcional - descomente se quiser ignorar)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.pyo
 *.pyd
-
-# Arquivos de extensões em C
-*.so
-
-# Diretórios de distribuição e build
 .Python
 build/
 develop-eggs/
@@ -16,137 +29,462 @@ dist/
 downloads/
 eggs/
 .eggs/
+lib/
 lib64/
 parts/
 sdist/
 var/
+wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Ambientes virtuais
+# =========================
+# AMBIENTES E CONFIGURAÇÕES
+# =========================
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+.env.backup
+*.env
+*.env.*
+.envrc
+
+# Ambientes virtuais Python
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
 *.venv/
+.venv/
+pipenv/
+.pipenv/
 
-# Cache e logs de testes/ferramentas
-.cache/
-.mypy_cache/
-.pytest_cache/
-.pyre/
-.coverage
-.coverage.*
-coverage.xml
-*.cover
-nosetests.xml
-*.log
-*.pid
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-
-# Arquivos de dependências e configurações
-requirements.txt.bak
+# Configurações de desenvolvimento
 .python-version
+.node-version
+.nvmrc
 
 # =========================
-# Arquivos HTML
+# BUILD E PRODUÇÃO
 # =========================
 
-# Arquivos temporários ou de backup (ex.: editores de texto)
-*.html~
-*.html.bak
-*~
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
 
-# Arquivos de cache de pré-processadores HTML
-*.cache
-
-# =========================
-# Arquivos e pastas do Node/React
-# =========================
-
-# Dependências do Node
-node_modules/
-package-lock.json.bak
-yarn.lock.bak
-
-# Diretórios de build e produção
+# React
 build/
 dist/
 public/build/
-*.tsbuildinfo
-*.map
 
-# Logs e arquivos de debug
+# Vercel
+.vercel
+.vercel.json
+
+# Netlify
+.netlify/
+
+# Build tools
+.parcel-cache/
+.cache/
+.temp/
+.tmp/
+
+# =========================
+# LOGS E DEBUG
+# =========================
+
+# Logs gerais
+*.log
+*.log.*
+logs/
+log/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# Arquivos de ambiente
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.env.backup
+# Debug
+debug.log
+error.log
+access.log
+combined.log
 
-# Arquivos de testes e coverage
+# PM2
+.pm2/
+
+# =========================
+# TESTES E COVERAGE
+# =========================
+
+# Coverage
 coverage/
-lcov.info
+*.lcov
+.nyc_output/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Testes
 *.spec.js
 *.test.js
+*.spec.ts
 *.test.ts
+test-results/
+playwright-report/
+test-results.xml
 
 # =========================
-# Outros arquivos comuns
+# CACHE E TEMPORÁRIOS
 # =========================
 
-# Arquivos do macOS
+# Cache geral
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# TypeScript
+*.tsbuildinfo
+.tscache/
+
+# Babel
+.babel-cache/
+
+# Webpack
+.webpack/
+
+# Turbo
+.turbo/
+
+# SWC
+.swc/
+
+# =========================
+# BANCOS DE DADOS
+# =========================
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# PostgreSQL
+*.dump
+*.sql
+
+# MongoDB
+*.bson
+
+# Redis
+dump.rdb
+
+# =========================
+# SISTEMAS OPERACIONAIS
+# =========================
+
+# macOS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Arquivos do Windows
-desktop.ini
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
 
-# Configurações de IDEs/editors (opcional)
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =========================
+# IDEs E EDITORES
+# =========================
+
+# VSCode
 .vscode/
+*.code-workspace
+
+# IntelliJ IDEA
 .idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+.project
+.classpath
+
+# Sublime Text
 *.sublime-workspace
 *.sublime-project
 
-# Arquivos temporários gerais
+# Vim
 *.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Atom
+.atom/
+
+# =========================
+# ARQUIVOS SENSÍVEIS
+# =========================
+
+# Chaves e certificados
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+
+# Configurações de API
+config.json
+secrets.json
+credentials.json
+service-account.json
+firebase-adminsdk-*.json
+
+# Tokens
+.token
+*.token
+access_token
+refresh_token
+
+# =========================
+# ARQUIVOS DE BACKUP
+# =========================
+
+# Backups gerais
 *.bak
+*.backup
+*.old
+*.orig
+*.save
+*~
 *.tmp
-*.out
-*.output
+*.temp
 
-# Arquivos de banco de dados locais
-*.db
-*.sqlite3# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Arquivos de recuperação
+*.recover
+*.recovery
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# =========================
+# MÍDIA E ASSETS GRANDES
+# =========================
 
-# testing
-/coverage
+# Vídeos
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
 
-# production
-/build
+# Áudios grandes
+*.wav
+*.flac
+*.aac
 
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Imagens grandes (descomente se necessário)
+# *.psd
+# *.ai
+# *.sketch
 
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Arquivos compactados
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bz2
+*.xz
+
+# =========================
+# DOCUMENTAÇÃO GERADA
+# =========================
+
+# Docs gerados
+docs/_build/
+site/
+_site/
+.jekyll-cache/
+.jekyll-metadata
+
+# Storybook
+storybook-static/
+
+# =========================
+# FERRAMENTAS DE DEPLOY
+# =========================
+
+# Docker
+.dockerignore
+Dockerfile.prod
+docker-compose.override.yml
+
+# Kubernetes
+*.kubeconfig
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Ansible
+*.retry
+
+# =========================
+# MONITORAMENTO E ANALYTICS
+# =========================
+
+# Sentry
+.sentryclirc
+
+# New Relic
+newrelic.ini
+
+# =========================
+# OUTROS ARQUIVOS ESPECÍFICOS
+# =========================
+
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Rush
+common/temp/
+common/deploy/
+
+# Lerna
+lerna-debug.log*
+
+# Nx
+.nx/cache
+
+# ESLint
+.eslintcache
+
+# Prettier
+.prettiercache
+
+# Husky
+.husky/_
+
+# Commitizen
+.cz-config.js
+
+# Semantic Release
+.semantic-release/
+
+# =========================
+# ARQUIVOS LOCAIS ESPECÍFICOS DO PROJETO
+# =========================
+
+# Uploads de usuário
+uploads/
+user-uploads/
+temp-uploads/
+
+local.config.js
+local.config.json
+dev.config.js
+
+test-data/
+mock-data/
+fixtures/
+
+scripts/personal/
+my-scripts/
+
+notes.md
+TODO.md
+NOTES.txt
+personal/
+
+*.prof
+*.trace
+*.cpuprofile
+*.heapprofile
+
+lighthouse-report.html
+lighthouse-report.json
+
+bundle-analyzer-report.html
+stats.json
+
+security.txt
+.well-known/
+
+vulnerability-report.json
+audit-report.json

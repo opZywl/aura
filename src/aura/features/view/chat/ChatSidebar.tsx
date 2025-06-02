@@ -1,342 +1,688 @@
-// src/aura/features/view/chat/ChatSidebar.tsx
-import React, { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+"use client"
 
-import IconWrapper from './IconWrapper'
-import {
-    Conversation,
-    User,
-    ConversationItemProps as ImportedConversationItemProps,
-    ContactSituation
-} from './types'
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Search, MessageSquare, MoreHorizontal, EyeOff, User } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import type { Conversation } from "./types"
+import type { ThemeSettings } from "./ChatTemplate"
 
-export type ActiveSidebarFilter = 'all' | 'awaiting'
-
-const formatDateForSidebar = (date: Date | undefined): string => {
-    if (!date) return ''
-    return date
-        .toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' })
-        .replace('.', '')
-}
-
-const getDaysDifference = (date: Date | undefined): number => {
-    if (!date) return 0
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const past = new Date(date)
-    past.setHours(0, 0, 0, 0)
-    const diff = Math.abs(today.getTime() - past.getTime())
-    return Math.ceil(diff / (1000 * 60 * 60 * 24))
-}
-
-const getSituationTextAndClass = (situation?: ContactSituation) => {
-    if (!situation) return { text: 'N/D', className: 'unknown' }
-    switch (situation) {
-        case 'aguardando':
-            return { text: 'Aguardando', className: 'aguardando' }
-        case 'em_atendimento':
-            return { text: 'Em Atendimento', className: 'em_atendimento' }
-        case 'resolvido':
-            return { text: 'Resolvido', className: 'resolvido' }
-        case 'pendente':
-            return { text: 'Pendente', className: 'pendente' }
-        default:
-            return {
-                text: situation.charAt(0).toUpperCase() + situation.slice(1),
-                className: 'unknown'
-            }
-    }
-}
-
-const ConversationItem: React.FC<ImportedConversationItemProps> = ({
-                                                                       conversation,
-                                                                       isActive,
-                                                                       onClick,
-                                                                       currentUser,
-                                                                       isDetailedView
-                                                                   }) => {
-    const other = useMemo(
-        () =>
-            conversation.participants.find(p => p.id !== currentUser.id) ||
-            conversation.participants[0],
-        [conversation.participants, currentUser.id]
-    )
-
-    const displayName = conversation.name || other?.name || 'Conversa'
-    const avatarSeed = conversation.avatarSeed || other?.name || 'C'
-    const avatarColor = conversation.avatarColor || other?.avatarColor || 'default'
-
-    const lastDate = isDetailedView
-        ? formatDateForSidebar(conversation.lastMessage?.timestamp)
-        : ''
-    const daysAgo = isDetailedView ? getDaysDifference(conversation.createdAt) : 0
-    const situationInfo = isDetailedView
-        ? getSituationTextAndClass(other?.situation)
-        : null
-
-    return (
-        <div
-            className={`chat-conversation-item ${isActive ? 'active' : ''} ${
-                isDetailedView ? 'detailed' : ''
-            }`}
-            onClick={onClick}
-        >
-            <IconWrapper seed={avatarSeed} color={avatarColor} />
-            <div className="chat-conversation-info">
-                <div className="chat-conversation-main-line">
-                    <div className="chat-conversation-name">{displayName}</div>
-                    {isDetailedView && lastDate && (
-                        <div className="chat-conversation-last-message-date">{lastDate}</div>
-                    )}
-                </div>
-
-                {conversation.lastMessage ? (
-                    <div
-                        className={`chat-conversation-preview ${
-                            isDetailedView ? 'detailed-preview' : ''
-                        }`}
-                    >
-                        {conversation.lastMessage.text}
-                    </div>
-                ) : isDetailedView ? (
-                    <div className="chat-conversation-preview detailed-preview">
-                        <em>Sem mensagens recentes</em>
-                    </div>
-                ) : null}
-
-                {isDetailedView && (
-                    <div className="chat-conversation-details-row">
-                        <span className="chat-conversation-days-ago">{daysAgo} Dias</span>
-                        {situationInfo && (
-                            <span
-                                className={`chat-conversation-status-badge status-${situationInfo.className}`}
-                            >
-                {situationInfo.text}
-              </span>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
-    )
+interface ConversationCounts {
+  active: number
+  waiting: number
 }
 
 interface ChatSidebarProps {
-    conversations: Conversation[]
-    activeConversationId: string | null
-    onConversationSelect: (conversationId: string) => void
-    currentUser: User
-    knownUsers: User[]
-    onNewChat: () => void
-    searchTerm: string
-    onSearchTermChange: (term: string) => void
-    activeFilter: ActiveSidebarFilter
-    onChangeFilter: (filter: ActiveSidebarFilter) => void
-    totalActiveCount: number
-    totalAwaitingCount: number
+  conversations: Conversation[]
+  currentConversation: Conversation | null
+  conversationCounts: ConversationCounts
+  theme: string
+  themeSettings: ThemeSettings
+  onToggleSidebar: () => void
+  controlSidebarHidden: boolean
+  onToggleControlSidebar: () => void
+  activeFilter: "all" | "active" | "waiting"
+  onFilterChange: (filter: "all" | "active" | "waiting") => void
+  onSelectConversation: (conversation: Conversation) => void
+  onArchiveConversation: (conversationId: string) => void
 }
 
-const ChatSidebar: React.FC<ChatSidebarProps> = ({
-                                                     conversations,
-                                                     activeConversationId,
-                                                     onConversationSelect,
-                                                     currentUser,
-                                                     knownUsers,
-                                                     onNewChat,
-                                                     searchTerm,
-                                                     onSearchTermChange,
-                                                     activeFilter,
-                                                     onChangeFilter,
-                                                     totalActiveCount,
-                                                     totalAwaitingCount
-                                                 }) => {
-    const [detailedView, setDetailedView] = useState(false)
-    const [showBackConfirm, setShowBackConfirm] = useState(false)
+export default function ChatSidebar({
+  conversations,
+  currentConversation,
+  conversationCounts,
+  theme,
+  themeSettings,
+  onToggleSidebar,
+  controlSidebarHidden,
+  onToggleControlSidebar,
+  activeFilter,
+  onFilterChange,
+  onSelectConversation,
+  onArchiveConversation,
+}: ChatSidebarProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [userStatus, setUserStatus] = useState<"online" | "away" | "busy">("online")
 
-    const navigate = useNavigate()
+  const filteredConversations = conversations.filter((conv) => {
+    const matchesSearch = conv.title.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesFilter =
+      activeFilter === "all" ||
+      (activeFilter === "active" && !conv.isArchived) ||
+      (activeFilter === "waiting" && conv.isArchived)
+    return matchesSearch && matchesFilter
+  })
 
-    const toggleDetailedView = () => setDetailedView(prev => !prev)
+  const getConversationPreview = (conv: Conversation) => {
+    if (conv.lastMessage && typeof conv.lastMessage === "string") {
+      return conv.lastMessage.length > 50 ? conv.lastMessage.substring(0, 50) + "..." : conv.lastMessage
+    }
+    return "Nenhuma mensagem"
+  }
 
-    const openBackConfirm = (e: React.MouseEvent) => {
-        e.preventDefault()
-        setShowBackConfirm(true)
+  const formatTime = (timestamp: Date | string | undefined) => {
+    if (!timestamp) return ""
+
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp)
+    if (isNaN(date.getTime())) return ""
+
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const days = Math.floor(hours / 24)
+
+    if (days > 0) return `${days}d`
+    if (hours > 0) return `${hours}h`
+    return "agora"
+  }
+
+  // Fixed status colors that don't change with theme
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "online":
+        return "bg-green-500"
+      case "away":
+        return "bg-red-500" // Não incomodar = vermelho
+      case "busy":
+        return "bg-yellow-500" // Pausa = amarelo
+      default:
+        return "bg-gray-400"
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "online":
+        return "Online"
+      case "away":
+        return "Não incomodar"
+      case "busy":
+        return "Pausa"
+      default:
+        return "Offline"
+    }
+  }
+
+  const getStatusGlowColor = (status: string) => {
+    switch (status) {
+      case "online":
+        return "#10b981"
+      case "away":
+        return "#ef4444" // Red for não incomodar
+      case "busy":
+        return "#f59e0b" // Yellow for pausa
+      default:
+        return "#6b7280"
+    }
+  }
+
+  // Get theme-based colors
+  const getThemeColors = () => {
+    const currentGradient = themeSettings.currentGradient
+
+    if (currentGradient === "Pure Black") {
+      return {
+        bg: "#000000",
+        bgSecondary: "#0a0a0a",
+        bgCard: "#111111",
+        text: "#ffffff",
+        textSecondary: "#e5e5e5",
+        textMuted: "#a0a0a0",
+        border: "#333333",
+        glow: "rgba(255, 255, 255, 0.8)",
+      }
+    } else if (currentGradient === "Pure White") {
+      return {
+        bg: "#ffffff",
+        bgSecondary: "#f8fafc",
+        bgCard: "#f1f5f9",
+        text: "#000000",
+        textSecondary: "#1f2937",
+        textMuted: "#4b5563",
+        border: "#e2e8f0",
+        glow: "rgba(0, 0, 0, 0.8)",
+      }
+    } else {
+      // Default theme colors
+      return theme === "dark"
+        ? {
+            bg: "#0f0f0f",
+            bgSecondary: "#1a1a1a",
+            bgCard: "#1e1e1e",
+            text: "#ffffff",
+            textSecondary: "#e5e5e5",
+            textMuted: "#9ca3af",
+            border: "#2a2a2a",
+            glow: "var(--chat-glow-color)",
+          }
+        : {
+            bg: "#f8fafc",
+            bgSecondary: "#ffffff",
+            bgCard: "#ffffff",
+            text: "#1f2937",
+            textSecondary: "#374151",
+            textMuted: "#6b7280",
+            border: "#e2e8f0",
+            glow: "var(--chat-glow-color)",
+          }
+    }
+  }
+
+  const themeColors = getThemeColors()
+
+  // Get avatar gradient based on current theme
+  const getAvatarGradient = () => {
+    if (themeSettings.glowEffects) {
+      return "var(--chat-gradient-primary)"
     }
 
-    const confirmBack = () => {
-        setShowBackConfirm(false)
-        navigate('/features/view/home')
+    const currentGradient = themeSettings.currentGradient
+
+    switch (currentGradient) {
+      case "Pure Black":
+        return "linear-gradient(135deg, #333333 0%, #666666 100%)"
+      case "Pure White":
+        return "linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)"
+      case "Green Teal":
+        return "linear-gradient(135deg, #10b981 0%, #06b6d4 100%)"
+      case "Orange Red":
+        return "linear-gradient(135deg, #f97316 0%, #ef4444 100%)"
+      case "Purple Pink":
+        return "linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)"
+      case "Cyan Blue":
+        return "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)"
+      default: // Blue Purple
+        return "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)"
     }
+  }
 
-    const menuIcon = { id: 'menu', icon: '☰', action: () => console.log('Menu futura') }
+  // Contagem correta de conversas ativas e arquivadas
+  const activeConversations = conversations.filter((c) => !c.isArchived).length
+  const archivedConversations = conversations.filter((c) => c.isArchived).length
 
-    const mainNav = [
-        { id: 'new', icon: '+', action: onNewChat, active: true },
-        /*
-        {
-            id: 'themes',
-            icon: (
-                <img
-                    src={themeIcon}
-                    alt="Themes"
-                    className="theme-icon"
-                />
-            ),
-            action: () => console.log('themes')
-        }
+  return (
+    <div
+      className={`w-80 border-r flex flex-col h-full transition-all duration-300 ${themeSettings.glowEffects ? "chat-glow-container" : ""}`}
+      style={{
+        background: `linear-gradient(180deg, ${themeColors.bg} 0%, ${themeColors.bgSecondary} 50%, ${themeColors.bg} 100%)`,
+        borderColor: themeColors.border,
+        color: themeColors.text,
+        boxShadow: themeSettings.glowEffects
+          ? `0 0 30px var(--chat-glow-color), inset 0 0 20px var(--chat-glow-color-light)`
+          : "none",
+        borderWidth: themeSettings.glowEffects ? "1px" : undefined,
+        borderStyle: themeSettings.glowEffects ? "solid" : undefined,
+      }}
+    >
+      {/* Header */}
+      <div
+        className="p-4 border-b transition-all duration-300"
+        style={{
+          borderColor: themeColors.border,
+          background: `linear-gradient(90deg, ${themeColors.bgSecondary} 0%, ${themeColors.bg} 100%)`,
+          boxShadow: themeSettings.glowEffects ? `0 0 20px var(--chat-glow-color-light)` : "none",
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2
+            className={`text-xl font-bold transition-all duration-300 ${
+              theme === "dark" ? "header-text-dark" : "header-text-light"
+            } ${themeSettings.fadeEnabled ? "chat-fade-text" : ""} ${themeSettings.glowEffects ? "chat-glow-title" : ""} ${themeSettings.textAnimations ? "chat-text-animated" : ""}`}
+            style={{
+              textShadow: themeSettings.glowEffects
+                ? `0 0 20px var(--chat-glow-color), 0 0 40px var(--chat-glow-color-light)`
+                : "none",
+              filter: themeSettings.glowEffects ? `drop-shadow(0 0 15px var(--chat-glow-color))` : "none",
+            }}
+          >
+            Conversas
+          </h2>
+          <div className="flex items-center space-x-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`transition-all duration-300 transform hover:scale-110 ${
+                    theme === "dark" ? "sidebar-icon-dark" : "sidebar-icon-light"
+                  } ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects ? "chat-glow-title hover:chat-glow-border" : ""}`}
+                  style={{
+                    filter: themeSettings.glowEffects ? `drop-shadow(0 0 12px var(--chat-glow-color))` : "none",
+                    borderColor: themeSettings.glowEffects ? "var(--chat-glow-color)" : "transparent",
+                    boxShadow: themeSettings.glowEffects ? `0 0 15px var(--chat-glow-color-light)` : "none",
+                  }}
+                >
+                  <EyeOff className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className={`backdrop-blur-sm transition-all duration-300 ${themeSettings.glowEffects ? "chat-glow-border" : ""}`}
+                style={{
+                  backgroundColor: `${themeColors.bgCard}dd`,
+                  color: themeColors.text,
+                  borderColor: themeColors.border,
+                  borderWidth: themeSettings.glowEffects ? "1px" : undefined,
+                  borderStyle: themeSettings.glowEffects ? "solid" : undefined,
+                  boxShadow: themeSettings.glowEffects ? `0 0 20px var(--chat-glow-color-light)` : "none",
+                }}
+              >
+                <DropdownMenuItem
+                  onClick={onToggleSidebar}
+                  className={`transition-all duration-300 ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.fadeEnabled ? "chat-fade-text" : ""} ${themeSettings.glowEffects ? "hover:chat-glow-title" : ""}`}
+                  style={{ color: themeColors.text }}
+                >
+                  <EyeOff className="w-4 h-4 mr-2" />
+                  <span className={`${themeSettings.glowEffects ? "chat-glow-title" : ""}`}>Ocultar Sidebar</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
 
-        */
-    ]
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search
+            className={`absolute left-3 top-3 w-4 h-4 transition-all duration-300 ${
+              theme === "dark" ? "sidebar-icon-dark" : "sidebar-icon-light"
+            } ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
+            style={{
+              filter: themeSettings.glowEffects ? `drop-shadow(0 0 10px var(--chat-glow-color))` : "none",
+              textShadow: themeSettings.glowEffects ? `0 0 10px var(--chat-glow-color)` : "none",
+            }}
+          />
+          <Input
+            placeholder="Pesquisar conversas..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={`pl-10 transition-all duration-300 ${themeSettings.glowEffects ? "focus:chat-glow-border" : ""} ${themeSettings.fadeEnabled ? "chat-fade-text" : ""}`}
+            style={{
+              backgroundColor: `${themeColors.bgCard}80`,
+              borderColor: themeColors.border,
+              color: themeColors.text,
+              borderWidth: themeSettings.glowEffects ? "1px" : undefined,
+              borderStyle: themeSettings.glowEffects ? "solid" : undefined,
+              boxShadow: themeSettings.glowEffects ? `0 0 15px var(--chat-glow-color-light)` : "none",
+            }}
+          />
+        </div>
 
-    const fullConvs = useMemo(
-        () =>
-            conversations.map(conv => {
-                const parts = conv.participants.map(
-                    p => knownUsers.find(u => u.id === p.id) || p
-                )
-                let name = conv.name
-                if ((!name || parts.length === 2) && parts.length > 0) {
-                    const other = parts.find(p => p.id !== currentUser.id) || parts[0]
-                    name = other.nickname || other.name
-                }
-                return { ...conv, participants: parts, name }
-            }),
-        [conversations, knownUsers, currentUser.id]
-    )
+        {/* Filters with Counters */}
+        <div className="flex items-center space-x-1">
+          <Button
+            variant={activeFilter === "all" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => onFilterChange("all")}
+            className={`text-xs transition-all duration-300 transform hover:scale-105 ${
+              activeFilter !== "all" ? (theme === "dark" ? "filter-text-dark" : "filter-text-light") : ""
+            } ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects && activeFilter === "all" ? "chat-glow-title" : ""}`}
+            style={
+              activeFilter === "all" && themeSettings.glowEffects
+                ? {
+                    background: "var(--chat-gradient-primary)",
+                    boxShadow: `0 0 25px var(--chat-glow-color), 0 0 50px var(--chat-glow-color-light)`,
+                    textShadow: "0 0 15px rgba(255, 255, 255, 0.8)",
+                    border: `1px solid var(--chat-glow-color)`,
+                    color: "#ffffff",
+                  }
+                : activeFilter === "all"
+                  ? {
+                      background: "var(--chat-gradient-primary)",
+                      color: "#ffffff",
+                    }
+                  : {
+                      borderColor: themeSettings.glowEffects ? "var(--chat-glow-color)" : "transparent",
+                      boxShadow: themeSettings.glowEffects ? `0 0 10px var(--chat-glow-color-light)` : "none",
+                    }
+            }
+          >
+            {conversations.length} - Todas
+          </Button>
+          <Button
+            variant={activeFilter === "active" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => onFilterChange("active")}
+            className={`text-xs transition-all duration-300 transform hover:scale-105 ${
+              activeFilter !== "active" ? (theme === "dark" ? "filter-text-dark" : "filter-text-light") : ""
+            } ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects && activeFilter === "active" ? "chat-glow-title" : ""}`}
+            style={
+              activeFilter === "active" && themeSettings.glowEffects
+                ? {
+                    background: "var(--chat-gradient-primary)",
+                    boxShadow: `0 0 25px var(--chat-glow-color), 0 0 50px var(--chat-glow-color-light)`,
+                    textShadow: "0 0 15px rgba(255, 255, 255, 0.8)",
+                    border: `1px solid var(--chat-glow-color)`,
+                    color: "#ffffff",
+                  }
+                : activeFilter === "active"
+                  ? {
+                      background: "var(--chat-gradient-primary)",
+                      color: "#ffffff",
+                    }
+                  : {
+                      borderColor: themeSettings.glowEffects ? "var(--chat-glow-color)" : "transparent",
+                      boxShadow: themeSettings.glowEffects ? `0 0 10px var(--chat-glow-color-light)` : "none",
+                    }
+            }
+          >
+            {activeConversations} - Ativas
+          </Button>
+          <Button
+            variant={activeFilter === "waiting" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => onFilterChange("waiting")}
+            className={`text-xs transition-all duration-300 transform hover:scale-105 ${
+              activeFilter !== "waiting" ? (theme === "dark" ? "filter-text-dark" : "filter-text-light") : ""
+            } ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects && activeFilter === "waiting" ? "chat-glow-title" : ""}`}
+            style={
+              activeFilter === "waiting" && themeSettings.glowEffects
+                ? {
+                    background: "var(--chat-gradient-primary)",
+                    boxShadow: `0 0 25px var(--chat-glow-color), 0 0 50px var(--chat-glow-color-light)`,
+                    textShadow: "0 0 15px rgba(255, 255, 255, 0.8)",
+                    border: `1px solid var(--chat-glow-color)`,
+                    color: "#ffffff",
+                  }
+                : activeFilter === "waiting"
+                  ? {
+                      background: "var(--chat-gradient-primary)",
+                      color: "#ffffff",
+                    }
+                  : {
+                      borderColor: themeSettings.glowEffects ? "var(--chat-glow-color)" : "transparent",
+                      boxShadow: themeSettings.glowEffects ? `0 0 10px var(--chat-glow-color-light)` : "none",
+                    }
+            }
+          >
+            {archivedConversations} - Arquivadas
+          </Button>
+        </div>
+      </div>
 
-    return (
-        <>
-            <div className={`chat-sidebar ${detailedView ? 'detailed-view-active' : ''}`}>
-                <div className="chat-sidebar-icon-nav">
-                    <div className="chat-sidebar-icon-nav-header">
-                        <div
-                            key={menuIcon.id}
-                            className="chat-sidebar-nav-icon menu-icon"
-                            onClick={menuIcon.action}
-                            title="Menu"
-                        >
-                            {menuIcon.icon}
-                        </div>
-                    </div>
+      {/* Conversations List */}
+      <div className="flex-1 overflow-y-auto">
+        {filteredConversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full p-8">
+            <MessageSquare
+              className={`w-12 h-12 mb-4 transition-all duration-300 ${
+                theme === "dark" ? "sidebar-icon-dark" : "sidebar-icon-light"
+              } ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
+              style={{
+                filter: themeSettings.glowEffects ? `drop-shadow(0 0 20px var(--chat-glow-color))` : "none",
+              }}
+            />
+            <p
+              className={`text-center transition-all duration-300 ${themeSettings.fadeEnabled ? "chat-fade-text" : ""} ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
+              style={{ color: themeColors.textMuted }}
+            >
+              {searchQuery ? "Nenhuma conversa encontrada" : "Nenhuma conversa ainda"}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-1 p-2">
+            {filteredConversations.map((conversation) => (
+              <div
+                key={conversation.id}
+                className={`p-3 rounded-lg cursor-pointer transition-all duration-300 transform hover:scale-[1.02] relative overflow-hidden group ${themeSettings.textAnimations ? "chat-text-animated" : ""}`}
+                style={{
+                  background:
+                    currentConversation?.id === conversation.id
+                      ? themeSettings.glowEffects
+                        ? "var(--chat-gradient-primary)"
+                        : themeColors.bgCard
+                      : "transparent",
+                  color: currentConversation?.id === conversation.id ? "#ffffff" : themeColors.text,
+                  boxShadow:
+                    currentConversation?.id === conversation.id && themeSettings.glowEffects
+                      ? `0 0 25px var(--chat-glow-color), 0 0 50px var(--chat-glow-color-light)`
+                      : "none",
+                }}
+                onClick={() => onSelectConversation(conversation)}
+              >
+                {/* Glow effect overlay */}
+                {themeSettings.glowEffects && currentConversation?.id !== conversation.id && (
+                  <>
+                    <div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"
+                      style={{
+                        background: `linear-gradient(90deg, var(--chat-glow-color), transparent, var(--chat-glow-color))`,
+                        opacity: 0.15,
+                      }}
+                    />
+                    <div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg blur-xl scale-110"
+                      style={{
+                        background: "var(--chat-glow-color)",
+                        opacity: 0.1,
+                      }}
+                    />
+                  </>
+                )}
 
-                    <div className="chat-sidebar-icon-nav-main">
-                        {mainNav.map(i => (
-                            <div
-                                key={i.id}
-                                className={
-                                    `chat-sidebar-nav-icon ${i.active ? 'active' : ''}` +
-                                    (i.id === 'themes' ? ' theme-container' : '')
-                                }
-                                onClick={i.action}
-                                title={i.id}
-                            >
-                                {i.icon}
-                            </div>
-                        ))}
-                    </div>
+                <div className="flex items-start space-x-3 relative z-10">
+                  {/* Avatar com ícone User */}
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 group-hover:scale-110 ${themeSettings.glowEffects ? "chat-glow-border" : ""}`}
+                    style={{
+                      background: getAvatarGradient(),
+                      boxShadow: themeSettings.glowEffects
+                        ? `0 0 20px var(--chat-glow-color), 0 0 40px var(--chat-glow-color-light)`
+                        : "none",
+                      border: themeSettings.glowEffects ? `2px solid var(--chat-glow-color)` : "none",
+                    }}
+                  >
+                    <User
+                      className={`w-6 h-6 ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
+                      style={{
+                        color: themeSettings.currentGradient === "Pure White" ? "#000000" : "#ffffff",
+                        filter: themeSettings.glowEffects ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))" : "none",
+                      }}
+                    />
+                  </div>
 
-                    <div className="chat-sidebar-icon-nav-footer">
-                        <div
-                            className={`back-btn sidebar-back-btn ${
-                                detailedView ? 'settings-active' : ''
-                            }`}
-                            onClick={toggleDetailedView}
-                            title="Detalhes"
-                        >
-                            Detalhes
-                        </div>
-
-                        <Link
-                            to="/features/view/home"
-                            className="back-btn sidebar-back-btn"
-                            title="Voltar"
-                            onClick={openBackConfirm}
-                        >
-                            Voltar
-                        </Link>
-                    </div>
-                </div>
-
-                <div className="chat-sidebar-main-content">
-                    <div className="chat-sidebar-header">
-                        <div className="chat-sidebar-search-container">
-                            🔍
-                            <input
-                                type="text"
-                                placeholder="Pesquisar"
-                                className="chat-sidebar-search-input"
-                                value={searchTerm}
-                                onChange={e => onSearchTermChange(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="chat-conversation-list">
-                        {fullConvs.length > 0 ? (
-                            fullConvs.map(conv => (
-                                <ConversationItem
-                                    key={conv.id}
-                                    conversation={conv}
-                                    isActive={conv.id === activeConversationId}
-                                    onClick={() => onConversationSelect(conv.id)}
-                                    currentUser={currentUser}
-                                    isDetailedView={detailedView}
-                                />
-                            ))
-                        ) : (
-                            <div className="chat-no-conversations-found">
-                                {searchTerm
-                                    ? 'Nenhum chat encontrado.'
-                                    : activeFilter === 'awaiting'
-                                        ? 'Nenhum chat aguardando sua resposta.'
-                                        : 'Nenhum chat.'}
-                            </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className={`font-medium truncate transition-all duration-300`}>{conversation.title}</h3>
+                      <div className="flex items-center space-x-1">
+                        {conversation.updatedAt && (
+                          <span
+                            className={`text-xs transition-all duration-300 chat-time-stable`}
+                            style={{
+                              color:
+                                currentConversation?.id === conversation.id
+                                  ? "rgba(255, 255, 255, 0.8)"
+                                  : theme === "dark"
+                                    ? "#9ca3af"
+                                    : "#6b7280",
+                            }}
+                          >
+                            {formatTime(conversation.updatedAt)}
+                          </span>
                         )}
+                        {conversation.unreadCount > 0 && !conversation.isArchived && (
+                          <Badge
+                            className={`text-xs transition-all duration-300 transform group-hover:scale-110 ${themeSettings.glowEffects ? "chat-glow-border" : ""}`}
+                            style={
+                              themeSettings.glowEffects
+                                ? {
+                                    background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                                    boxShadow: "0 0 15px #ef4444, 0 0 30px rgba(239, 68, 68, 0.3)",
+                                    textShadow: "0 0 8px rgba(255, 255, 255, 0.8)",
+                                    borderWidth: "1px",
+                                    borderStyle: "solid",
+                                    borderColor: "#ef4444",
+                                    color: "#ffffff",
+                                  }
+                                : {
+                                    background: "#ef4444",
+                                    color: "#ffffff",
+                                  }
+                            }
+                          >
+                            {conversation.unreadCount}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-
-                    <div className="chat-sidebar-filters">
-                        <button
-                            className={`chat-filter-button ${activeFilter==='all'? 'active':''}`}
-                            onClick={() => onChangeFilter('all')}
+                    <p
+                      className={`text-sm truncate transition-all duration-300`}
+                      style={{
+                        color:
+                          currentConversation?.id === conversation.id
+                            ? "rgba(255, 255, 255, 0.7)"
+                            : themeColors.textMuted,
+                      }}
+                    >
+                      {getConversationPreview(conversation)}
+                    </p>
+                    {conversation.situacao && (
+                      <div className="flex items-center mt-1">
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full transition-all duration-300 ${themeSettings.glowEffects ? "chat-glow-border" : ""}`}
+                          style={
+                            themeSettings.glowEffects
+                              ? {
+                                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                                  color: "white",
+                                  textShadow: "0 0 8px rgba(255, 255, 255, 0.6)",
+                                  boxShadow: "0 0 10px #10b981",
+                                }
+                              : {
+                                  background: "#10b981",
+                                  color: "white",
+                                }
+                          }
                         >
-                            <div className="chat-filter-button-content">
-    <span className="chat-filter-badge total-badge">
-      {totalActiveCount}
-    </span>
-                                <span className="chat-filter-label">Ativo</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`chat-filter-button ${activeFilter==='awaiting'? 'active':''}`}
-                            onClick={() => onChangeFilter('awaiting')}
-                        >
-                            <div className="chat-filter-button-content">
-    <span className="chat-filter-badge awaiting-badge">
-      {totalAwaitingCount}
-    </span>
-                                <span className="chat-filter-label">Aguardando</span>
-                            </div>
-                        </button>
-                    </div>
+                          {conversation.situacao}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-            </div>
 
-            {showBackConfirm && (
-                <div className="back-modal-overlay">
-                    <div className="back-modal">
-                        <p className="back-modal-title">Deseja voltar?</p>
-                        <div className="back-modal-actions">
-                            <button className="back-btn-cancel" onClick={() => setShowBackConfirm(false)}>
-                                Cancelar
-                            </button>
-                            <button className="back-btn-confirm" onClick={confirmBack}>
-                                Confirmar
-                            </button>
-                        </div>
-                    </div>
+                {/* Archive indicator */}
+                {conversation.isArchived && (
+                  <div className="absolute top-2 right-2">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Footer with Status Display */}
+      <div
+        className="p-4 border-t transition-all duration-300"
+        style={{
+          borderColor: themeColors.border,
+          background: `linear-gradient(90deg, ${themeColors.bgSecondary} 0%, ${themeColors.bg} 100%)`,
+          boxShadow: themeSettings.glowEffects ? `0 0 20px var(--chat-glow-color-light)` : "none",
+        }}
+      >
+        <div className="flex items-center justify-between">
+          {/* Status Display */}
+          <div className="flex items-center space-x-2">
+            <div
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${getStatusColor(userStatus)} ${
+                themeSettings.glowEffects ? "shadow-lg" : ""
+              }`}
+              style={
+                themeSettings.glowEffects
+                  ? {
+                      boxShadow: `0 0 15px ${getStatusGlowColor(userStatus)}, 0 0 30px ${getStatusGlowColor(userStatus)}`,
+                    }
+                  : {}
+              }
+            />
+            <span
+              className={`text-sm transition-all duration-300 ${
+                theme === "dark" ? "status-text-dark" : "status-text-light"
+              } ${themeSettings.fadeEnabled ? "chat-fade-text" : ""} ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
+              style={{
+                textShadow: themeSettings.glowEffects ? `0 0 10px var(--chat-glow-color)` : "none",
+              }}
+            >
+              {getStatusText(userStatus)}
+            </span>
+          </div>
+
+          {/* Settings Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`transition-all duration-300 transform hover:scale-110 ${
+                  theme === "dark" ? "sidebar-icon-dark" : "sidebar-icon-light"
+                } ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects ? "chat-glow-title hover:chat-glow-border" : ""}`}
+                style={{
+                  filter: themeSettings.glowEffects ? `drop-shadow(0 0 12px var(--chat-glow-color))` : "none",
+                  borderColor: themeSettings.glowEffects ? "var(--chat-glow-color)" : "transparent",
+                  boxShadow: themeSettings.glowEffects ? `0 0 15px var(--chat-glow-color-light)` : "none",
+                }}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className={`backdrop-blur-sm transition-all duration-300 ${themeSettings.glowEffects ? "chat-glow-border" : ""}`}
+              style={{
+                backgroundColor: `${themeColors.bgCard}dd`,
+                color: themeColors.text,
+                borderColor: themeColors.border,
+                borderWidth: themeSettings.glowEffects ? "1px" : undefined,
+                borderStyle: themeSettings.glowEffects ? "solid" : undefined,
+                boxShadow: themeSettings.glowEffects ? `0 0 20px var(--chat-glow-color-light)` : "none",
+                background: themeSettings.glowEffects
+                  ? `linear-gradient(135deg, ${themeColors.bgCard}f0 0%, ${themeColors.bgSecondary}f0 100%)`
+                  : `${themeColors.bgCard}dd`,
+              }}
+            >
+              <div className="p-2">
+                <div className="mb-2">
+                  <span
+                    className={`text-xs font-medium transition-all duration-300 ${
+                      theme === "dark" ? "status-text-dark" : "status-text-light"
+                    } ${themeSettings.fadeEnabled ? "chat-fade-text" : ""} ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
+                  >
+                    Alterar Status:
+                  </span>
                 </div>
-            )}
-        </>
-    )
+                <DropdownMenuItem
+                  onClick={() => setUserStatus("online")}
+                  className={`transition-all duration-300 flex items-center ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects ? "hover:chat-glow-title" : ""}`}
+                  style={{ color: themeColors.text }}
+                >
+                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
+                  <span className={`${themeSettings.glowEffects ? "chat-glow-title" : ""}`}>Online</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setUserStatus("away")}
+                  className={`transition-all duration-300 flex items-center ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects ? "hover:chat-glow-title" : ""}`}
+                  style={{ color: themeColors.text }}
+                >
+                  <div className="w-3 h-3 rounded-full bg-red-500 mr-2" />
+                  <span className={`${themeSettings.glowEffects ? "chat-glow-title" : ""}`}>Não incomodar</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setUserStatus("busy")}
+                  className={`transition-all duration-300 flex items-center ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects ? "hover:chat-glow-title" : ""}`}
+                  style={{ color: themeColors.text }}
+                >
+                  <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2" />
+                  <span className={`${themeSettings.glowEffects ? "chat-glow-title" : ""}`}>Pausa</span>
+                </DropdownMenuItem>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </div>
+  )
 }
-
-export default ChatSidebar

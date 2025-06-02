@@ -1,112 +1,326 @@
 "use client"
 
 import type React from "react"
+import { useState, useEffect } from "react"
 import { X, Search } from "lucide-react"
 import { useTheme } from "./ThemeContext"
+import { useLanguage } from "../../../contexts/LanguageContext"
 
 const SearchPanel: React.FC = () => {
-  const { showSearch, setShowSearch, searchQuery, setSearchQuery, theme } = useTheme()
+  const { theme, showSearch, setShowSearch, searchQuery, setSearchQuery, glowEnabled, fadeEnabled, fadeMode } =
+    useTheme()
+  const { t } = useLanguage()
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
 
-  console.log("🎨 Renderização do SearchPanel - showSearch:", showSearch)
+  useEffect(() => {
+    // Load recent searches from localStorage
+    try {
+      const stored = localStorage.getItem("recentSearches")
+      if (stored) {
+        setRecentSearches(JSON.parse(stored))
+      }
+    } catch (error) {
+      console.error("Error loading recent searches:", error)
+    }
+
+    // Focus search input when panel opens
+    if (showSearch) {
+      setTimeout(() => {
+        const searchInput = document.getElementById("search-input")
+        if (searchInput) {
+          searchInput.focus()
+        }
+      }, 100)
+    }
+  }, [showSearch])
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setSearchQuery(value)
+  }
+
+  const handleClose = () => {
+    setShowSearch(false)
+    setSearchQuery("")
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim()) return
+
+    // Add to recent searches
+    const newRecentSearches = [searchQuery, ...recentSearches.filter((s) => s !== searchQuery)].slice(0, 5)
+    setRecentSearches(newRecentSearches)
+    localStorage.setItem("recentSearches", JSON.stringify(newRecentSearches))
+  }
+
+  const clearRecentSearches = () => {
+    setRecentSearches([])
+    localStorage.removeItem("recentSearches")
+  }
+
+  const selectRecentSearch = (search: string) => {
+    setSearchQuery(search)
+  }
+
+  const getCategoryGlowStyle = () => {
+    if (!glowEnabled) return {}
+    return {
+      textShadow: "0 0 8px var(--glow-color), 0 0 15px var(--glow-color-light)",
+      letterSpacing: "0.05em",
+    }
+  }
+
+  const getMenuItemClass = () => {
+    const shouldApplyFade = fadeEnabled && fadeMode === "movement"
+    return shouldApplyFade ? "fade-text-movement" : ""
+  }
 
   if (!showSearch) return null
 
   return (
-      <>
-        {/* Tela de Fundo */}
-        <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300"
-            onClick={() => setShowSearch(false)}
-        />
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40" onClick={handleClose} />
 
-        {/* Painel */}
-        <div
-            className={`fixed left-4 top-20 w-80 rounded-xl shadow-2xl z-50 transition-all duration-300 transform ${
-                showSearch ? "scale-100 opacity-100" : "scale-95 opacity-0"
+      {/* Search Panel */}
+      <div
+        className={`fixed inset-y-0 right-0 w-80 shadow-2xl z-50 transition-all duration-300 ${
+          theme === "dark"
+            ? "bg-gray-900/95 backdrop-blur-xl border-l border-gray-700"
+            : "bg-white/95 backdrop-blur-xl border-l border-gray-200"
+        }`}
+        style={{
+          background:
+            theme === "dark"
+              ? "linear-gradient(180deg, #0a0a0a 0%, #111111 50%, #0a0a0a 100%)"
+              : "linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #ffffff 100%)",
+          borderColor: theme === "dark" ? "#1a1a1a" : "#e2e8f0",
+          boxShadow: glowEnabled ? `0 0 20px var(--glow-color)` : "none",
+        }}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div
+            className={`flex items-center justify-between p-4 border-b transition-all duration-300 ${
+              theme === "dark" ? "border-gray-700" : "border-gray-200"
             }`}
             style={{
+              borderColor: theme === "dark" ? "#1a1a1a" : "#e2e8f0",
               background:
-                  theme === "dark"
-                      ? "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)"
-                      : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-              border: theme === "dark" ? "1px solid #3a3a3a" : "1px solid #e2e8f0",
-              boxShadow: `0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px var(--glow-color)`,
+                theme === "dark"
+                  ? "linear-gradient(90deg, #1a1a1a 0%, #0f0f0f 100%)"
+                  : "linear-gradient(90deg, #ffffff 0%, #f8fafc 100%)",
             }}
-        >
-          {/* Cabeçalho */}
-          <div
-              className="flex items-center justify-between p-4 border-b"
-              style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}
           >
-            <div className="flex items-center space-x-2">
-              <Search
-                  className={`w-5 h-5 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}
-                  style={{
-                    filter: `drop-shadow(0 0 8px var(--glow-color)) drop-shadow(0 0 16px var(--glow-color))`,
-                    textShadow: `0 0 10px var(--glow-color)`,
-                  }}
-              />
-              <h3
-                  className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}
-                  style={{
-                    textShadow: `0 0 10px var(--glow-color)`,
-                    filter: `drop-shadow(0 0 8px var(--glow-color))`,
-                  }}
-              >
-                Menu de Pesquisa
-              </h3>
-            </div>
-            <button
-                onClick={() => setShowSearch(false)}
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
-                    theme === "dark"
-                        ? "hover:bg-gray-700 text-gray-400 hover:text-white"
-                        : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
-                }`}
-                style={{ filter: `drop-shadow(0 0 6px var(--glow-color))` }}
+            <h2
+              className={`text-lg font-medium transition-all duration-300 transform hover:scale-105 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              } ${getMenuItemClass()}`}
+              style={getCategoryGlowStyle()}
             >
-              <X
-                  className="w-4 h-4"
-                  style={{ textShadow: `0 0 8px var(--glow-color)` }}
-              />
+              {t("search.searchMenu")}
+            </h2>
+            <button
+              onClick={handleClose}
+              className={`p-2 rounded-full transition-all duration-300 hover:scale-110 transform hover:rotate-90 ${
+                theme === "dark"
+                  ? "hover:bg-gray-800 text-gray-400 hover:text-white"
+                  : "hover:bg-gray-100 text-gray-500 hover:text-gray-900"
+              }`}
+              style={
+                glowEnabled
+                  ? {
+                      filter: `drop-shadow(0 0 8px var(--glow-color))`,
+                      textShadow: `0 0 8px var(--glow-color)`,
+                    }
+                  : {}
+              }
+            >
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Campo de Busca */}
+          {/* Search Form */}
           <div className="p-4">
-            <div className="relative">
-              <Search
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}
-                  style={{ filter: `drop-shadow(0 0 6px var(--glow-color))` }}
-              />
+            <form onSubmit={handleSearch} className="relative">
               <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar itens do menu..."
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border transition-all duration-300 focus:outline-none focus:ring-2 ${
-                      theme === "dark"
-                          ? "bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-500"
-                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500"
-                  }`}
-                  style={{
-                    boxShadow: `0 0 15px var(--glow-color)`,
-                    textShadow: `0 0 8px var(--glow-color)`,
-                  }}
-                  autoFocus
+                id="search-input"
+                type="text"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder={t("search.typeToFilter")}
+                className={`w-full pl-10 pr-4 py-3 rounded-lg border transition-all duration-300 ${
+                  theme === "dark"
+                    ? "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 focus:bg-gray-800 focus:border-blue-500"
+                    : "bg-gray-50/50 border-gray-300 text-gray-900 placeholder-gray-500 focus:bg-white focus:border-blue-500"
+                } focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${getMenuItemClass()}`}
+                style={
+                  glowEnabled
+                    ? {
+                        borderColor: "var(--glow-color)",
+                        boxShadow: "0 0 10px var(--glow-color-light)",
+                        textShadow: `0 0 8px var(--glow-color)`,
+                      }
+                    : {}
+                }
               />
+              <Search
+                className={`absolute left-3 top-3.5 w-5 h-5 transition-all duration-300 ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-500"
+                }`}
+                style={
+                  glowEnabled
+                    ? {
+                        filter: `drop-shadow(0 0 8px var(--glow-color))`,
+                        textShadow: `0 0 8px var(--glow-color)`,
+                      }
+                    : {}
+                }
+              />
+            </form>
+
+            {searchQuery && (
+              <p
+                className={`text-xs mt-2 transition-all duration-300 ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                } ${getMenuItemClass()}`}
+                style={getCategoryGlowStyle()}
+              >
+                {t("search.filteringBy")} "{searchQuery}"
+              </p>
+            )}
+          </div>
+
+          {/* Recent Searches */}
+          {!searchQuery && recentSearches.length > 0 && (
+            <div className="px-4 py-2">
+              <div className="flex items-center justify-between mb-3">
+                <h3
+                  className={`text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  } ${getMenuItemClass()}`}
+                  style={getCategoryGlowStyle()}
+                >
+                  {t("search.recentSearches")}
+                </h3>
+                <button
+                  onClick={clearRecentSearches}
+                  className={`text-xs transition-all duration-300 transform hover:scale-105 ${
+                    theme === "dark" ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"
+                  } hover:underline ${getMenuItemClass()}`}
+                  style={
+                    glowEnabled
+                      ? {
+                          textShadow: `0 0 8px var(--glow-color)`,
+                          filter: `drop-shadow(0 0 6px var(--glow-color))`,
+                        }
+                      : {}
+                  }
+                >
+                  {t("search.clear")}
+                </button>
+              </div>
+              <div className="space-y-1">
+                {recentSearches.map((search, index) => (
+                  <button
+                    key={index}
+                    onClick={() => selectRecentSearch(search)}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all duration-300 transform hover:scale-[1.02] relative overflow-hidden group ${
+                      theme === "dark"
+                        ? "text-gray-300 hover:bg-gray-800 hover:text-white"
+                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    } ${getMenuItemClass()}`}
+                    style={
+                      glowEnabled
+                        ? {
+                            textShadow: `0 0 6px var(--glow-color)`,
+                          }
+                        : {}
+                    }
+                  >
+                    {glowEnabled && (
+                      <>
+                        <div
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md"
+                          style={{
+                            background: `linear-gradient(90deg, var(--glow-color), transparent, var(--glow-color))`,
+                            opacity: 0.1,
+                          }}
+                        />
+                        <div
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md blur-xl scale-110"
+                          style={{
+                            background: `var(--glow-color)`,
+                            opacity: 0.05,
+                          }}
+                        />
+                      </>
+                    )}
+                    <Search
+                      className="w-3 h-3 inline mr-2 opacity-50 relative z-10"
+                      style={
+                        glowEnabled
+                          ? {
+                              filter: `drop-shadow(0 0 6px var(--glow-color))`,
+                            }
+                          : {}
+                      }
+                    />
+                    <span className="relative z-10">{search}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <p
-                className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
-                style={{ textShadow: `0 0 6px var(--glow-color)` }}
+          )}
+
+          {/* Instructions */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div
+              className={`text-center py-8 transition-all duration-300 ${
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              } ${getMenuItemClass()}`}
             >
-              Digite para filtrar itens do menu lateral
-            </p>
+              {searchQuery ? (
+                <div>
+                  <Search
+                    className="w-8 h-8 mx-auto mb-2 opacity-50 transition-all duration-300"
+                    style={
+                      glowEnabled
+                        ? {
+                            filter: `drop-shadow(0 0 10px var(--glow-color))`,
+                          }
+                        : {}
+                    }
+                  />
+                  <p className="text-sm" style={getCategoryGlowStyle()}>
+                    {t("search.filteringBy")}
+                    <br />
+                    <span className="font-medium">"{searchQuery}"</span>
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <Search
+                    className="w-8 h-8 mx-auto mb-2 opacity-50 transition-all duration-300"
+                    style={
+                      glowEnabled
+                        ? {
+                            filter: `drop-shadow(0 0 10px var(--glow-color))`,
+                          }
+                        : {}
+                    }
+                  />
+                  <p className="text-sm" style={getCategoryGlowStyle()}>
+                    {t("search.typeToFilterItems")}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </>
+      </div>
+    </>
   )
 }
 

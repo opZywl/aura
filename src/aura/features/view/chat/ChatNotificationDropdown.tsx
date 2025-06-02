@@ -1,112 +1,149 @@
-// src/aura/features/view/chat/ChatNotificationDropdown.tsx
-import React, { useRef, useEffect } from 'react';
+"use client"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Bell, MessageSquare, Settings, User } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
-export type NotificationMode = 'off' | 'all' | 'awaiting';
-
-interface ChatNotificationDropdownProps {
-    currentMode: NotificationMode;
-    onChangeMode: (mode: NotificationMode) => void;
-    contactName?: string;
-    onClose: () => void;
+interface Notification {
+  id: string
+  type: "message" | "system" | "update"
+  title: string
+  description: string
+  timestamp: Date
+  read: boolean
+  actionUrl?: string
 }
 
-export const ChatNotificationDropdown: React.FC<ChatNotificationDropdownProps> = ({
-                                                                                      currentMode,
-                                                                                      onChangeMode,
-                                                                                      contactName = 'este chat',
-                                                                                      onClose
-                                                                                  }) => {
-    const ref = useRef<HTMLDivElement>(null);
+interface ChatNotificationDropdownProps {
+  notifications: Notification[]
+  onMarkAsRead: (notificationId: string) => void
+  onMarkAllAsRead: () => void
+}
 
-    useEffect(() => {
-        const onClickOutside = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) {
-                onClose();
-            }
-        };
-        document.addEventListener('mousedown', onClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', onClickOutside);
-        };
-    }, [onClose]);
+export default function ChatNotificationDropdown({
+  notifications,
+  onMarkAsRead,
+  onMarkAllAsRead,
+}: ChatNotificationDropdownProps) {
+  const unreadCount = notifications.filter((n) => !n.read).length
 
-    const getAudioUrl = (): string | null => {
-        const audio = document.createElement('audio');
-        if (audio.canPlayType('audio/wav')) return '/notifications/message.wav';
-        if (audio.canPlayType('audio/mpeg')) return '/notifications/message.mp3';
-        if (audio.canPlayType('audio/ogg')) return '/notifications/message.ogg';
-        console.warn('Nenhum formato de áudio suportado encontrado para notificação.');
-        return null;
-    };
+  const getIcon = (type: Notification["type"]) => {
+    switch (type) {
+      case "message":
+        return <MessageSquare className="w-4 h-4" />
+      case "system":
+        return <Settings className="w-4 h-4" />
+      case "update":
+        return <User className="w-4 h-4" />
+      default:
+        return <Bell className="w-4 h-4" />
+    }
+  }
 
-    const options: { label: string; value: NotificationMode }[] = [
-        { label: 'Desativar Notificações', value: 'off' },
-        { label: 'Notificar Todas Mensagens', value: 'all' },
-        { label: 'Somente Aguardando', value: 'awaiting' }
-    ];
+  const getTypeColor = (type: Notification["type"]) => {
+    switch (type) {
+      case "message":
+        return "text-blue-500"
+      case "system":
+        return "text-yellow-500"
+      case "update":
+        return "text-green-500"
+      default:
+        return "text-gray-500"
+    }
+  }
 
-    const handleSelect = async (value: NotificationMode, label: string) => {
-        let permissionGranted = false;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="relative">
+          <Bell className="w-4 h-4" />
+          {unreadCount > 0 && (
+            <Badge
+              variant="destructive"
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </Badge>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
 
-        if (typeof Notification !== 'undefined') {
-            if (Notification.permission === 'granted') {
-                permissionGranted = true;
-            } else if (Notification.permission === 'default') {
-                const permission = await Notification.requestPermission();
-                permissionGranted = permission === 'granted';
-                console.log(
-                    permissionGranted
-                        ? 'Permissão para notificações concedida.'
-                        : 'Permissão para notificações negada.'
-                );
-            }
-        } else {
-            console.warn('API de Notificações do Navegador não disponível.');
-        }
-
-        const audioUrl = getAudioUrl();
-        if (audioUrl) {
-            const audioElem = new Audio(audioUrl);
-            audioElem.play().catch(err => console.warn('Erro ao tocar áudio:', err));
-
-            (window as any).__notifAudio = audioElem;
-        }
-
-        if (permissionGranted) {
-            new Notification('Configuração de Notificações', {
-                body: `${label} para ${contactName}.`,
-                icon: '/favicon.ico',
-                silent: false
-            });
-        }
-
-        onChangeMode(value);
-        onClose();
-    };
-
-    return (
-        <div
-            ref={ref}
-            className="chat-options-dropdown chat-notification-dropdown"
-            onClick={e => e.stopPropagation()}
-        >
-            <div className="chat-notification-dropdown-title">
-                Notificações do Chat
-            </div>
-            {options.map(opt => {
-                const isActive = currentMode === opt.value;
-                return (
-                    <div
-                        key={opt.value}
-                        onClick={() => handleSelect(opt.value, opt.label)}
-                        className={`chat-options-dropdown-item${
-                            isActive ? ' active-notification-mode' : ''
-                        }`}
-                    >
-                        {opt.label}
-                    </div>
-                );
-            })}
+      <DropdownMenuContent className="w-80" align="end">
+        <div className="flex items-center justify-between p-4">
+          <h3 className="font-semibold">Notificações</h3>
+          {unreadCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={onMarkAllAsRead} className="text-xs">
+              Marcar todas como lidas
+            </Button>
+          )}
         </div>
-    );
-};
+
+        <DropdownMenuSeparator />
+
+        <ScrollArea className="max-h-96">
+          {notifications.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Nenhuma notificação</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {notifications.map((notification) => (
+                <DropdownMenuItem
+                  key={notification.id}
+                  className={`p-4 cursor-pointer space-y-1 ${!notification.read ? "bg-accent/50" : ""}`}
+                  onClick={() => {
+                    if (!notification.read) {
+                      onMarkAsRead(notification.id)
+                    }
+                  }}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className={`mt-0.5 ${getTypeColor(notification.type)}`}>{getIcon(notification.type)}</div>
+
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{notification.title}</p>
+                        {!notification.read && <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground line-clamp-2">{notification.description}</p>
+
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(notification.timestamp, {
+                          addSuffix: true,
+                          locale: ptBR,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+
+        {notifications.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <div className="p-2">
+              <Button variant="ghost" size="sm" className="w-full text-xs">
+                Ver todas as notificações
+              </Button>
+            </div>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}

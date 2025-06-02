@@ -1,3 +1,0 @@
-PORT=
-FLASK_ENV=development
-NGROK_AUTH_TOKEN=
