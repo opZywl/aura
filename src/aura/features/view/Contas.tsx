@@ -107,7 +107,6 @@ export default function Contas() {
     },
   ]
 
-  // Country codes for WhatsApp
   const countryCodes = [
     { code: "BR", name: "Brasil", dial: "+55" },
     { code: "US", name: "Estados Unidos", dial: "+1" },
