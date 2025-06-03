@@ -54,6 +54,7 @@ export const ptBR = {
     forms: "Formulários",
     tables: "Tabelas",
     colors: "Cores",
+    channels: "Canais",
     menu: "MENU",
     tools: "FERRAMENTAS",
     insights: "INSIGHTS",
@@ -150,10 +151,8 @@ export const ptBR = {
     },
     about: {
       title: "yzyzyzyzy",
-      description1:
-        "flashlightttttttttttts",
-      description2:
-        "onsighttttttttttt",
+      description1: "flashlightttttttttttts",
+      description2: "onsighttttttttttt",
     },
     services: {
       title: "Áreas de Aplicação",
@@ -190,8 +189,7 @@ export const ptBR = {
       },
       language: {
         title: "Linguagem Humana",
-        description:
-          "simmmmmmm",
+        description: "simmmmmmm",
       },
       integrations: {
         title: "Integrações com Sistemas",
@@ -200,8 +198,7 @@ export const ptBR = {
     },
     cta: {
       title: "yesyesyeys",
-      description:
-        "botzaoo",
+      description: "botzaoo",
       demoButton: "butaozao2",
       consultButton: "butaozao1",
     },
@@ -439,6 +436,10 @@ export const ptBR = {
     confirmDelete: "Tem certeza que deseja excluir este usuário?",
     noUsersFound: "Nenhum usuário encontrado",
     tryAdjustSearch: "Tente ajustar os termos de busca",
+    channels: "Canais",
+    allowedChannels: "Canais Permitidos",
+    selectChannels: "Selecionar Canais",
+    channelPermissions: "Permissões de Canais",
   },
 
   // Errors
@@ -555,5 +556,15 @@ export const ptBR = {
     unsavedChanges: "⚠️ Você tem alterações não salvas",
     saving: "Salvando...",
     resetting: "Resetando...",
+  },
+
+  // Channels
+  channels: {
+    whatsapp: "WhatsApp",
+    telegram: "Telegram",
+    messenger: "Messenger",
+    instagram: "Instagram",
+    email: "Email",
+    webchat: "WebChat",
   },
 }

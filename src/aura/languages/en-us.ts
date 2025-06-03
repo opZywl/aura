@@ -53,6 +53,7 @@ export const enUS = {
     forms: "Forms",
     tables: "Tables",
     colors: "Colors",
+    channels: "Channels",
     menu: "MENU",
     tools: "TOOLS",
     insights: "INSIGHTS",
@@ -109,6 +110,7 @@ export const enUS = {
     exitChat: "Exit Chat",
     active: "Active",
     waiting: "Waiting",
+    archived: "Archived",
     details: "Details",
     days: "Days",
     situation: "Situation",
@@ -434,6 +436,10 @@ export const enUS = {
     confirmDelete: "Are you sure you want to delete this user?",
     noUsersFound: "No users found",
     tryAdjustSearch: "Try adjusting your search terms",
+    channels: "Channels",
+    allowedChannels: "Allowed Channels",
+    selectChannels: "Select Channels",
+    channelPermissions: "Channel Permissions",
   },
 
   // Errors
@@ -549,5 +555,15 @@ export const enUS = {
     unsavedChanges: "⚠️ You have unsaved changes",
     saving: "Saving...",
     resetting: "Resetting...",
+  },
+
+  // Channels
+  channels: {
+    whatsapp: "WhatsApp",
+    telegram: "Telegram",
+    messenger: "Messenger",
+    instagram: "Instagram",
+    email: "Email",
+    webchat: "WebChat",
   },
 }

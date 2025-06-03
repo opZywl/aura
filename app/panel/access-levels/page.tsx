@@ -2,7 +2,26 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ArrowLeft, Trash, Edit, UserPlus, Shield, Search } from "lucide-react"
+import {
+  ArrowLeft,
+  Trash,
+  Edit,
+  UserPlus,
+  Shield,
+  Search,
+  Check,
+  BarChart3,
+  Package,
+  Users,
+  Home,
+  TrendingUp,
+  MessageCircle,
+  Settings,
+  Layers,
+  FileText,
+  Table,
+  Palette,
+} from "lucide-react"
 import Link from "next/link"
 
 // Tipos
@@ -11,7 +30,9 @@ interface User {
   username: string
   name: string
   email: string
+  password?: string
   accessLevel: "DEV" | "SUPER_ADMIN" | "AGENT" | "SUPERVISOR"
+  allowedChannels?: string[]
   createdBy?: string
   createdAt: string
 }
@@ -32,8 +53,94 @@ export default function AccessLevelsPage() {
     password: "",
     confirmPassword: "",
     accessLevel: "AGENT" as "DEV" | "SUPER_ADMIN" | "AGENT" | "SUPERVISOR",
+    allowedChannels: [] as string[],
   })
+
+  // Icon mapping
+  const iconMap = {
+    BarChart3,
+    Package,
+    Users,
+    Home,
+    TrendingUp,
+    MessageCircle,
+    Settings,
+    Layers,
+    FileText,
+    Table,
+    Palette,
+  }
+
+  // Páginas disponíveis no sidebar organizadas por categoria
+  const [availablePages] = useState([
+    // MENU
+    { id: "dashboard", name: "Dashboard", category: "MENU", icon: "BarChart3" },
+
+    // TOOLS
+    { id: "products", name: "Produtos", category: "TOOLS", icon: "Package" },
+    { id: "account", name: "Conta", category: "TOOLS", icon: "Users" },
+    { id: "lobby", name: "Lobby", category: "TOOLS", icon: "Home" },
+
+    // INSIGHTS
+    { id: "analytics", name: "Analytics", category: "INSIGHTS", icon: "TrendingUp" },
+    { id: "chat", name: "Chat", category: "INSIGHTS", icon: "MessageCircle" },
+    { id: "settings", name: "Configurações", category: "INSIGHTS", icon: "Settings" },
+
+    // ELEMENTS
+    { id: "components", name: "Componentes", category: "ELEMENTS", icon: "Layers" },
+    { id: "forms", name: "Formulários", category: "ELEMENTS", icon: "FileText" },
+    { id: "tables", name: "Tabelas", category: "ELEMENTS", icon: "Table" },
+
+    // THEMES
+    { id: "colors", name: "Cores", category: "THEMES", icon: "Palette" },
+  ])
+
   const [formError, setFormError] = useState("")
+  const [language, setLanguage] = useState("pt-BR")
+
+  const t = (key: string): string => {
+    const translations: Record<string, string> = {
+      // Access Levels
+      access_levels: "Níveis de Acesso",
+      new_user: "Novo Usuário",
+      search_users: "Buscar usuários...",
+      name: "Nome",
+      username: "Usuário",
+      email: "Email",
+      access_level: "Nível de Acesso",
+      allowed_pages: "Páginas Permitidas",
+      actions: "Ações",
+      no_users_found: "Nenhum usuário encontrado",
+      adjust_search_terms: "Tente ajustar os termos de busca",
+
+      // User Form
+      edit_user: "Editar Usuário",
+      full_name: "Nome Completo",
+      password: "Senha",
+      new_password_leave_blank: "Nova Senha (deixe em branco para manter)",
+      confirm_password: "Confirmar Senha",
+      cancel: "Cancelar",
+      save: "Salvar",
+      create_user: "Criar Usuário",
+
+      // Access Levels
+      developer: "Desenvolvedor",
+      super_admin: "Super Admin",
+      agent: "Agente",
+      supervisor: "Supervisor",
+
+      // Error Messages
+      all_fields_are_required: "Todos os campos são obrigatórios",
+      passwords_do_not_match: "As senhas não coincidem",
+      password_must_be_at_least_8_characters: "A senha deve ter pelo menos 8 caracteres",
+      this_username_is_already_in_use: "Este nome de usuário já está em uso",
+      username_name_email_required: "Nome de usuário, nome e email são obrigatórios",
+      cannot_delete_dev_user: "Não é possível excluir o usuário de desenvolvimento",
+      are_you_sure_delete_user: "Tem certeza que deseja excluir este usuário?",
+    }
+
+    return translations[key] || key
+  }
 
   useEffect(() => {
     // Check if user is authenticated and has proper access level
@@ -142,23 +249,23 @@ export default function AccessLevelsPage() {
 
     // Validation
     if (!formData.username || !formData.name || !formData.email || !formData.password) {
-      setFormError("Todos os campos são obrigatórios")
+      setFormError(t("all_fields_are_required"))
       return
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setFormError("As senhas não coincidem")
+      setFormError(t("passwords_do_not_match"))
       return
     }
 
     if (formData.password.length < 8) {
-      setFormError("A senha deve ter pelo menos 8 caracteres")
+      setFormError(t("password_must_be_at_least_8_characters"))
       return
     }
 
     // Check if username already exists
     if (users.some((user) => user.username.toLowerCase() === formData.username.toLowerCase())) {
-      setFormError("Este nome de usuário já está em uso")
+      setFormError(t("this_username_is_already_in_use"))
       return
     }
 
@@ -168,7 +275,9 @@ export default function AccessLevelsPage() {
       username: formData.username,
       name: formData.name,
       email: formData.email,
+      password: formData.password,
       accessLevel: formData.accessLevel,
+      allowedChannels: formData.allowedChannels,
       createdBy: currentUser?.id,
       createdAt: new Date().toISOString(),
     }
@@ -186,6 +295,7 @@ export default function AccessLevelsPage() {
       password: "",
       confirmPassword: "",
       accessLevel: "AGENT",
+      allowedChannels: [],
     })
     setShowAddUser(false)
   }
@@ -199,6 +309,7 @@ export default function AccessLevelsPage() {
       password: "",
       confirmPassword: "",
       accessLevel: user.accessLevel,
+      allowedChannels: user.allowedChannels || [],
     })
     setShowAddUser(true)
   }
@@ -211,17 +322,17 @@ export default function AccessLevelsPage() {
 
     // Validation
     if (!formData.username || !formData.name || !formData.email) {
-      setFormError("Nome de usuário, nome e email são obrigatórios")
+      setFormError(t("username_name_email_required"))
       return
     }
 
     if (formData.password && formData.password !== formData.confirmPassword) {
-      setFormError("As senhas não coincidem")
+      setFormError(t("passwords_do_not_match"))
       return
     }
 
     if (formData.password && formData.password.length < 8) {
-      setFormError("A senha deve ter pelo menos 8 caracteres")
+      setFormError(t("password_must_be_at_least_8_characters"))
       return
     }
 
@@ -231,20 +342,28 @@ export default function AccessLevelsPage() {
         (user) => user.id !== editingUser.id && user.username.toLowerCase() === formData.username.toLowerCase(),
       )
     ) {
-      setFormError("Este nome de usuário já está em uso")
+      setFormError(t("this_username_is_already_in_use"))
       return
     }
 
     // Update user
     const updatedUsers = users.map((user) => {
       if (user.id === editingUser.id) {
-        return {
+        const updatedUser = {
           ...user,
           username: formData.username,
           name: formData.name,
           email: formData.email,
           accessLevel: formData.accessLevel,
+          allowedChannels: formData.allowedChannels,
         }
+
+        // Atualizar senha apenas se foi fornecida
+        if (formData.password) {
+          updatedUser.password = formData.password
+        }
+
+        return updatedUser
       }
       return user
     })
@@ -260,20 +379,30 @@ export default function AccessLevelsPage() {
       password: "",
       confirmPassword: "",
       accessLevel: "AGENT",
+      allowedChannels: [],
     })
     setEditingUser(null)
     setShowAddUser(false)
   }
 
+  const handlePageToggle = (pageId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      allowedChannels: prev.allowedChannels.includes(pageId)
+        ? prev.allowedChannels.filter((id) => id !== pageId)
+        : [...prev.allowedChannels, pageId],
+    }))
+  }
+
   const handleDeleteUser = (userId: string) => {
     // Cannot delete DEV user
     if (userId === "dev-user") {
-      alert("Não é possível excluir o usuário de desenvolvimento")
+      alert(t("cannot_delete_dev_user"))
       return
     }
 
     // Confirm deletion
-    if (!confirm("Tem certeza que deseja excluir este usuário?")) {
+    if (!confirm(t("are_you_sure_delete_user"))) {
       return
     }
 
@@ -292,13 +421,13 @@ export default function AccessLevelsPage() {
   const getAccessLevelLabel = (level: string) => {
     switch (level) {
       case "DEV":
-        return "Desenvolvedor"
+        return t("developer")
       case "SUPER_ADMIN":
-        return "Super Admin"
+        return t("super_admin")
       case "AGENT":
-        return "Agente"
+        return t("agent")
       case "SUPERVISOR":
-        return "Supervisor"
+        return t("supervisor")
       default:
         return level
     }
@@ -325,6 +454,11 @@ export default function AccessLevelsPage() {
           ? "bg-gray-800 text-gray-300 border-gray-600"
           : "bg-gray-100 text-gray-800 border-gray-300"
     }
+  }
+
+  const getIconComponent = (iconName: string) => {
+    const IconComponent = iconMap[iconName as keyof typeof iconMap]
+    return IconComponent || Package // fallback icon
   }
 
   return (
@@ -374,7 +508,7 @@ export default function AccessLevelsPage() {
                 filter: `drop-shadow(0 0 15px var(--glow-color))`,
               }}
             >
-              Níveis de Acesso
+              {t("access_levels")}
             </h1>
           </div>
 
@@ -388,6 +522,7 @@ export default function AccessLevelsPage() {
                 password: "",
                 confirmPassword: "",
                 accessLevel: "AGENT",
+                allowedChannels: [],
               })
               setFormError("")
               setShowAddUser(true)
@@ -405,7 +540,7 @@ export default function AccessLevelsPage() {
                 filter: "drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))",
               }}
             />
-            Novo Usuário
+            {t("new_user")}
           </button>
         </div>
 
@@ -432,7 +567,7 @@ export default function AccessLevelsPage() {
             />
             <input
               type="text"
-              placeholder="Buscar usuários..."
+              placeholder={t("search_users")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`ml-3 w-full bg-transparent border-none focus:outline-none ${
@@ -469,22 +604,25 @@ export default function AccessLevelsPage() {
             }}
           >
             <div className="grid grid-cols-12 gap-4">
-              <div className={`col-span-3 font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-                Nome
+              <div className={`col-span-2 font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                {t("name")}
               </div>
               <div className={`col-span-2 font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-                Usuário
-              </div>
-              <div className={`col-span-3 font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-                Email
+                {t("username")}
               </div>
               <div className={`col-span-2 font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-                Nível de Acesso
+                {t("email")}
+              </div>
+              <div className={`col-span-2 font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                {t("access_level")}
+              </div>
+              <div className={`col-span-2 font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                {t("allowed_pages")}
               </div>
               <div
                 className={`col-span-2 font-semibold text-right ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}
               >
-                Ações
+                {t("actions")}
               </div>
             </div>
           </div>
@@ -502,7 +640,7 @@ export default function AccessLevelsPage() {
                   }}
                 >
                   <div className="grid grid-cols-12 gap-4 items-center">
-                    <div className="col-span-3 flex items-center">
+                    <div className="col-span-2 flex items-center">
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center mr-3 transition-all duration-300 hover:scale-110"
                         style={{
@@ -536,7 +674,7 @@ export default function AccessLevelsPage() {
                     <div className={`col-span-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
                       @{user.username}
                     </div>
-                    <div className={`col-span-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    <div className={`col-span-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
                       {user.email}
                     </div>
                     <div className="col-span-2">
@@ -551,6 +689,33 @@ export default function AccessLevelsPage() {
                         <Shield className="w-3 h-3 mr-1" />
                         {getAccessLevelLabel(user.accessLevel)}
                       </span>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="flex flex-wrap gap-1">
+                        {(user.allowedChannels || []).slice(0, 3).map((pageId) => {
+                          const page = availablePages.find((p) => p.id === pageId)
+                          if (!page) return null
+                          const IconComponent = getIconComponent(page.icon)
+                          return (
+                            <span
+                              key={pageId}
+                              className={`inline-flex items-center px-2 py-1 rounded text-xs ${
+                                theme === "dark"
+                                  ? "bg-blue-900/50 text-blue-300 border-blue-700"
+                                  : "bg-blue-100 text-blue-800 border-blue-300"
+                              } border`}
+                              title={page.name}
+                            >
+                              <IconComponent className="w-3 h-3" />
+                            </span>
+                          )
+                        })}
+                        {(user.allowedChannels || []).length > 3 && (
+                          <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                            +{(user.allowedChannels || []).length - 3}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="col-span-2 flex justify-end space-x-2">
                       <button
@@ -588,8 +753,8 @@ export default function AccessLevelsPage() {
             ) : (
               <div className={`px-6 py-12 text-center ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                 <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">Nenhum usuário encontrado</p>
-                <p className="text-sm">Tente ajustar os termos de busca</p>
+                <p className="text-lg font-medium mb-2">{t("no_users_found")}</p>
+                <p className="text-sm">{t("adjust_search_terms")}</p>
               </div>
             )}
           </div>
@@ -600,7 +765,7 @@ export default function AccessLevelsPage() {
       {showAddUser && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-md rounded-xl shadow-2xl overflow-hidden transition-all duration-300 ${
+            className={`w-full max-w-lg rounded-xl shadow-2xl overflow-hidden transition-all duration-300 ${
               theme === "dark" ? "home-card-hover" : "home-card-hover-light"
             }`}
             style={{
@@ -626,7 +791,7 @@ export default function AccessLevelsPage() {
                   textShadow: `0 0 15px var(--glow-color)`,
                 }}
               >
-                {editingUser ? "Editar Usuário" : "Novo Usuário"}
+                {editingUser ? t("edit_user") : t("new_user")}
               </h2>
             </div>
 
@@ -636,7 +801,7 @@ export default function AccessLevelsPage() {
                   <label
                     className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
                   >
-                    Nome Completo
+                    {t("full_name")}
                   </label>
                   <input
                     type="text"
@@ -659,7 +824,7 @@ export default function AccessLevelsPage() {
                   <label
                     className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
                   >
-                    Nome de Usuário
+                    {t("username")}
                   </label>
                   <input
                     type="text"
@@ -682,7 +847,7 @@ export default function AccessLevelsPage() {
                   <label
                     className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
                   >
-                    Email
+                    {t("email")}
                   </label>
                   <input
                     type="email"
@@ -701,75 +866,188 @@ export default function AccessLevelsPage() {
                   />
                 </div>
 
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                  >
-                    {editingUser ? "Nova Senha (deixe em branco para manter)" : "Senha"}
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-3 rounded-lg border transition-all duration-300 focus:scale-[1.02] ${
-                      theme === "dark"
-                        ? "bg-gray-800/50 border-gray-600 text-white focus:border-blue-500"
-                        : "bg-gray-50/50 border-gray-300 text-gray-900 focus:border-blue-500"
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
-                    style={{
-                      boxShadow: `0 0 10px var(--glow-color)`,
-                    }}
-                    required={!editingUser}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                    >
+                      {editingUser ? t("new_password_leave_blank") : t("password")}
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-3 rounded-lg border transition-all duration-300 focus:scale-[1.02] ${
+                        theme === "dark"
+                          ? "bg-gray-800/50 border-gray-600 text-white focus:border-blue-500"
+                          : "bg-gray-50/50 border-gray-300 text-gray-900 focus:border-blue-500"
+                      } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                      style={{
+                        boxShadow: `0 0 10px var(--glow-color)`,
+                      }}
+                      required={!editingUser}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                    >
+                      {t("confirm_password")}
+                    </label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-3 rounded-lg border transition-all duration-300 focus:scale-[1.02] ${
+                        theme === "dark"
+                          ? "bg-gray-800/50 border-gray-600 text-white focus:border-blue-500"
+                          : "bg-gray-50/50 border-gray-300 text-gray-900 focus:border-blue-500"
+                      } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                      style={{
+                        boxShadow: `0 0 10px var(--glow-color)`,
+                      }}
+                      required={!editingUser}
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
                   >
-                    Confirmar Senha
+                    {t("access_level")}
                   </label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-3 rounded-lg border transition-all duration-300 focus:scale-[1.02] ${
-                      theme === "dark"
-                        ? "bg-gray-800/50 border-gray-600 text-white focus:border-blue-500"
-                        : "bg-gray-50/50 border-gray-300 text-gray-900 focus:border-blue-500"
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
-                    style={{
-                      boxShadow: `0 0 10px var(--glow-color)`,
-                    }}
-                    required={!editingUser}
-                  />
+                  <div className="relative">
+                    <select
+                      name="accessLevel"
+                      value={formData.accessLevel}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-3 rounded-lg border transition-all duration-300 focus:scale-[1.02] appearance-none ${
+                        theme === "dark"
+                          ? "bg-gray-800/50 border-gray-600 text-white focus:border-blue-500"
+                          : "bg-gray-50/50 border-gray-300 text-gray-900 focus:border-blue-500"
+                      } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                      style={{
+                        boxShadow: `0 0 10px var(--glow-color)`,
+                      }}
+                    >
+                      <option value="AGENT">{t("agent")}</option>
+                      <option value="SUPERVISOR">{t("supervisor")}</option>
+                      {currentUser?.accessLevel === "DEV" && <option value="SUPER_ADMIN">{t("super_admin")}</option>}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
+                {/* Páginas do Sidebar com Checkboxes */}
                 <div>
                   <label
-                    className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                    className={`block text-sm font-medium mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
                   >
-                    Nível de Acesso
+                    {t("allowed_pages")}
                   </label>
-                  <select
-                    name="accessLevel"
-                    value={formData.accessLevel}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-3 rounded-lg border transition-all duration-300 focus:scale-[1.02] ${
-                      theme === "dark"
-                        ? "bg-gray-800/50 border-gray-600 text-white focus:border-blue-500"
-                        : "bg-gray-50/50 border-gray-300 text-gray-900 focus:border-blue-500"
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                  <div
+                    className={`rounded-lg border max-h-64 overflow-y-auto ${
+                      theme === "dark" ? "border-gray-600 bg-gray-800/30" : "border-gray-300 bg-gray-50/30"
+                    }`}
                     style={{
                       boxShadow: `0 0 10px var(--glow-color)`,
                     }}
                   >
-                    <option value="AGENT">Agente</option>
-                    <option value="SUPERVISOR">Supervisor</option>
-                    {currentUser?.accessLevel === "DEV" && <option value="SUPER_ADMIN">Super Admin</option>}
-                  </select>
+                    {availablePages.map((page) => {
+                      const IconComponent = getIconComponent(page.icon)
+                      return (
+                        <label
+                          key={page.id}
+                          className={`flex items-center px-4 py-3 cursor-pointer transition-all duration-200 hover:scale-[1.01] border-b last:border-b-0 ${
+                            theme === "dark"
+                              ? "border-gray-700 hover:bg-gray-700/30"
+                              : "border-gray-200 hover:bg-gray-100/50"
+                          }`}
+                        >
+                          <div className="flex items-center">
+                            <div
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center mr-3 transition-all duration-200 ${
+                                formData.allowedChannels.includes(page.id)
+                                  ? "bg-blue-500 border-blue-500"
+                                  : theme === "dark"
+                                    ? "border-gray-500 hover:border-blue-400"
+                                    : "border-gray-400 hover:border-blue-500"
+                              }`}
+                              style={{
+                                boxShadow: formData.allowedChannels.includes(page.id)
+                                  ? "0 0 20px rgba(59, 130, 246, 0.8), 0 0 40px rgba(59, 130, 246, 0.4)"
+                                  : "none",
+                                background: formData.allowedChannels.includes(page.id)
+                                  ? "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
+                                  : theme === "dark"
+                                    ? "#374151"
+                                    : "#e5e7eb",
+                              }}
+                            >
+                              {formData.allowedChannels.includes(page.id) && (
+                                <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                              )}
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={formData.allowedChannels.includes(page.id)}
+                              onChange={() => handlePageToggle(page.id)}
+                              className="sr-only"
+                            />
+                            <div
+                              className="mr-3 p-1 rounded transition-all duration-200"
+                              style={{
+                                background: formData.allowedChannels.includes(page.id)
+                                  ? "var(--gradient-primary)"
+                                  : theme === "dark"
+                                    ? "#374151"
+                                    : "#e5e7eb",
+                                boxShadow: formData.allowedChannels.includes(page.id)
+                                  ? "0 0 15px var(--glow-color)"
+                                  : "none",
+                              }}
+                            >
+                              <IconComponent
+                                className={`w-4 h-4 ${
+                                  formData.allowedChannels.includes(page.id)
+                                    ? "text-white"
+                                    : theme === "dark"
+                                      ? "text-gray-400"
+                                      : "text-gray-600"
+                                }`}
+                                style={{
+                                  filter: formData.allowedChannels.includes(page.id)
+                                    ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))"
+                                    : "none",
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <span
+                                className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+                                style={{
+                                  textShadow: `0 0 8px var(--glow-color)`,
+                                }}
+                              >
+                                {page.name}
+                              </span>
+                              <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                                {page.category}
+                              </div>
+                            </div>
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 {formError && (
@@ -797,7 +1075,7 @@ export default function AccessLevelsPage() {
                     boxShadow: `0 0 15px var(--glow-color)`,
                   }}
                 >
-                  Cancelar
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
@@ -808,7 +1086,7 @@ export default function AccessLevelsPage() {
                     textShadow: "0 0 10px rgba(255, 255, 255, 0.8)",
                   }}
                 >
-                  {editingUser ? "Atualizar" : "Adicionar"}
+                  {editingUser ? t("save") : t("create_user")}
                 </button>
               </div>
             </form>

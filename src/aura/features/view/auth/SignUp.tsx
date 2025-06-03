@@ -1,14 +1,13 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Eye, EyeOff, Mail, User, Lock, UserCheck, Key } from "lucide-react"
 
-// Usuário de desenvolvimento padro
 const DEV_USER = {
   username: "Dev@1",
   password: "1234",
@@ -30,10 +29,23 @@ export default function SignUpPage() {
   const [usernameError, setUsernameError] = useState("")
   const [accessCodeError, setAccessCodeError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
-  const { theme } = useTheme()
+  const { theme, resolvedTheme } = useTheme()
 
-  const isDark = theme === "dark" || theme === "system"
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
+      </div>
+    )
+  }
+
+  const isDark = resolvedTheme === "dark"
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -164,14 +176,6 @@ export default function SignUpPage() {
     }, 1000)
   }
 
-  const bgClass = isDark ? "bg-black" : "bg-white"
-  const textClass = isDark ? "text-white" : "text-gray-900"
-  const textSecondaryClass = isDark ? "text-gray-400" : "text-gray-600"
-  const inputClass = isDark
-    ? "border-gray-800 bg-gray-900 text-white placeholder:text-gray-400"
-    : "border-gray-300 bg-white text-gray-900 placeholder:text-gray-500"
-  const buttonClass = isDark ? "bg-white text-black hover:bg-gray-100" : "bg-black text-white hover:bg-gray-800"
-
   const isFormValid =
     firstName.trim() &&
     lastName.trim() &&
@@ -187,15 +191,17 @@ export default function SignUpPage() {
     validatePassword(password) &&
     accessCode === ACCESS_CODE
 
-  const leftSectionGradient = isDark
-    ? "bg-gradient-to-b from-gray-800 via-gray-900 to-black"
-    : "bg-gradient-to-b from-purple-400 via-purple-600 to-purple-900"
-
   return (
-    <div className={`flex min-h-screen ${bgClass}`}>
+    <div className="flex min-h-screen bg-background text-foreground">
       {/* Left Section */}
       <div className="relative hidden w-1/2 p-8 lg:block">
-        <div className={`h-full w-full overflow-hidden rounded-[40px] ${leftSectionGradient}`}>
+        <div
+          className={`h-full w-full overflow-hidden rounded-[40px] ${
+            isDark
+              ? "bg-gradient-to-b from-gray-800 via-gray-900 to-black"
+              : "bg-gradient-to-b from-purple-400 via-purple-600 to-purple-900"
+          }`}
+        >
           <div className="flex h-full flex-col items-center justify-center px-8 text-center text-white">
             <div className="mb-8">
               <h1 className="text-3xl font-bold">AURA</h1>
@@ -236,11 +242,11 @@ export default function SignUpPage() {
       </div>
 
       {/* Right Section */}
-      <div className={`flex w-full items-center justify-center ${bgClass} p-6 lg:w-1/2`}>
+      <div className="flex w-full items-center justify-center bg-background p-6 lg:w-1/2">
         <div className="w-full max-w-md">
           <div className="mx-auto max-w-sm">
-            <h2 className={`mb-2 text-3xl font-bold ${textClass}`}>Criar Conta</h2>
-            <p className={`mb-8 ${textSecondaryClass}`}>
+            <h2 className="mb-2 text-3xl font-bold text-foreground">Criar Conta</h2>
+            <p className="mb-8 text-muted-foreground">
               Digite o código de acesso e seus dados para criar uma conta de Super Administrador.
             </p>
 
@@ -248,9 +254,11 @@ export default function SignUpPage() {
               {/* Access Code Field */}
               <div className="space-y-2">
                 <div className="relative">
-                  <Key className={`absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 ${textSecondaryClass}`} />
+                  <Key className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    className={`h-12 pl-10 ${inputClass} ${accessCodeError ? "border-red-500" : ""}`}
+                    className={`h-12 pl-10 bg-background border-input text-foreground placeholder:text-muted-foreground ${
+                      accessCodeError ? "border-red-500" : ""
+                    }`}
                     placeholder="Código de acesso"
                     type="text"
                     value={accessCode}
@@ -261,7 +269,7 @@ export default function SignUpPage() {
                 {accessCodeError ? (
                   <p className="text-sm text-red-500">{accessCodeError}</p>
                 ) : (
-                  <p className={`text-sm ${textSecondaryClass}`}>
+                  <p className="text-sm text-muted-foreground">
                     Digite o código de acesso para criar uma conta de Super Administrador.
                   </p>
                 )}
@@ -270,9 +278,9 @@ export default function SignUpPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <div className="relative">
-                    <User className={`absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 ${textSecondaryClass}`} />
+                    <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      className={`h-12 pl-10 ${inputClass}`}
+                      className="h-12 pl-10 bg-background border-input text-foreground placeholder:text-muted-foreground"
                       placeholder="Nome"
                       type="text"
                       value={firstName}
@@ -283,9 +291,9 @@ export default function SignUpPage() {
                 </div>
                 <div className="space-y-2">
                   <div className="relative">
-                    <User className={`absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 ${textSecondaryClass}`} />
+                    <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      className={`h-12 pl-10 ${inputClass}`}
+                      className="h-12 pl-10 bg-background border-input text-foreground placeholder:text-muted-foreground"
                       placeholder="Sobrenome"
                       type="text"
                       value={lastName}
@@ -298,9 +306,11 @@ export default function SignUpPage() {
 
               <div className="space-y-2">
                 <div className="relative">
-                  <Mail className={`absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 ${textSecondaryClass}`} />
+                  <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    className={`h-12 pl-10 ${inputClass} ${emailError ? "border-red-500" : ""}`}
+                    className={`h-12 pl-10 bg-background border-input text-foreground placeholder:text-muted-foreground ${
+                      emailError ? "border-red-500" : ""
+                    }`}
                     placeholder="seu@email.com"
                     type="email"
                     value={email}
@@ -313,9 +323,11 @@ export default function SignUpPage() {
 
               <div className="space-y-2">
                 <div className="relative">
-                  <UserCheck className={`absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 ${textSecondaryClass}`} />
+                  <UserCheck className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    className={`h-12 pl-10 ${inputClass} ${usernameError ? "border-red-500" : ""}`}
+                    className={`h-12 pl-10 bg-background border-input text-foreground placeholder:text-muted-foreground ${
+                      usernameError ? "border-red-500" : ""
+                    }`}
                     placeholder="Nome de usuário"
                     type="text"
                     value={username}
@@ -326,15 +338,17 @@ export default function SignUpPage() {
                 {usernameError ? (
                   <p className="text-sm text-red-500">{usernameError}</p>
                 ) : (
-                  <p className={`text-sm ${textSecondaryClass}`}>Este será seu nome de usuário para fazer login.</p>
+                  <p className="text-sm text-muted-foreground">Este será seu nome de usuário para fazer login.</p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <div className="relative">
-                  <Lock className={`absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 ${textSecondaryClass}`} />
+                  <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    className={`h-12 pl-10 pr-10 ${inputClass} ${passwordError ? "border-red-500" : ""}`}
+                    className={`h-12 pl-10 pr-10 bg-background border-input text-foreground placeholder:text-muted-foreground ${
+                      passwordError ? "border-red-500" : ""
+                    }`}
                     placeholder="Sua melhor senha"
                     type={showPassword ? "text" : "password"}
                     value={password}
@@ -344,26 +358,30 @@ export default function SignUpPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${textSecondaryClass} hover:${textClass}`}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
                 {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
                 {!passwordError && password && (
-                  <p className={`text-sm ${validatePassword(password) ? "text-green-500" : textSecondaryClass}`}>
+                  <p className={`text-sm ${validatePassword(password) ? "text-green-500" : "text-muted-foreground"}`}>
                     Deve ter pelo menos 8 caracteres.
                   </p>
                 )}
               </div>
 
-              <Button type="submit" className={`h-12 w-full ${buttonClass}`} disabled={isLoading || !isFormValid}>
+              <Button
+                type="submit"
+                className="h-12 w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                disabled={isLoading || !isFormValid}
+              >
                 {isLoading ? "Criando conta..." : "Criar Conta de Super Admin"}
               </Button>
 
-              <p className={`text-center text-sm ${textSecondaryClass}`}>
+              <p className="text-center text-sm text-muted-foreground">
                 Já tem uma conta?{" "}
-                <a href="/login" className={`${isDark ? "text-white" : "text-black"} hover:underline font-medium`}>
+                <a href="/login" className="text-foreground hover:underline font-medium transition-colors">
                   Fazer login
                 </a>
               </p>

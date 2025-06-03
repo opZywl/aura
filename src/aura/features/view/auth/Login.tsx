@@ -82,12 +82,13 @@ export default function LoginPage() {
 
     // Verificar usuários registrados
     const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-    const user = registeredUsers.find((u: any) => u.username === username && u.password === password)
+    const user = registeredUsers.find((u: any) => u.username === username)
 
     setTimeout(() => {
       setIsLoading(false)
 
-      if (user) {
+      if (user && user.password === password) {
+        // Verificar se a senha bate
         // Login bem-sucedido
         localStorage.setItem(
           "user",
@@ -97,6 +98,7 @@ export default function LoginPage() {
             name: user.name,
             email: user.email,
             accessLevel: user.accessLevel,
+            allowedChannels: user.allowedChannels || [], // Incluir canais permitidos
             isDevUser: false,
           }),
         )

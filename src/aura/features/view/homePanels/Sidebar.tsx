@@ -18,6 +18,7 @@ import {
 import Link from "next/link"
 import { useTheme } from "./ThemeContext"
 import { useLanguage } from "../../../contexts/LanguageContext"
+import { useChannelPermissions } from "../../../../../hooks/use-channel-permissions"
 
 interface MenuItem {
   icon: React.ComponentType<any>
@@ -26,47 +27,94 @@ interface MenuItem {
   hasSubmenu?: boolean
   href?: string
   onClick?: () => void
+  pageId?: string
 }
 
 const Sidebar: React.FC = () => {
   const { theme, setShowColorPanel, searchQuery, glowEnabled, fadeEnabled, fadeMode, sidebarCollapsed } = useTheme()
   const { t } = useLanguage()
+  const { hasPageAccess } = useChannelPermissions()
 
   const handleColorsClick = () => {
     setShowColorPanel(true)
   }
 
-  const menuItems: MenuItem[] = [{ icon: BarChart3, label: t("menu.dashboard"), active: true, href: "/panel" }]
+  const menuItems: MenuItem[] = [
+    {
+      icon: BarChart3,
+      label: t("menu.dashboard"),
+      active: true,
+      href: "/panel",
+      pageId: "dashboard",
+    },
+  ]
 
   const adminTools: MenuItem[] = [
-    { icon: Package, label: t("menu.products"), href: "/panel/products" },
+    {
+      icon: Package,
+      label: t("menu.products"),
+      href: "/panel/products",
+      pageId: "products",
+    },
     {
       icon: Users,
       label: t("menu.account"),
       hasSubmenu: false,
       href: "/panel/contas",
+      pageId: "account",
     },
     {
       icon: Home,
       label: t("menu.lobby"),
       href: "/",
+      pageId: "lobby",
     },
   ]
 
   const insights: MenuItem[] = [
-    { icon: TrendingUp, label: t("menu.analytics"), href: "/panel/analytics" },
+    {
+      icon: TrendingUp,
+      label: t("menu.analytics"),
+      href: "/panel/analytics",
+      pageId: "analytics",
+    },
     {
       icon: MessageSquare,
       label: t("menu.chat"),
       href: "/panel/chat",
+      pageId: "chat",
     },
-    { icon: Settings, label: t("menu.settings"), hasSubmenu: true, href: "/panel/settings" },
+    {
+      icon: Settings,
+      label: t("menu.settings"),
+      hasSubmenu: true,
+      href: "/panel/settings",
+      pageId: "settings",
+    },
   ]
 
   const elements: MenuItem[] = [
-    { icon: Layers, label: t("menu.components"), hasSubmenu: true, href: "/panel/components" },
-    { icon: FileText, label: t("menu.forms"), hasSubmenu: true, href: "/panel/forms" },
-    { icon: Table, label: t("menu.tables"), hasSubmenu: true, href: "/panel/tables" },
+    {
+      icon: Layers,
+      label: t("menu.components"),
+      hasSubmenu: true,
+      href: "/panel/components",
+      pageId: "components",
+    },
+    {
+      icon: FileText,
+      label: t("menu.forms"),
+      hasSubmenu: true,
+      href: "/panel/forms",
+      pageId: "forms",
+    },
+    {
+      icon: Table,
+      label: t("menu.tables"),
+      hasSubmenu: true,
+      href: "/panel/tables",
+      pageId: "tables",
+    },
   ]
 
   const themes: MenuItem[] = [
@@ -74,12 +122,24 @@ const Sidebar: React.FC = () => {
       icon: Palette,
       label: t("menu.colors"),
       onClick: handleColorsClick,
+      pageId: "colors",
     },
   ]
 
+  // Filtrar itens baseado nas permissões do usuário
+  const filterItemsByPermissions = (items: MenuItem[]) => {
+    return items.filter((item) => {
+      if (!item.pageId) return true // Se não tem pageId, sempre mostra
+      return hasPageAccess(item.pageId)
+    })
+  }
+
   const filterItems = (items: MenuItem[]) => {
-    if (!searchQuery) return items
-    return items.filter((item) => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+    // Primeiro filtra por permissões, depois por busca
+    const permissionFiltered = filterItemsByPermissions(items)
+
+    if (!searchQuery) return permissionFiltered
+    return permissionFiltered.filter((item) => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
   }
 
   const getCategoryGlowStyle = () => {
@@ -97,7 +157,7 @@ const Sidebar: React.FC = () => {
 
   const renderMenuSection = (title: string, items: MenuItem[]) => {
     const filtered = filterItems(items)
-    if (searchQuery && filtered.length === 0) return null
+    if (filtered.length === 0) return null // Não mostra a categoria se não há itens
 
     return (
       <div className="mb-6">
