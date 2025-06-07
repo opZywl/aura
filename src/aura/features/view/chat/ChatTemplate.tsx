@@ -366,8 +366,8 @@ const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
 
     if (settings.fadeMode === "movement") {
       root.style.setProperty(
-        "--chat-fade-animation",
-        `color-shift ${settings.fadeSpeed}s ease-in-out infinite alternate`,
+          "--chat-fade-animation",
+          `color-shift ${settings.fadeSpeed}s ease-in-out infinite alternate`,
       )
     } else {
       root.style.setProperty("--chat-fade-animation", "none")
@@ -479,6 +479,7 @@ const ChatTemplateContent = () => {
   const [showClientData, setShowClientData] = useState(false)
   const [showNewMessage, setShowNewMessage] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const [hideTagsMode, setHideTagsMode] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showFinalizarModal, setShowFinalizarModal] = useState(false)
   const [isEditingNickname, setIsEditingNickname] = useState(false)
@@ -500,6 +501,7 @@ const ChatTemplateContent = () => {
     notifications: true,
     isFullscreen: false,
   })
+  const [userName, setUserName] = useState<string | null>(null)
 
   // Theme settings com carregamento do localStorage
   const [themeSettings, setThemeSettings] = useState<ThemeSettings>(DEFAULT_THEME_SETTINGS)
@@ -563,19 +565,19 @@ const ChatTemplateContent = () => {
       const apiMessages = await chatAPI.getMessages(conversationId)
 
       const formattedMessages: Message[] = apiMessages
-        .map((msg, index) => {
-          const role = determineMessageRole(msg.sender)
-          console.log(`📝 Mensagem ${index}: sender="${msg.sender}" -> role="${role}"`)
+          .map((msg, index) => {
+            const role = determineMessageRole(msg.sender)
+            console.log(`📝 Mensagem ${index}: sender="${msg.sender}" -> role="${role}"`)
 
-          return {
-            id: msg.id || `api-${conversationId}-${index}-${Date.now()}`,
-            content: msg.text,
-            role: role,
-            timestamp: new Date(msg.timestamp),
-            status: "sent",
-          }
-        })
-        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Ordenar por timestamp
+            return {
+              id: msg.id || `api-${conversationId}-${index}-${Date.now()}`,
+              content: msg.text,
+              role: role,
+              timestamp: new Date(msg.timestamp),
+              status: "sent",
+            }
+          })
+          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Ordenar por timestamp
 
       setMessages(formattedMessages)
       console.log(`✅ ${formattedMessages.length} mensagens carregadas e ordenadas`)
@@ -606,9 +608,9 @@ const ChatTemplateContent = () => {
 
       // Update conversation last message locally for immediate feedback
       setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === currentConversation.id ? { ...conv, lastMessage: content, updatedAt: new Date() } : conv,
-        ),
+          prev.map((conv) =>
+              conv.id === currentConversation.id ? { ...conv, lastMessage: content, updatedAt: new Date() } : conv,
+          ),
       )
     } catch (error) {
       console.error("❌ Erro ao enviar mensagem:", error)
@@ -617,7 +619,7 @@ const ChatTemplateContent = () => {
       const fallbackMessage: Message = {
         id: `fallback-${currentConversation.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         content: content,
-        role: "operator", // Mensagem do operador
+        role: "operator",
         timestamp: new Date(),
         status: "error",
       }
@@ -668,7 +670,7 @@ const ChatTemplateContent = () => {
 
       // Update locally
       setConversations((prev) =>
-        prev.map((conv) => (conv.id === conversationId ? { ...conv, isArchived: newArchivedState } : conv)),
+          prev.map((conv) => (conv.id === conversationId ? { ...conv, isArchived: newArchivedState } : conv)),
       )
 
       console.log(`✅ Conversa ${newArchivedState ? "arquivada" : "desarquivada"}: ${conversationId}`)
@@ -692,7 +694,7 @@ const ChatTemplateContent = () => {
 
       // Update locally
       setConversations((prev) =>
-        prev.map((conv) => (conv.id === conversationId ? { ...conv, isArchived: newArchivedState } : conv)),
+          prev.map((conv) => (conv.id === conversationId ? { ...conv, isArchived: newArchivedState } : conv)),
       )
 
       console.log(`✅ Conversa ${newArchivedState ? "arquivada" : "desarquivada"}: ${conversationId}`)
@@ -730,10 +732,10 @@ const ChatTemplateContent = () => {
       setMessages((prev) => {
         // Verificar se a mensagem já existe para evitar duplicação
         const messageExists = prev.some(
-          (msg) =>
-            msg.id === newMessage.id ||
-            (msg.content === newMessage.content &&
-              Math.abs(msg.timestamp.getTime() - newMessage.timestamp.getTime()) < 1000),
+            (msg) =>
+                msg.id === newMessage.id ||
+                (msg.content === newMessage.content &&
+                    Math.abs(msg.timestamp.getTime() - newMessage.timestamp.getTime()) < 1000),
         )
 
         if (messageExists) {
@@ -749,9 +751,9 @@ const ChatTemplateContent = () => {
 
       // Update conversation list
       setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === conversationId ? { ...conv, lastMessage: message.text || "", updatedAt: new Date() } : conv,
-        ),
+          prev.map((conv) =>
+              conv.id === conversationId ? { ...conv, lastMessage: message.text || "", updatedAt: new Date() } : conv,
+          ),
       )
     })
 
@@ -891,24 +893,24 @@ const ChatTemplateContent = () => {
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement
-        .requestFullscreen()
-        .then(() => {
-          setIsFullscreen(true)
-          setSettings((prev) => ({ ...prev, isFullscreen: true }))
-        })
-        .catch((err) => {
-          console.error("Error attempting to enable fullscreen:", err)
-        })
+          .requestFullscreen()
+          .then(() => {
+            setIsFullscreen(true)
+            setSettings((prev) => ({ ...prev, isFullscreen: true }))
+          })
+          .catch((err) => {
+            console.error("Error attempting to enable fullscreen:", err)
+          })
     } else {
       document
-        .exitFullscreen()
-        .then(() => {
-          setIsFullscreen(false)
-          setSettings((prev) => ({ ...prev, isFullscreen: false }))
-        })
-        .catch((err) => {
-          console.error("Error attempting to exit fullscreen:", err)
-        })
+          .exitFullscreen()
+          .then(() => {
+            setIsFullscreen(false)
+            setSettings((prev) => ({ ...prev, isFullscreen: false }))
+          })
+          .catch((err) => {
+            console.error("Error attempting to exit fullscreen:", err)
+          })
     }
   }
 
@@ -917,13 +919,14 @@ const ChatTemplateContent = () => {
     setTheme(newTheme)
   }
 
+  // Função para alternar apenas a visibilidade das tags (não abre modal)
+  const handleToggleTagsVisibility = () => {
+    setHideTagsMode(!hideTagsMode)
+  }
+
+  // Função para mostrar o modal de detalhes
   const handleShowDetails = () => {
-    if (currentConversation) {
-      setCurrentConversation((prev) => ({
-        ...prev!,
-        showDetails: !prev!.showDetails,
-      }))
-    }
+    setShowDetails(true)
   }
 
   const handleGoBack = () => {
@@ -935,12 +938,19 @@ const ChatTemplateContent = () => {
     window.location.href = "/panel"
   }
 
+  // Encontre a função handleSituationChange e modifique-a para atualizar a conversa atual e a lista de conversas
   const handleSituationChange = (newSituation: string) => {
     if (currentConversation) {
+      // Atualiza a conversa atual
       setCurrentConversation((prev) => ({
         ...prev!,
         situacao: newSituation,
       }))
+
+      // Atualiza a conversa na lista de conversas
+      setConversations((prev) =>
+          prev.map((conv) => (conv.id === currentConversation.id ? { ...conv, situacao: newSituation } : conv)),
+      )
     }
   }
 
@@ -955,7 +965,7 @@ const ChatTemplateContent = () => {
         }))
 
         setConversations((prev) =>
-          prev.map((conv) => (conv.id === currentConversation.id ? { ...conv, title: newNickname } : conv)),
+            prev.map((conv) => (conv.id === currentConversation.id ? { ...conv, title: newNickname } : conv)),
         )
 
         setIsEditingNickname(false)
@@ -1026,9 +1036,9 @@ const ChatTemplateContent = () => {
 
   if (!mounted || loading) {
     return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
+        <div className="h-screen bg-black flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
     )
   }
 
@@ -1041,193 +1051,197 @@ const ChatTemplateContent = () => {
   const currentTheme = settings.theme
 
   return (
-    <div
-      className={`h-screen chat-container ${isFullscreen ? "fixed inset-0 z-50" : ""} ${
-        currentTheme === "dark" ? "bg-black" : "bg-gray-100"
-      } ${themeSettings.fadeEnabled && themeSettings.fadeMode === "movement" ? "fade-movement" : ""}`}
-      style={
-        {
-          "--chat-glow-intensity": themeSettings.glowIntensity / 100,
-          "--chat-glow-thickness": `${themeSettings.glowThickness}px`,
-          "--chat-glow-animation": themeSettings.glowAnimation
-            ? "glow-pulse 2s ease-in-out infinite alternate"
-            : "none",
-          "--chat-fade-animation":
-            themeSettings.fadeEnabled && themeSettings.fadeMode === "movement"
-              ? `color-shift ${themeSettings.fadeSpeed}s ease-in-out infinite alternate`
-              : "none",
-          "--chat-fade-color-1": themeSettings.fadeColor1,
-          "--chat-fade-color-2": themeSettings.fadeColor2,
-        } as React.CSSProperties
-      }
-    >
-      <div className="h-full flex scrollbar-hide">
-        {/* Control Sidebar - Left */}
-        {!controlSidebarHidden && (
-          <ControlSidebar
-            onNewConversation={() => setShowNewMessage(true)}
-            onShowDetails={handleShowDetails}
-            onGoBack={handleGoBack}
-            onToggleTheme={toggleTheme}
-            onToggleFullscreen={toggleFullscreen}
-            onToggleControlSidebar={() => setControlSidebarHidden(true)}
-            theme={currentTheme}
-            isFullscreen={isFullscreen}
-            performanceSettings={performanceSettings}
-            onPerformanceSettingsChange={handlePerformanceSettingsChange}
-            themeSettings={themeSettings}
-            onThemeSettingsChange={handleThemeSettingsChange}
-            onSaveSettings={handleSaveSettings}
-            onResetSettings={handleResetSettings}
-          />
-        )}
-
-        {/* Chat Sidebar */}
-        {!sidebarHidden && (
-          <ChatSidebar
-            conversations={conversations}
-            currentConversation={currentConversation}
-            conversationCounts={conversationCounts}
-            theme={currentTheme}
-            themeSettings={themeSettings}
-            onToggleSidebar={() => setSidebarHidden(!sidebarHidden)}
-            controlSidebarHidden={controlSidebarHidden}
-            onToggleControlSidebar={() => setControlSidebarHidden(!controlSidebarHidden)}
-            activeFilter={activeFilter}
-            onFilterChange={handleFilterChange}
-            onSelectConversation={handleSelectConversation}
-            onArchiveConversation={handleArchiveConversation}
-          />
-        )}
-
-        {/* Main Chat Area */}
-        <div className={`flex-1 flex flex-col scrollbar-hide ${currentTheme === "dark" ? "bg-[#0a0a0a]" : "bg-white"}`}>
-          {currentConversation ? (
-            <>
-              <ChatHeader
-                agent={mockAgent}
-                conversation={currentConversation}
-                onToggleInfo={() => setShowInfo(!showInfo)}
-                onEditNickname={() => setIsEditingNickname(true)}
-                isEditingNickname={isEditingNickname}
-                onNicknameChange={handleNicknameChange}
-                onCancelEdit={() => setIsEditingNickname(false)}
-                onToggleSidebar={() => setSidebarHidden(!sidebarHidden)}
-                onToggleControlSidebar={() => setControlSidebarHidden(!controlSidebarHidden)}
-                onFinalize={() => setShowFinalizarModal(true)}
-                onArchiveConversation={handleArchiveConversation}
-                sidebarHidden={sidebarHidden}
-                controlSidebarHidden={controlSidebarHidden}
-                theme={currentTheme}
-                themeSettings={themeSettings}
+      <div
+          className={`h-screen chat-container ${isFullscreen ? "fixed inset-0 z-50" : ""} ${
+              currentTheme === "dark" ? "bg-black" : "bg-gray-100"
+          } ${themeSettings.fadeEnabled && themeSettings.fadeMode === "movement" ? "fade-movement" : ""}`}
+          style={
+            {
+              "--chat-glow-intensity": themeSettings.glowIntensity / 100,
+              "--chat-glow-thickness": `${themeSettings.glowThickness}px`,
+              "--chat-glow-animation": themeSettings.glowAnimation
+                  ? "glow-pulse 2s ease-in-out infinite alternate"
+                  : "none",
+              "--chat-fade-animation":
+                  themeSettings.fadeEnabled && themeSettings.fadeMode === "movement"
+                      ? `color-shift ${themeSettings.fadeSpeed}s ease-in-out infinite alternate`
+                      : "none",
+              "--chat-fade-color-1": themeSettings.fadeColor1,
+              "--chat-fade-color-2": themeSettings.fadeColor2,
+            } as React.CSSProperties
+          }
+      >
+        <div className="h-full flex scrollbar-hide">
+          {/* Control Sidebar - Left */}
+          {!controlSidebarHidden && (
+              <ControlSidebar
+                  onNewConversation={() => setShowNewMessage(true)}
+                  onShowDetails={handleToggleTagsVisibility}
+                  onGoBack={handleGoBack}
+                  onToggleTheme={toggleTheme}
+                  onToggleFullscreen={toggleFullscreen}
+                  onToggleControlSidebar={() => setControlSidebarHidden(true)}
+                  theme={currentTheme}
+                  isFullscreen={isFullscreen}
+                  performanceSettings={performanceSettings}
+                  onPerformanceSettingsChange={handlePerformanceSettingsChange}
+                  themeSettings={themeSettings}
+                  onThemeSettingsChange={handleThemeSettingsChange}
+                  onSaveSettings={handleSaveSettings}
+                  onResetSettings={handleResetSettings}
               />
+          )}
 
-              <ChatMessages messages={messages} agent={mockAgent} theme={currentTheme} themeSettings={themeSettings} />
-
-              <ChatInput
-                onSendMessage={handleSendMessage}
-                theme={currentTheme}
-                themeSettings={themeSettings}
-                disabled={!apiAvailable}
+          {/* Chat Sidebar */}
+          {/* Encontre onde o componente ChatSidebar é renderizado e certifique-se de passar a prop showDetails */}
+          {!sidebarHidden && (
+              <ChatSidebar
+                  conversations={conversations}
+                  currentConversation={currentConversation}
+                  conversationCounts={conversationCounts}
+                  theme={currentTheme}
+                  themeSettings={themeSettings}
+                  onToggleSidebar={() => setSidebarHidden(!sidebarHidden)}
+                  controlSidebarHidden={controlSidebarHidden}
+                  onToggleControlSidebar={() => setControlSidebarHidden(!controlSidebarHidden)}
+                  activeFilter={activeFilter}
+                  onFilterChange={handleFilterChange}
+                  onSelectConversation={handleSelectConversation}
+                  onArchiveConversation={handleArchiveConversation}
+                  showDetails={hideTagsMode}
+                  userName={userName}
+                  isLoading={loading}
               />
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                {!apiAvailable ? (
-                  <>
-                    <h2 className="text-2xl font-bold mb-4 text-red-500">⚠️ Serviços Indisponíveis</h2>
-                    <p className="text-gray-500 mb-6">
-                      Os serviços de backend não estão disponíveis. Conecte os serviços para receber mensagens de
-                      WhatsApp, Telegram e outros canais.
-                    </p>
-                    <div className="bg-gray-800 p-4 rounded-lg text-left">
-                      <code className="text-green-400">python src/aura/app.py</code>
-                    </div>
-                  </>
-                ) : conversations.length === 0 ? (
-                  <>
-                    <h2 className="text-2xl font-bold mb-4"> Aguardando Mensagens</h2>
-                    <p className="text-gray-500 mb-6">
-                      Nenhuma conversa ainda. As conversas aparecerão automaticamente quando usuários enviarem mensagens
-                      via WhatsApp, Telegram ou outros canais conectados.
-                    </p>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                      <p className="text-blue-600 dark:text-blue-400">
-                        ✅ Sistema conectado e aguardando mensagens dos canais
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="text-2xl font-bold mb-4">Selecione uma Conversa</h2>
-                    <p className="text-gray-500 mb-6">Escolha uma conversa da lista para começar a responder</p>
-                  </>
-                )}
-              </div>
-            </div>
+          )}
+
+          {/* Main Chat Area */}
+          <div className={`flex-1 flex flex-col scrollbar-hide ${currentTheme === "dark" ? "bg-[#0a0a0a]" : "bg-white"}`}>
+            {currentConversation ? (
+                <>
+                  <ChatHeader
+                      agent={mockAgent}
+                      conversation={currentConversation}
+                      onToggleInfo={() => setShowInfo(!showInfo)}
+                      onEditNickname={() => setIsEditingNickname(true)}
+                      isEditingNickname={isEditingNickname}
+                      onNicknameChange={handleNicknameChange}
+                      onCancelEdit={() => setIsEditingNickname(false)}
+                      onToggleSidebar={() => setSidebarHidden(!sidebarHidden)}
+                      onToggleControlSidebar={() => setControlSidebarHidden(!controlSidebarHidden)}
+                      onFinalize={() => setShowFinalizarModal(true)}
+                      onArchiveConversation={handleArchiveConversation}
+                      sidebarHidden={sidebarHidden}
+                      controlSidebarHidden={controlSidebarHidden}
+                      theme={currentTheme}
+                      themeSettings={themeSettings}
+                  />
+
+                  <ChatMessages messages={messages} agent={mockAgent} theme={currentTheme} themeSettings={themeSettings} />
+
+                  <ChatInput
+                      onSendMessage={handleSendMessage}
+                      theme={currentTheme}
+                      themeSettings={themeSettings}
+                      disabled={!apiAvailable}
+                  />
+                </>
+            ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center">
+                    {!apiAvailable ? (
+                        <>
+                          <h2 className="text-2xl font-bold mb-4 text-red-500">⚠️ Serviços Indisponíveis</h2>
+                          <p className="text-gray-500 mb-6">
+                            Os serviços de backend não estão disponíveis. Conecte os serviços para receber mensagens de
+                            WhatsApp, Telegram e outros canais.
+                          </p>
+                          <div className="bg-gray-800 p-4 rounded-lg text-left">
+                            <code className="text-green-400">python src/aura/app.py</code>
+                          </div>
+                        </>
+                    ) : conversations.length === 0 ? (
+                        <>
+                          <h2 className="text-2xl font-bold mb-4">📱 Aguardando Mensagens</h2>
+                          <p className="text-gray-500 mb-6">
+                            Nenhuma conversa ainda. As conversas aparecerão automaticamente quando usuários enviarem mensagens
+                            via WhatsApp, Telegram ou outros canais conectados.
+                          </p>
+                          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                            <p className="text-blue-600 dark:text-blue-400">
+                              ✅ Sistema conectado e aguardando mensagens dos canais
+                            </p>
+                          </div>
+                        </>
+                    ) : (
+                        <>
+                          <h2 className="text-2xl font-bold mb-4">Selecione uma Conversa</h2>
+                          <p className="text-gray-500 mb-6">Escolha uma conversa da lista para começar a responder</p>
+                        </>
+                    )}
+                  </div>
+                </div>
+            )}
+          </div>
+
+          {/* Info Sidebar */}
+          {showInfo && currentConversation && (
+              <ChatInfo
+                  agent={mockAgent}
+                  conversation={currentConversation}
+                  onClose={() => setShowInfo(false)}
+                  onSituationChange={handleSituationChange}
+                  theme={currentTheme}
+                  themeSettings={themeSettings}
+              />
           )}
         </div>
 
-        {/* Info Sidebar */}
-        {showInfo && currentConversation && (
-          <ChatInfo
-            agent={mockAgent}
-            conversation={currentConversation}
-            onClose={() => setShowInfo(false)}
-            onSituationChange={handleSituationChange}
-            theme={currentTheme}
-            themeSettings={themeSettings}
-          />
+        {/* Modals */}
+        {showClientData && currentConversation && (
+            <ClientDataModal conversation={currentConversation} onClose={() => setShowClientData(false)} />
+        )}
+
+        {showNewMessage && (
+            <NewMessageModal
+                onClose={() => setShowNewMessage(false)}
+                onSendTemplate={(template) => {
+                  console.log("Sending template:", template)
+                  setShowNewMessage(false)
+                }}
+                theme={currentTheme}
+                themeSettings={themeSettings}
+            />
+        )}
+
+        {showDetails && currentConversation && (
+            <DetailsModal conversation={currentConversation} onClose={() => setShowDetails(false)} theme={currentTheme} />
+        )}
+
+        {showExitConfirm && (
+            <ExitConfirmModal
+                onConfirm={handleExitConfirm}
+                onCancel={() => setShowExitConfirm(false)}
+                theme={currentTheme}
+            />
+        )}
+
+        {showFinalizarModal && (
+            <FinalizarModal
+                onConfirm={handleFinalizarConfirm}
+                onCancel={() => setShowFinalizarModal(false)}
+                theme={currentTheme}
+            />
         )}
       </div>
-
-      {/* Modals */}
-      {showClientData && currentConversation && (
-        <ClientDataModal conversation={currentConversation} onClose={() => setShowClientData(false)} />
-      )}
-
-      {showNewMessage && (
-        <NewMessageModal
-          onClose={() => setShowNewMessage(false)}
-          onSendTemplate={(template) => {
-            console.log("Sending template:", template)
-            setShowNewMessage(false)
-          }}
-          theme={currentTheme}
-          themeSettings={themeSettings}
-        />
-      )}
-
-      {showDetails && currentConversation && (
-        <DetailsModal conversation={currentConversation} onClose={() => setShowDetails(false)} theme={currentTheme} />
-      )}
-
-      {showExitConfirm && (
-        <ExitConfirmModal
-          onConfirm={handleExitConfirm}
-          onCancel={() => setShowExitConfirm(false)}
-          theme={currentTheme}
-        />
-      )}
-
-      {showFinalizarModal && (
-        <FinalizarModal
-          onConfirm={handleFinalizarConfirm}
-          onCancel={() => setShowFinalizarModal(false)}
-          theme={currentTheme}
-        />
-      )}
-    </div>
   )
 }
 
 // Main component that provides the language context
 const ChatTemplate = () => {
   return (
-    <LanguageProvider>
-      <ChatTemplateContent />
-    </LanguageProvider>
+      <LanguageProvider>
+        <ChatTemplateContent />
+      </LanguageProvider>
   )
 }
 
