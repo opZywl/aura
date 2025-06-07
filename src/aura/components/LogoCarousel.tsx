@@ -5,13 +5,13 @@ import { useSettings } from "../contexts/SettingsContext"
 import { useTheme } from "next-themes"
 
 const logos = [
-  { src: "ERA.svg",               alt: "ERA" },
+  { src: "ERA.svg", alt: "ERA" },
   { src: "LinharesDistribuidora.svg", alt: "LINHARES" },
-  { src: "Unasp.svg",             alt: "UNASP" },
-  { src: "Pirelli.svg",           alt: "PIRELLI" },
-  { src: "Desktop.svg",           alt: "DESKTOP" },
-  { src: "Microsoft.svg",         alt: "MICROSOFT" },
-  { src: "Google.svg",            alt: "GOOGLE" },
+  { src: "Unasp.svg", alt: "UNASP" },
+  { src: "Pirelli.svg", alt: "PIRELLI" },
+  { src: "Desktop.svg", alt: "DESKTOP" },
+  { src: "Microsoft.svg", alt: "MICROSOFT" },
+  { src: "Google.svg", alt: "GOOGLE" },
 ]
 
 export default function LogoCarousel() {
@@ -27,11 +27,18 @@ export default function LogoCarousel() {
     const speed = 1
 
     const animate = () => {
-      const container = containerRef.current!
+      if (!containerRef.current) {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current)
+        }
+        return
+      }
+
+      const container = containerRef.current
       positionRef.current -= speed
       container.style.transform = `translateX(${positionRef.current}px)`
 
-      if (positionRef.current <= -container.scrollWidth / 2) {
+      if (container.scrollWidth > 0 && positionRef.current <= -container.scrollWidth / 2) {
         positionRef.current = 0
       }
 
