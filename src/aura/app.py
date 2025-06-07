@@ -65,13 +65,15 @@ class Message:
     sender: str
     text: str
     timestamp: str = field(default_factory=lambda: datetime.now(BRASIL_TZ).isoformat())
+    read: bool = False
 
     def to_dict(self):
         return {
             'id': self.id,
             'sender': self.sender,
             'text': self.text,
-            'timestamp': self.timestamp
+            'timestamp': self.timestamp,
+            'read': self.read
         }
 
 @dataclass
@@ -602,6 +604,9 @@ def marcar_lidas(conv_id):
             conv = _conversations.get(conv_id)
             if not conv:
                 return jsonify({'erro': 'Conversa não encontrada'}), 404
+
+            for msg in conv.messages:
+                msg.read = True
 
         logger.info(f"✅ Mensagens marcadas como lidas: {conv_id}")
         return '', 204

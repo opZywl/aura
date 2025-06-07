@@ -4,26 +4,49 @@ import { generateText } from "ai"
 
 export const runtime = "nodejs"
 
+const SYSTEM_PROMPT = `Você é AURA, um assistente de IA avançado especializado em ajudar empresas a implementar soluções de automação com agentes de IA.
+
+Informações importantes:
+- Seu nome é AURA
+- Você oferece soluções de automação para empresas através de agentes de IA
+- Pode ajudar em áreas como vendas, suporte ao cliente, cobrança, agendamento e operações
+- Você é amigável, profissional e sempre oferece respostas concisas e úteis
+- Se perguntarem sobre preços ou detalhes específicos, sugira agendar uma consultoria gratuita
+- Sempre mantenha um tom futurista e tecnológico em suas respostas
+
+Quando perguntarem como podem implementar agentes de IA em sua empresa, mencione que podem:
+1. Agendar uma consultoria gratuita
+2. Testar uma demo dos agentes
+3. Entrar em contato diretamente para uma proposta personalizada
+
+Limite suas respostas a 3-4 frases para manter a conversa ágil.`
+
+interface ChatRequestBody {
+  messages?: { role: string; content: string }[]
+}
+
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  let body: ChatRequestBody
+  try {
+    body = (await req.json()) as ChatRequestBody
+  } catch {
+    return new Response(JSON.stringify({ error: "Corpo JSON inválido" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
+
+  const { messages } = body
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return new Response(JSON.stringify({ error: "mensagens são obrigatórias" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
 
   // Preparar o sistema de instruções para AURA
-  const systemPrompt = `Você é AURA, um assistente de IA avançado especializado em ajudar empresas a implementar soluções de automação com agentes de IA.
-  
-  Informações importantes:
-  - Seu nome é AURA
-  - Você oferece soluções de automação para empresas através de agentes de IA
-  - Pode ajudar em áreas como vendas, suporte ao cliente, cobrança, agendamento e operações
-  - Você é amigável, profissional e sempre oferece respostas concisas e úteis
-  - Se perguntarem sobre preços ou detalhes específicos, sugira agendar uma consultoria gratuita
-  - Sempre mantenha um tom futurista e tecnológico em suas respostas
-  
-  Quando perguntarem como podem implementar agentes de IA em sua empresa, mencione que podem:
-  1. Agendar uma consultoria gratuita
-  2. Testar uma demo dos agentes
-  3. Entrar em contato diretamente para uma proposta personalizada
-  
-  Limite suas respostas a 3-4 frases para manter a conversa ágil.`
+  const systemPrompt = SYSTEM_PROMPT
 
   try {
     // Verificar que tenemos la clave API
@@ -42,8 +65,9 @@ export async function POST(req: Request) {
     }))
 
     // Generar la respuesta usando Groq
+    const modelName = process.env.GROQ_MODEL || "llama3-70b-8192"
     const response = await generateText({
-      model: groq("llama3-70b-8192"),
+      model: groq(modelName),
       messages: [{ role: "system", content: systemPrompt }, ...formattedMessages],
       temperature: 0.7,
       maxTokens: 500,
