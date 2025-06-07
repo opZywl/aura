@@ -86,7 +86,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/technology"
                   className={`text-sm transition-colors ${
                     theme === "dark" ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"
                   }`}
@@ -202,7 +202,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/terms"
                   className={`text-sm transition-colors ${
                     theme === "dark" ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"
                   }`}
@@ -212,7 +212,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/privacy"
                   className={`text-sm transition-colors ${
                     theme === "dark" ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"
                   }`}
@@ -222,7 +222,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/feedback"
                   className={`text-sm transition-colors ${
                     theme === "dark" ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"
                   }`}

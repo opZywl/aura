@@ -19,9 +19,9 @@ const Footer = () => {
 
   const legalLinks = [
     { name: "Código Fonte", href: "https://github.com/opzywl/aura", external: true },
-    { name: "Terms", href: "#" },
-    { name: "Privacy", href: "#" },
-    { name: "Feedback", href: "#" },
+    { name: "Terms", href: "/terms", external: true },
+    { name: "Privacy", href: "/privacy" },
+    { name: "Feedback", href: "/feedback" },
   ]
 
   return (
@@ -66,7 +66,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link href="/technology" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                   Tecnologia
                 </Link>
               </li>
