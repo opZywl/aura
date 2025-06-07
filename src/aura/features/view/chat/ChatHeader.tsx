@@ -164,32 +164,6 @@ export default function ChatHeader({
     >
       {/* Left Section */}
       <div className="flex items-center space-x-4">
-        {/* Toggle Sidebars */}
-        <div className="flex items-center space-x-2">
-          {controlSidebarHidden && (
-            <Button
-              onClick={onToggleControlSidebar}
-              variant="ghost"
-              size="icon"
-              className={`transition-all duration-300 transform hover:scale-110 ${themeSettings.textAnimations ? "chat-text-animated" : ""}`}
-              style={getIconStyle()}
-            >
-              <Settings className="w-5 h-5" />
-            </Button>
-          )}
-
-          {sidebarHidden && (
-            <Button
-              onClick={onToggleSidebar}
-              variant="ghost"
-              size="icon"
-              className={`transition-all duration-300 transform hover:scale-110 ${themeSettings.textAnimations ? "chat-text-animated" : ""}`}
-              style={getIconStyle()}
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-          )}
-        </div>
 
         {/* Agent Info */}
         <div className="flex items-center space-x-3">
