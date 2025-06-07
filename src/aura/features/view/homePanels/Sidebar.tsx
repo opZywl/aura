@@ -18,7 +18,7 @@ import {
 import Link from "next/link"
 import { useTheme } from "./ThemeContext"
 import { useLanguage } from "../../../contexts/LanguageContext"
-import { useChannelPermissions } from "../../../../../hooks/use-channel-permissions"
+import { useChannelPermissions } from "../../../hooks/use-channel-permissions"
 
 interface MenuItem {
   icon: React.ComponentType<any>
