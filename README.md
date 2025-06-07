@@ -16,9 +16,9 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
 
 ## 🛠️ Pré-requisitos
 
-- Python 3.9+  
-- Node.js 16+ e npm ou yarn  
-- Git  
+- Python 3.9+
+- Node.js 18+ com npm ou pnpm
+- Git
 
 ---
 
@@ -26,61 +26,56 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
 
 1. **Clone o repositório**
    ```bash
-   git clone https://github.com/unaspht/aura/
+   git clone https://github.com/unaspht/aura
    cd aura
    ```
 
-2. **Backend Python**
+2. **Configure o backend (Python)**
    ```bash
    # Crie e ative um ambiente virtual
    python -m venv .venv
-   source .venv/bin/activate    # macOS/Linux
-   .venv\Scripts\activate     # Windows PowerShell
+   source .venv/bin/activate     # macOS/Linux
+   .venv\Scripts\activate      # Windows
 
-   # Instale dependências
+   # Instale as dependências
    pip install -r requirements.txt
    ```
 
-3. **Frontend React (Next.js)**
+3. **Configure o frontend (Next.js)**
    ```bash
-   cd src/aura
-   npm install                 # ou yarn install
-
-   # (Opcional) configure proxy no package.json:
-   # "proxy": "http://localhost:3001"
+   npm install --legacy-peer-deps   # ou pnpm install
    ```
 
-4. **Variáveis de Ambiente**
+4. **Defina as variáveis de ambiente**
    ```bash
    cp .env.example .env.local
-   # Edite .env.local com suas chaves/API keys:
-   # GROQ_API_KEY=<sua_groq_api_key>
-   # NEXT_PUBLIC_API_URL=http://localhost:3001
-   # PORT=3001
-   # FLASK_ENV=development
-   # NGROK_AUTH_TOKEN=<se_tiver>
+   # edite .env.local conforme necessário
    ```
 
 ---
 
 ## ▶️ Como executar
 
-1. **Inicie o backend** (na raiz do projeto)
+1. **Inicie o backend**
    ```bash
    python -m src.aura.app
    ```
-   - Backend rodando em `http://localhost:3001`
+   O backend ficará acessível em `http://localhost:3001`.
 
-2. **Inicie o frontend** (dentro de `src/aura`)
+2. **Inicie o frontend**
    ```bash
    npm run dev
    ```
-   - Frontend rodando em `http://localhost:3000`
+   A aplicação estará disponível em `http://localhost:3000`.
 
-3. **Exposição externa (ngrok, opcional)**
+3. **Build de produção (opcional)**
+   ```bash
+   npm run build && npm start
+   ```
+
+4. **Exposição externa (ngrok opcional)**
    ```bash
    ngrok http 3000
-   # Gera URL pública para testes
    ```
 
 ---
