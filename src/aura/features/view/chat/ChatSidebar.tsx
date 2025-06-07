@@ -89,13 +89,13 @@ export default function ChatSidebar({
     const getStatusColor = (status: string) => {
         switch (status) {
             case "online":
-                return "#10b981"
+                return "#10b981" // Verde
             case "away":
-                return "#ef4444"
+                return "#ef4444" // Vermelho - Não incomodar
             case "busy":
-                return "#f59e0b"
+                return "#f59e0b" // Amarelo - Pausa
             default:
-                return "#6b7280"
+                return "#6b7280" // Cinza
         }
     }
 
@@ -106,7 +106,7 @@ export default function ChatSidebar({
             case "away":
                 return "Não incomodar"
             case "busy":
-                return "Pausa"
+                return "Ausente"
             default:
                 return "Offline"
         }
@@ -205,6 +205,7 @@ export default function ChatSidebar({
         }
     }
 
+    // Contagem correta de conversas ativas e arquivadas
     const activeConversations = conversations.filter((c) => !c.isArchived).length
     const archivedConversations = conversations.filter((c) => c.isArchived).length
 
@@ -546,7 +547,7 @@ export default function ChatSidebar({
                                             }}
                                         >
                                             <User
-                                                className={`w-6 h-6 ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
+                                                className={`w-5 h-5 ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
                                                 style={{
                                                     color: themeSettings.currentGradient === "Pure White" ? "#000000" : "#ffffff",
                                                     filter: themeSettings.glowEffects ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))" : "none",
@@ -642,110 +643,97 @@ export default function ChatSidebar({
                 </div>
 
                 {/* User Status Section - Horizontal Layout */}
+                {/* User Status Section - Clean Design */}
                 <div
-                    className="p-4 border-t transition-all duration-300 relative"
+                    className="p-3 border-t transition-all duration-300 relative"
                     style={{
                         borderColor: themeColors.border,
-                        background: `linear-gradient(90deg, ${themeColors.bgSecondary} 0%, ${themeColors.bg} 100%)`,
+                        background: `linear-gradient(135deg, ${themeColors.bgSecondary} 0%, ${themeColors.bg} 100%)`,
                         boxShadow: themeSettings.glowEffects ? `0 0 20px var(--chat-glow-color-light)` : "none",
                     }}
                 >
-                    {/* Status Menu */}
+                    {/* Status Menu - Clean List */}
                     {showStatusMenu && (
                         <div
-                            className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border shadow-lg z-50 transition-all duration-300"
+                            className="absolute bottom-full left-3 right-3 mb-2 rounded-lg border shadow-lg z-50 transition-all duration-300 overflow-hidden"
                             style={{
-                                backgroundColor: `${themeColors.bgCard}f0`,
+                                backgroundColor: themeColors.bgCard,
                                 borderColor: themeColors.border,
                                 boxShadow: themeSettings.glowEffects
                                     ? `0 0 30px var(--chat-glow-color), 0 0 60px var(--chat-glow-color-light)`
                                     : "0 4px 20px rgba(0, 0, 0, 0.15)",
-                                backdropFilter: "blur(10px)",
                             }}
                         >
-                            <div className="p-2 space-y-1">
-                                {[
-                                    { status: "online", label: "Online", color: "#10b981" },
-                                    { status: "busy", label: "Pausa", color: "#f59e0b" },
-                                    { status: "away", label: "Não incomodar", color: "#ef4444" },
-                                ].map(({ status, label, color }) => (
-                                    <button
-                                        key={status}
-                                        onClick={() => handleStatusChange(status as "online" | "away" | "busy")}
-                                        className={`w-full flex items-center space-x-3 p-2 rounded-md transition-all duration-300 hover:scale-105 ${themeSettings.glowEffects ? "hover:chat-glow-border" : ""}`}
+                            {[
+                                { status: "online", label: "Online", color: "#10b981" },
+                                { status: "away", label: "Não Incomodar", color: "#ef4444" },
+                                { status: "busy", label: "Pausa", color: "#f59e0b" },
+                            ].map(({ status, label, color }) => (
+                                <button
+                                    key={status}
+                                    onClick={() => handleStatusChange(status as "online" | "away" | "busy")}
+                                    className="w-full flex items-center space-x-3 p-3 transition-all duration-300 hover:bg-opacity-10"
+                                    style={{
+                                        backgroundColor: userStatus === status ? `${color}15` : "transparent",
+                                        color: themeColors.text,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = `${color}10`
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = userStatus === status ? `${color}15` : "transparent"
+                                    }}
+                                >
+                                    <div
+                                        className="w-2.5 h-2.5 rounded-full"
                                         style={{
-                                            backgroundColor: userStatus === status ? `${color}20` : "transparent",
-                                            borderColor: themeSettings.glowEffects ? "var(--chat-glow-color)" : "transparent",
-                                            boxShadow:
-                                                userStatus === status && themeSettings.glowEffects
-                                                    ? `0 0 15px ${color}40`
-                                                    : themeSettings.glowEffects
-                                                        ? `0 0 10px var(--chat-glow-color-light)`
-                                                        : "none",
+                                            backgroundColor: color,
+                                            boxShadow: themeSettings.glowEffects ? `0 0 8px ${color}` : "none",
                                         }}
-                                    >
-                                        <div
-                                            className={`w-3 h-3 rounded-full transition-all duration-300 ${themeSettings.glowEffects ? "shadow-lg" : ""}`}
-                                            style={{
-                                                backgroundColor: color,
-                                                boxShadow: themeSettings.glowEffects ? `0 0 10px ${color}, 0 0 20px ${color}40` : "none",
-                                            }}
-                                        />
-                                        <span
-                                            className={`text-sm font-medium transition-all duration-300 ${themeSettings.glowEffects && userStatus === status ? "chat-glow-title" : ""}`}
-                                            style={{
-                                                color: userStatus === status ? color : themeColors.text,
-                                                textShadow: userStatus === status && themeSettings.glowEffects ? `0 0 10px ${color}` : "none",
-                                            }}
-                                        >
-                      {label}
-                    </span>
-                                    </button>
-                                ))}
-                            </div>
+                                    />
+                                    <span className="text-sm font-medium">{label}</span>
+                                </button>
+                            ))}
                         </div>
                     )}
 
-                    {/* User Info - Horizontal Layout */}
+                    {/* User Info - Clean Horizontal Layout */}
                     <div
-                        className={`flex items-center space-x-3 cursor-pointer transition-all duration-300 hover:scale-105 p-2 rounded-lg ${themeSettings.glowEffects ? "hover:chat-glow-border" : ""}`}
+                        className="flex items-center space-x-3 cursor-pointer transition-all duration-300 hover:scale-[1.02] p-2 rounded-lg"
                         onClick={handleStatusAreaClick}
                         style={{
+                            background: themeSettings.glowEffects
+                                ? `linear-gradient(135deg, var(--chat-glow-color)10, var(--chat-glow-color)05)`
+                                : `linear-gradient(135deg, ${themeColors.bgCard}80, ${themeColors.bgSecondary}60)`,
                             borderColor: themeSettings.glowEffects ? "var(--chat-glow-color)" : "transparent",
-                            boxShadow: themeSettings.glowEffects ? `0 0 15px var(--chat-glow-color-light)` : "none",
+                            borderWidth: "1px",
+                            borderStyle: "solid",
                         }}
                     >
                         {/* Avatar */}
                         <div className="relative">
                             <div
-                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${themeSettings.glowEffects ? "chat-glow-border" : ""}`}
+                                className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300"
                                 style={{
                                     background: getAvatarGradient(),
-                                    boxShadow: themeSettings.glowEffects
-                                        ? `0 0 20px var(--chat-glow-color), 0 0 40px var(--chat-glow-color-light)`
-                                        : "none",
-                                    border: themeSettings.glowEffects ? `2px solid var(--chat-glow-color)` : "none",
+                                    boxShadow: themeSettings.glowEffects ? `0 0 15px var(--chat-glow-color-light)` : "none",
                                 }}
                             >
-                <span
-                    className={`text-sm font-bold transition-all duration-300 ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
-                    style={{
-                        color: themeSettings.currentGradient === "Pure White" ? "#000000" : "#ffffff",
-                        textShadow: themeSettings.glowEffects ? "0 0 8px rgba(255, 255, 255, 0.8)" : "none",
-                    }}
-                >
-                  {userName.charAt(0).toUpperCase()}
-                </span>
+                                <User
+                                    className="w-4 h-4"
+                                    style={{
+                                        color: themeSettings.currentGradient === "Pure White" ? "#000000" : "#ffffff",
+                                        filter: themeSettings.glowEffects ? "drop-shadow(0 0 6px rgba(255, 255, 255, 0.8))" : "none",
+                                    }}
+                                />
                             </div>
                             {/* Status Indicator */}
                             <div
-                                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 transition-all duration-300 ${themeSettings.glowEffects ? "shadow-lg" : ""}`}
+                                className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
                                 style={{
                                     backgroundColor: getStatusColor(userStatus),
                                     borderColor: themeColors.bg,
-                                    boxShadow: themeSettings.glowEffects
-                                        ? `0 0 10px ${getStatusGlowColor(userStatus)}, 0 0 20px ${getStatusGlowColor(userStatus)}40`
-                                        : "none",
+                                    boxShadow: themeSettings.glowEffects ? `0 0 8px ${getStatusGlowColor(userStatus)}` : "none",
                                 }}
                             />
                         </div>
@@ -753,19 +741,19 @@ export default function ChatSidebar({
                         {/* User Info */}
                         <div className="flex-1 min-w-0">
                             <p
-                                className={`font-medium truncate transition-all duration-300 ${themeSettings.fadeEnabled ? "chat-fade-text" : ""} ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}
+                                className="font-semibold text-sm truncate transition-all duration-300"
                                 style={{
                                     color: themeColors.text,
-                                    textShadow: themeSettings.glowEffects ? `0 0 10px var(--chat-glow-color)` : "none",
+                                    textShadow: themeSettings.glowEffects ? `0 0 8px var(--chat-glow-color)` : "none",
                                 }}
                             >
                                 {userName}
                             </p>
                             <p
-                                className={`text-xs truncate transition-all duration-300 underline ${themeSettings.fadeEnabled ? "chat-fade-text" : ""}`}
+                                className="text-xs truncate transition-all duration-300"
                                 style={{
                                     color: getStatusColor(userStatus),
-                                    textShadow: themeSettings.glowEffects ? `0 0 8px ${getStatusGlowColor(userStatus)}` : "none",
+                                    textShadow: themeSettings.glowEffects ? `0 0 6px ${getStatusGlowColor(userStatus)}` : "none",
                                 }}
                             >
                                 {getStatusText(userStatus)}

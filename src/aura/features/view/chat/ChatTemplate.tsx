@@ -1147,7 +1147,7 @@ const ChatTemplateContent = () => {
                   </>
                 ) : conversations.length === 0 ? (
                   <>
-                    <h2 className="text-2xl font-bold mb-4">📱 Aguardando Mensagens</h2>
+                    <h2 className="text-2xl font-bold mb-4"> Aguardando Mensagens</h2>
                     <p className="text-gray-500 mb-6">
                       Nenhuma conversa ainda. As conversas aparecerão automaticamente quando usuários enviarem mensagens
                       via WhatsApp, Telegram ou outros canais conectados.
