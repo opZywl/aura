@@ -20,6 +20,14 @@ interface AuraFlowBotProps {
     standalone?: boolean
 }
 
+const WORKFLOW_KEY = "workflow"
+const EXECUTED_KEY = "executedFlow"
+const MESSAGES_KEY = "aura_messages"
+const CURRENT_NODE_KEY = "aura_current_node"
+const WAITING_INPUT_KEY = "aura_waiting_input"
+const CURRENT_OPTIONS_KEY = "aura_current_options"
+const OPTIONS_MESSAGE_KEY = "aura_options_message"
+
 export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = false }: AuraFlowBotProps) {
     const [isOpen, setIsOpen] = useState(propIsOpen || false)
     const [isMinimized, setIsMinimized] = useState(false)
@@ -30,7 +38,9 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
     const [input, setInput] = useState("")
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+    const isInitialMount = useRef(true)
 
+    // Estado para armazenar o fluxo carregado
     const [savedFlow, setSavedFlow] = useState<any>(null)
     const [currentNodeId, setCurrentNodeId] = useState<string | null>(null)
     const [waitingForUserInput, setWaitingForUserInput] = useState(false)
@@ -39,15 +49,74 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
     const [isFlowExecuted, setIsFlowExecuted] = useState(false)
     const [flowLoaded, setFlowLoaded] = useState(false)
 
+    // Sincronizar isOpen com prop
     useEffect(() => {
         if (propIsOpen !== undefined) {
             setIsOpen(propIsOpen)
         }
     }, [propIsOpen])
 
-    const WORKFLOW_KEY = "workflow"
-    const EXECUTED_KEY = "executedFlow"
+    // Carregar mensagens do localStorage
+    const loadMessages = useCallback(() => {
+        try {
+            const savedMessages = localStorage.getItem(MESSAGES_KEY)
+            if (savedMessages) {
+                console.log("📥 [AuraBot] Carregando mensagens do localStorage")
+                return JSON.parse(savedMessages) as Message[]
+            }
+        } catch (error) {
+            console.error("❌ [AuraBot] Erro ao carregar mensagens:", error)
+        }
+        return []
+    }, [])
 
+    // Salvar mensagens no localStorage
+    const saveMessages = useCallback((newMessages: Message[]) => {
+        try {
+            console.log("📤 [AuraBot] Salvando mensagens no localStorage:", newMessages.length)
+            localStorage.setItem(MESSAGES_KEY, JSON.stringify(newMessages))
+        } catch (error) {
+            console.error("❌ [AuraBot] Erro ao salvar mensagens:", error)
+        }
+    }, [])
+
+    // Salvar estado do chat no localStorage
+    const saveChatState = useCallback(() => {
+        try {
+            localStorage.setItem(CURRENT_NODE_KEY, currentNodeId || "")
+            localStorage.setItem(WAITING_INPUT_KEY, waitingForUserInput ? "true" : "false")
+            localStorage.setItem(CURRENT_OPTIONS_KEY, JSON.stringify(currentOptions))
+            localStorage.setItem(OPTIONS_MESSAGE_KEY, currentOptionsMessage)
+        } catch (error) {
+            console.error("❌ [AuraBot] Erro ao salvar estado do chat:", error)
+        }
+    }, [currentNodeId, waitingForUserInput, currentOptions, currentOptionsMessage])
+
+    const loadChatState = useCallback(() => {
+        try {
+            const nodeId = localStorage.getItem(CURRENT_NODE_KEY) || null
+            const waiting = localStorage.getItem(WAITING_INPUT_KEY) === "true"
+            const options = JSON.parse(localStorage.getItem(CURRENT_OPTIONS_KEY) || "[]")
+            const optionsMsg = localStorage.getItem(OPTIONS_MESSAGE_KEY) || ""
+
+            return {
+                nodeId,
+                waiting,
+                options,
+                optionsMsg,
+            }
+        } catch (error) {
+            console.error("❌ [AuraBot] Erro ao carregar estado do chat:", error)
+            return {
+                nodeId: null,
+                waiting: false,
+                options: [],
+                optionsMsg: "",
+            }
+        }
+    }, [])
+
+    // Carregar fluxo do localStorage
     const loadWorkflow = useCallback(() => {
         try {
             console.log("🔍 [AuraBot] Tentando carregar fluxo...")
@@ -81,6 +150,45 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
         }
     }, [])
 
+    // Efeito para carregar mensagens e estado do chat ao montar o componente
+    useEffect(() => {
+        if (isInitialMount.current) {
+            console.log("🔄 [AuraBot] Montagem inicial do componente")
+
+            // Carregar mensagens salvas
+            const savedMessages = loadMessages()
+            if (savedMessages.length > 0) {
+                console.log("📥 [AuraBot] Mensagens carregadas:", savedMessages.length)
+                setMessages(savedMessages)
+            }
+
+            // Carregar estado do chat
+            const chatState = loadChatState()
+            setCurrentNodeId(chatState.nodeId)
+            setWaitingForUserInput(chatState.waiting)
+            setCurrentOptions(chatState.options)
+            setCurrentOptionsMessage(chatState.optionsMsg)
+
+            isInitialMount.current = false
+        }
+    }, [loadMessages, loadChatState])
+
+    // Efeito para salvar mensagens quando elas mudam
+    useEffect(() => {
+        if (!isInitialMount.current && messages.length > 0) {
+            console.log("💾 [AuraBot] Salvando", messages.length, "mensagens")
+            saveMessages(messages)
+        }
+    }, [messages, saveMessages])
+
+    // Efeito para salvar estado do chat quando ele muda
+    useEffect(() => {
+        if (!isInitialMount.current) {
+            saveChatState()
+        }
+    }, [currentNodeId, waitingForUserInput, currentOptions, currentOptionsMessage, saveChatState])
+
+    // Carregar fluxo quando abrir o chat
     useEffect(() => {
         if (isOpen) {
             console.log("🚀 [AuraBot] Chat aberto, carregando fluxo...")
@@ -91,80 +199,74 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             const hasFlow = workflow && workflow.nodes && workflow.nodes.length > 1
             setFlowLoaded(hasFlow)
 
-            const initialMessages: Message[] = hasFlow
-                ? [
-                    {
-                        id: "flow-ready",
-                        role: "assistant",
-                        content: "✅ Olá! Fluxo carregado e pronto para uso.\n\nDigite qualquer mensagem para começar!",
-                    },
-                ]
-                : [
-                    {
-                        id: "no-flow",
-                        role: "assistant",
-                        content:
-                            "❌ Nenhum fluxo foi configurado.\n\nPor favor, acesse o painel administrativo para criar um fluxo.",
-                    },
-                ]
+            const savedMessages = loadMessages()
 
-            setMessages(initialMessages)
+            // Se não há mensagens salvas, definir mensagens iniciais
+            if (savedMessages.length === 0) {
+                const initialMessages: Message[] = hasFlow
+                    ? [
+                        {
+                            id: "flow-ready",
+                            role: "assistant",
+                            content: "✅ Olá! Fluxo carregado e pronto para uso.\n\nDigite qualquer mensagem para começar!",
+                        },
+                    ]
+                    : [
+                        {
+                            id: "no-flow",
+                            role: "assistant",
+                            content:
+                                "❌ Nenhum fluxo foi configurado.\n\nPor favor, acesse o painel administrativo para criar um fluxo.",
+                        },
+                    ]
+
+                setMessages(initialMessages)
+                saveMessages(initialMessages)
+            } else {
+                setMessages(savedMessages)
+            }
         }
-    }, [isOpen, loadWorkflow])
+    }, [isOpen, loadWorkflow, loadMessages, saveMessages])
 
+    // Listener para mudanças no localStorage
     useEffect(() => {
         if (!isOpen) return
 
-        const handleStorageChange = () => {
-            console.log("🔄 [AuraBot] Detectada mudança no localStorage")
-            const workflow = loadWorkflow()
-            setSavedFlow(workflow)
-            setIsFlowExecuted(localStorage.getItem(EXECUTED_KEY) === "true")
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === WORKFLOW_KEY || e.key === EXECUTED_KEY) {
+                console.log("🔄 [AuraBot] Detectada mudança no localStorage:", e.key)
+                const workflow = loadWorkflow()
+                setSavedFlow(workflow)
+                setIsFlowExecuted(localStorage.getItem(EXECUTED_KEY) === "true")
 
-            const hasFlow = workflow && workflow.nodes && workflow.nodes.length > 1
-            setFlowLoaded(hasFlow)
-
-            const newMessages: Message[] = hasFlow
-                ? [
-                    {
-                        id: "flow-ready",
-                        role: "assistant",
-                        content: "✅ Olá! Fluxo carregado e pronto para uso.\n\nDigite qualquer mensagem para começar!",
-                    },
-                ]
-                : [
-                    {
-                        id: "no-flow",
-                        role: "assistant",
-                        content:
-                            "❌ Nenhum fluxo foi configurado.\n\nPor favor, acesse o painel administrativo para criar um fluxo.",
-                    },
-                ]
-
-            setMessages(newMessages)
+                // Atualizar flowLoaded
+                const hasFlow = workflow && workflow.nodes && workflow.nodes.length > 1
+                setFlowLoaded(hasFlow)
+            }
         }
 
         window.addEventListener("storage", handleStorageChange)
-        const interval = setInterval(handleStorageChange, 3000)
 
         return () => {
             window.removeEventListener("storage", handleStorageChange)
-            clearInterval(interval)
         }
     }, [isOpen, loadWorkflow])
 
+    // Scroll ao final das mensagens quando se adiciona uma nova
     useEffect(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
         }
     }, [messages])
 
+    // Focar o input quando se abre o chat
     useEffect(() => {
         if (isOpen && !isMinimized && inputRef.current) {
             inputRef.current.focus()
         }
     }, [isOpen, isMinimized])
 
+    // Funções para processar o fluxo
     const findNextNode = useCallback(
         (currentNodeId: string, optionIndex?: number) => {
             if (!savedFlow) return null
@@ -173,9 +275,11 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             let targetEdge
 
             if (optionIndex !== undefined) {
+                // Para nós de opções, encontrar a edge específica baseada no índice
                 const nodeEdges = edges.filter((edge: any) => edge.source === currentNodeId)
                 targetEdge = nodeEdges[optionIndex]
             } else {
+                // Para outros nós, encontrar a primeira edge
                 targetEdge = edges.find((edge: any) => edge.source === currentNodeId)
             }
 
@@ -196,15 +300,20 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             if (node.type === "sendMessage") {
                 const message = node.data.message || "Mensagem não configurada"
 
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        id: Date.now().toString(),
-                        role: "assistant",
-                        content: message,
-                    },
-                ])
+                // Adicionar mensagem do bot
+                const newMessage = {
+                    id: Date.now().toString(),
+                    role: "assistant" as const,
+                    content: message,
+                }
 
+                setMessages((prev) => {
+                    const updated = [...prev, newMessage]
+                    saveMessages(updated)
+                    return updated
+                })
+
+                // Continuar automaticamente para o próximo nó após 1 segundo
                 setTimeout(() => {
                     const nextNode = findNextNode(node.id)
                     if (nextNode) {
@@ -219,6 +328,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 const message = node.data.message || "Escolha uma opção:"
                 const options = node.data.options || []
 
+                // Salvar opções atuais para repetir se necessário
                 setCurrentOptions(options)
                 setCurrentOptionsMessage(message)
 
@@ -228,82 +338,102 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 })
                 optionsText += "\n💡 Digite o número da opção desejada"
 
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        id: Date.now().toString(),
-                        role: "assistant",
-                        content: optionsText,
-                    },
-                ])
+                // Adicionar mensagem com opções
+                const newMessage = {
+                    id: Date.now().toString(),
+                    role: "assistant" as const,
+                    content: optionsText,
+                }
 
+                setMessages((prev) => {
+                    const updated = [...prev, newMessage]
+                    saveMessages(updated)
+                    return updated
+                })
+
+                // Aguardar input do usuário
                 setWaitingForUserInput(true)
                 console.log("⏳ [AuraBot] Aguardando seleção do usuário...")
             } else if (node.type === "finalizar") {
                 const message = node.data.message || "Conversa finalizada. Obrigado!"
 
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        id: Date.now().toString(),
-                        role: "assistant",
-                        content: message + "\n\n✅ Conversa finalizada!",
-                    },
-                ])
+                // Adicionar mensagem final
+                const newMessage = {
+                    id: Date.now().toString(),
+                    role: "assistant" as const,
+                    content: message + "\n\n✅ Conversa finalizada!",
+                }
+
+                setMessages((prev) => {
+                    const updated = [...prev, newMessage]
+                    saveMessages(updated)
+                    return updated
+                })
 
                 setCurrentNodeId(null)
                 setWaitingForUserInput(false)
                 console.log("🏁 [AuraBot] Conversa finalizada")
             }
         },
-        [findNextNode],
+        [findNextNode, saveMessages],
     )
 
     const startFlow = useCallback(() => {
         if (!savedFlow || !savedFlow.nodes) {
             console.log("⚠️ [AuraBot] Nenhum fluxo disponível para iniciar")
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    role: "assistant",
-                    content: "❌ Erro: Nenhum fluxo configurado encontrado.",
-                },
-            ])
+            const errorMessage = {
+                id: Date.now().toString(),
+                role: "assistant" as const,
+                content: "❌ Erro: Nenhum fluxo configurado encontrado.",
+            }
+
+            setMessages((prev) => {
+                const updated = [...prev, errorMessage]
+                saveMessages(updated)
+                return updated
+            })
             return
         }
 
         console.log("🚀 [AuraBot] Iniciando fluxo...")
 
+        // Encontrar o nó START
         const startNode = savedFlow.nodes.find((node: any) => node.id === "start-node")
         if (startNode) {
+            // Encontrar o primeiro nó conectado ao START
             const firstNode = findNextNode("start-node")
             if (firstNode) {
                 console.log("✅ [AuraBot] Primeiro nó encontrado:", firstNode.id, firstNode.data?.customId)
                 processNode(firstNode)
             } else {
                 console.log("⚠️ [AuraBot] Nenhum nó conectado ao START")
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        id: Date.now().toString(),
-                        role: "assistant",
-                        content: "⚠️ Fluxo não está configurado corretamente - nenhum nó conectado ao início.",
-                    },
-                ])
+                const errorMessage = {
+                    id: Date.now().toString(),
+                    role: "assistant" as const,
+                    content: "⚠️ Fluxo não está configurado corretamente - nenhum nó conectado ao início.",
+                }
+
+                setMessages((prev) => {
+                    const updated = [...prev, errorMessage]
+                    saveMessages(updated)
+                    return updated
+                })
             }
         } else {
             console.log("⚠️ [AuraBot] Nó START não encontrado")
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    role: "assistant",
-                    content: "⚠️ Fluxo inválido - nó de início não encontrado.",
-                },
-            ])
+            const errorMessage = {
+                id: Date.now().toString(),
+                role: "assistant" as const,
+                content: "⚠️ Fluxo inválido - nó de início não encontrado.",
+            }
+
+            setMessages((prev) => {
+                const updated = [...prev, errorMessage]
+                saveMessages(updated)
+                return updated
+            })
         }
-    }, [savedFlow, findNextNode, processNode])
+    }, [savedFlow, findNextNode, processNode, saveMessages])
 
     const repeatOptions = useCallback(() => {
         if (currentOptions.length > 0) {
@@ -313,16 +443,19 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             })
             optionsText += "\n💡 Digite apenas o número da opção (1, 2, 3...)"
 
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    role: "assistant",
-                    content: optionsText,
-                },
-            ])
+            const newMessage = {
+                id: Date.now().toString(),
+                role: "assistant" as const,
+                content: optionsText,
+            }
+
+            setMessages((prev) => {
+                const updated = [...prev, newMessage]
+                saveMessages(updated)
+                return updated
+            })
         }
-    }, [currentOptions, currentOptionsMessage])
+    }, [currentOptions, currentOptionsMessage, saveMessages])
 
     const handleSendMessage = useCallback(
         (e: React.FormEvent) => {
@@ -333,29 +466,35 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             const userInput = input.trim()
             console.log("💬 [AuraBot] Mensagem do usuário:", userInput)
 
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    role: "user",
-                    content: userInput,
-                },
-            ])
+            const userMessage = {
+                id: Date.now().toString(),
+                role: "user" as const,
+                content: userInput,
+            }
+
+            setMessages((prev) => {
+                const updated = [...prev, userMessage]
+                saveMessages(updated)
+                return updated
+            })
 
             setInput("")
 
             if (!isFlowExecuted || !savedFlow) {
                 console.log("⚠️ [AuraBot] Sem fluxo executado, mostrando mensagem de erro")
                 setTimeout(() => {
-                    setMessages((prev) => [
-                        ...prev,
-                        {
-                            id: Date.now().toString(),
-                            role: "assistant",
-                            content:
-                                "❌ Nenhum fluxo foi configurado ou executado.\n\nPor favor, acesse o painel administrativo e:\n1. Crie um fluxo\n2. Clique em 'Salvar'\n3. Clique em 'Executar'",
-                        },
-                    ])
+                    const errorMessage = {
+                        id: Date.now().toString(),
+                        role: "assistant" as const,
+                        content:
+                            "❌ Nenhum fluxo foi configurado ou executado.\n\nPor favor, acesse o painel administrativo e:\n1. Crie um fluxo\n2. Clique em 'Salvar'\n3. Clique em 'Executar'",
+                    }
+
+                    setMessages((prev) => {
+                        const updated = [...prev, errorMessage]
+                        saveMessages(updated)
+                        return updated
+                    })
                 }, 500)
                 return
             }
@@ -415,6 +554,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             findNextNode,
             processNode,
             repeatOptions,
+            saveMessages,
         ],
     )
 
@@ -443,9 +583,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             const newX = e.clientX - dragStart.x
             const newY = e.clientY - dragStart.y
 
-            // Constrain to viewport
-            const maxX = isOpen ? window.innerWidth - 384 : window.innerWidth - 56
-            const maxY = isOpen ? window.innerHeight - 500 : window.innerHeight - 56
+            const maxX = isOpen ? window.innerWidth - 384 : window.innerWidth - 56 // 384px chat width, 56px icon width
+            const maxY = isOpen ? window.innerHeight - 500 : window.innerHeight - 56 // 500px chat height, 56px icon height
 
             setPosition({
                 x: Math.max(0, Math.min(newX, maxX)),
@@ -463,7 +602,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
         if (isDragging) {
             document.addEventListener("mousemove", handleMouseMove)
             document.addEventListener("mouseup", handleMouseUp)
-            document.body.style.userSelect = "none"
+            document.body.style.userSelect = "none" // Prevent text selection while dragging
         } else {
             document.body.style.userSelect = ""
         }
@@ -498,10 +637,6 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             setIsOpen(false)
         }
         setIsMinimized(false)
-        setCurrentNodeId(null)
-        setWaitingForUserInput(false)
-        setCurrentOptions([])
-        setCurrentOptionsMessage("")
     }
 
     const chatStyle = {
@@ -549,6 +684,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                             ))}
                         </div>
 
+                        {/* Main button */}
                         <motion.button
                             onClick={toggleChat}
                             whileHover={{ scale: 1.05 }}
@@ -560,6 +696,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                         >
                             <BotIcon className="w-6 h-6 text-white" />
 
+                            {/* Pulse ring effect */}
                             <div className="absolute inset-0 rounded-2xl border-2 border-purple-400/50 animate-ping" />
                             <div className="absolute inset-0 rounded-2xl border border-blue-400/30 animate-pulse" />
                         </motion.button>
@@ -567,6 +704,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 </div>
             )}
 
+            {/* Ventana de chat */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -582,6 +720,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                         style={chatStyle}
                         onMouseDown={handleMouseDown}
                     >
+                        {/* Header del chat */}
                         <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-3 flex items-center justify-between border-b border-gray-800 drag-handle">
                             <div className="flex items-center space-x-3">
                                 <Avatar className="h-8 w-8 bg-gray-700">
@@ -625,6 +764,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                             </div>
                         </div>
 
+                        {/* Contenido del chat (solo visible si no está minimizado) */}
                         {!isMinimized && (
                             <>
                                 {/* Mensajes */}
@@ -649,6 +789,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                                     <div ref={messagesEndRef} />
                                 </div>
 
+                                {/* Input para enviar mensagens */}
                                 <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-800 bg-gray-900">
                                     <div className="flex items-center space-x-2">
                                         <input
