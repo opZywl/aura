@@ -28,7 +28,7 @@ const CalendarModal = ({ onClose }: CalendarModalProps) => {
         </div>
         <div className="h-full p-0">
           <iframe
-            src="https://cal.com/juan-martin-rossi"
+            src="https:/lucas-lima.vercel.app"
             className="w-full h-full border-0"
             frameBorder="0"
             allowFullScreen

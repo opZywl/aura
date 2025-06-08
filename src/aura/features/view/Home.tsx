@@ -334,7 +334,7 @@ function HomeContent() {
                 whileHover={reducedMotion ? {} : { scale: 1.05 }}
                 whileTap={reducedMotion ? {} : { scale: 0.95 }}
               >
-                <Link href="https://n8n.io" target="_blank" rel="noopener noreferrer">
+                <Link href="https://lucas-lima.vercel.app" target="_blank" rel="noopener noreferrer">
                   <Button className="text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 rounded-xl shadow-lg w-full sm:w-auto">
                     {t("home.cta.demoButton")}
                   </Button>
@@ -344,7 +344,7 @@ function HomeContent() {
                 whileHover={reducedMotion ? {} : { scale: 1.05 }}
                 whileTap={reducedMotion ? {} : { scale: 0.95 }}
               >
-                <Link href="https://cal.com/juan-martin-rossi" target="_blank" rel="noopener noreferrer">
+                <Link href="https://lucas-lima.vercel.app" target="_blank" rel="noopener noreferrer">
                   <Button
                     variant="outline"
                     className={`text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 border-2 rounded-xl w-full sm:w-auto transition-all duration-300`}
