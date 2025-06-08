@@ -1,6 +1,5 @@
 import { StreamingTextResponse, type Message } from "ai"
 import { groq } from "@ai-sdk/groq"
-import { generateText } from "ai"
 
 export const runtime = "nodejs"
 
@@ -45,42 +44,4 @@ export async function POST(req: Request) {
     })
   }
 
-  // Preparar o sistema de instruções para AURA
-  const systemPrompt = SYSTEM_PROMPT
-
-  try {
-    // Verificar que tenemos la clave API
-    if (!process.env.GROQ_API_KEY) {
-      console.error("Error: GROQ_API_KEY não está definida")
-      return new Response(JSON.stringify({ error: "Configuração de API incompleta" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      })
-    }
-
-    // Convertir los mensajes al formato esperado por la API
-    const formattedMessages: Message[] = messages.map((message: any) => ({
-      role: message.role,
-      content: message.content,
-    }))
-
-    // Generar la respuesta usando Groq
-    const modelName = process.env.GROQ_MODEL || "llama3-70b-8192"
-    const response = await generateText({
-      model: groq(modelName),
-      messages: [{ role: "system", content: systemPrompt }, ...formattedMessages],
-      temperature: 0.7,
-      maxTokens: 500,
-      stream: true,
-    })
-
-    // Devolver la respuesta como un stream
-    return new StreamingTextResponse(response.textStream)
-  } catch (error) {
-    console.error("Erro ao processar a solicitação de chat:", error)
-    return new Response(JSON.stringify({ error: "Erro ao processar a solicitação" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })
-  }
 }
