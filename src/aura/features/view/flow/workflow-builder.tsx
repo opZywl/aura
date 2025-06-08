@@ -143,6 +143,29 @@ const createDefaultWorkflow = () => {
       },
       draggable: true,
     },
+    {
+      id: "finalizar-info",
+      type: "finalizar",
+      position: { x: 50, y: 600 },
+      data: {
+        label: "Finalizar Informações",
+        message:
+            "Espero que estas informações sobre nossos produtos tenham sido úteis! Posso ajudar com mais alguma coisa?",
+        customId: "#6",
+      },
+      draggable: true,
+    },
+    {
+      id: "finalizar-suporte",
+      type: "finalizar",
+      position: { x: 250, y: 600 },
+      data: {
+        label: "Finalizar Suporte",
+        message: "Espero ter ajudado com suas dúvidas técnicas! Se precisar de mais suporte, estamos à disposição.",
+        customId: "#7",
+      },
+      draggable: true,
+    },
   ]
 
   const defaultEdges = [
@@ -161,22 +184,34 @@ const createDefaultWorkflow = () => {
     {
       id: "option1-to-info",
       source: "main-options",
-      sourceHandle: "option-0",
+      sourceHandle: "output-0",
       target: "info-produtos",
       type: "custom",
     },
     {
       id: "option2-to-suporte",
       source: "main-options",
-      sourceHandle: "option-1",
+      sourceHandle: "output-1",
       target: "suporte-tecnico",
       type: "custom",
     },
     {
       id: "option3-to-atendente",
       source: "main-options",
-      sourceHandle: "option-2",
+      sourceHandle: "output-2",
       target: "atendente",
+      type: "custom",
+    },
+    {
+      id: "info-to-finalizar",
+      source: "info-produtos",
+      target: "finalizar-info",
+      type: "custom",
+    },
+    {
+      id: "suporte-to-finalizar",
+      source: "suporte-tecnico",
+      target: "finalizar-suporte",
       type: "custom",
     },
   ]
@@ -187,7 +222,7 @@ const createDefaultWorkflow = () => {
     nodeCounters: {
       sendMessage: 3,
       options: 1,
-      finalizar: 1,
+      finalizar: 3,
     },
   }
 }
@@ -286,8 +321,8 @@ function WorkflowBuilderInner({
   const { zoomIn, zoomOut, fitView, setCenter } = useReactFlow()
 
   // Garantir persistência do localStorage
-  const WORKFLOW_KEY = "aura_workflow_persistent"
-  const EXECUTED_KEY = "aura_workflow_executed_persistent"
+  const WORKFLOW_KEY = "workflow"
+  const EXECUTED_KEY = "executedFlow"
 
   // Carregar fluxo salvo ou criar padrão
   useEffect(() => {
@@ -771,14 +806,14 @@ function WorkflowBuilderInner({
         description: "Adicione alguns nós ao seu fluxo primeiro",
         variant: "destructive",
       })
-      return
+      return false
     }
 
     const validation = validateConnectivity()
     if (!validation.isValid) {
       setDisconnectedNodes(validation.disconnected)
       setShowValidationDialog(true)
-      return
+      return false
     }
 
     // PRIMEIRO: Salvar o estado atual no localStorage com chave persistente
@@ -789,13 +824,16 @@ function WorkflowBuilderInner({
     // DEPOIS: Marcar como executado com chave persistente
     localStorage.setItem(EXECUTED_KEY, "true")
 
+    // Disparar evento para atualizar o indicador de status
+    window.dispatchEvent(new Event("storage"))
+
+    // Forçar atualização do indicador
+    document.dispatchEvent(new CustomEvent("workflowExecuted", { detail: { executed: true } }))
+
     toast({
       title: "✅ Fluxo executado com sucesso!",
       description: "Fluxo atual salvo e executado - bot Aura atualizado!",
     })
-
-    // Disparar evento para atualizar o indicador de status
-    window.dispatchEvent(new Event("storage"))
 
     return true // Retornar true para indicar sucesso
   }, [nodes, edges, nodeCounters, validateConnectivity])
