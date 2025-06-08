@@ -183,7 +183,6 @@ export default function NodeLibrary() {
                 : "drop-shadow(0 0 6px rgba(0, 0, 0, 0.3))",
             }}
           >
-            ✨ Arraste e solte para construir seu fluxo
           </span>
         </div>
       </div>
