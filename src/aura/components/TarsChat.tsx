@@ -1,305 +1,371 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { useChat } from "ai/react"
+import { useState, useEffect } from "react"
+import { Bot, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { SendIcon, XIcon, MinimizeIcon, MaximizeIcon, BotIcon } from "lucide-react"
-import { Avatar } from "@/components/ui/avatar"
-import { useTheme } from "next-themes"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+
+interface Message {
+  id: string
+  text: string
+  sender: "user" | "bot"
+  timestamp: Date
+}
 
 export default function TarsChat() {
   const [isOpen, setIsOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const { theme } = useTheme()
+  const [messages, setMessages] = useState<Message[]>([])
+  const [inputValue, setInputValue] = useState("")
+  const [currentNodeId, setCurrentNodeId] = useState<string>("start")
+  const [scrollY, setScrollY] = useState(0)
+  const [savedFlow, setSavedFlow] = useState<any>(null)
+  const [waitingForUserInput, setWaitingForUserInput] = useState(false)
+  const [currentOptions, setCurrentOptions] = useState<any[]>([])
+  const [currentOptionsMessage, setCurrentOptionsMessage] = useState("")
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
-    api: "/api/chat",
-    initialMessages: [
-      {
-        id: "welcome-message",
-        role: "assistant",
-        content: "Olá, sou AURA. Como posso ajudá-lo com a implementação de agentes de IA para sua empresa?",
-      },
-    ],
-  })
+  // Chaves persistentes para localStorage
+  const WORKFLOW_KEY = "aura_workflow_persistent"
+  const EXECUTED_KEY = "aura_workflow_executed_persistent"
 
-  // Scroll ao final dos mensagens quando se añade uno nuevo
+  // Detectar scroll para acompanhar a página
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
-    }
-  }, [messages])
+    const handleScroll = () => setScrollY(window.scrollY)
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
-  // Enfocar el input cuando se abre el chat
+  // Carregar fluxo do localStorage
+  const loadWorkflow = () => {
+    try {
+      const savedWorkflow = localStorage.getItem(WORKFLOW_KEY)
+      const isExecuted = localStorage.getItem(EXECUTED_KEY) === "true"
+
+      if (!savedWorkflow || !isExecuted) {
+        return null
+      }
+
+      return JSON.parse(savedWorkflow)
+    } catch {
+      return null
+    }
+  }
+
+  // Carregar fluxo quando abrir o chat
   useEffect(() => {
-    if (isOpen && !isMinimized && inputRef.current) {
-      inputRef.current.focus()
+    if (isOpen) {
+      const workflow = loadWorkflow()
+      setSavedFlow(workflow)
+
+      if (workflow) {
+        // Limpar mensagens anteriores
+        setMessages([])
+        setCurrentNodeId("start-node")
+        setWaitingForUserInput(false)
+      }
     }
-  }, [isOpen, isMinimized])
+  }, [isOpen])
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement
+  // Listener para mudanças no localStorage
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (isOpen) {
+        const workflow = loadWorkflow()
+        setSavedFlow(workflow)
+      }
+    }
 
-    // Don't drag if clicking on buttons (except the drag handle areas)
-    if (target.closest("button") && !target.closest(".drag-handle")) {
+    window.addEventListener("storage", handleStorageChange)
+    const interval = setInterval(handleStorageChange, 2000)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      clearInterval(interval)
+    }
+  }, [isOpen])
+
+  const findNextNode = (currentNodeId: string, optionIndex?: number) => {
+    if (!savedFlow) return null
+
+    const edges = savedFlow.edges
+    let targetEdge
+
+    if (optionIndex !== undefined) {
+      // Para nós de opções, encontrar a edge específica baseada no índice
+      const nodeEdges = edges.filter((edge: any) => edge.source === currentNodeId)
+      targetEdge = nodeEdges[optionIndex]
+    } else {
+      // Para outros nós, encontrar a primeira edge
+      targetEdge = edges.find((edge: any) => edge.source === currentNodeId)
+    }
+
+    if (targetEdge) {
+      return savedFlow.nodes.find((node: any) => node.id === targetEdge.target)
+    }
+
+    return null
+  }
+
+  const processNode = (node: any) => {
+    setCurrentNodeId(node.id)
+
+    if (node.type === "sendMessage") {
+      const message = node.data.message || "Mensagem não configurada"
+      addBotMessage(message)
+
+      // Continuar automaticamente para o próximo nó após 1 segundo
+      setTimeout(() => {
+        const nextNode = findNextNode(node.id)
+        if (nextNode) {
+          processNode(nextNode)
+        } else {
+          setWaitingForUserInput(false)
+          setCurrentNodeId(null)
+        }
+      }, 1000)
+    } else if (node.type === "options") {
+      const message = node.data.message || "Escolha uma opção:"
+      const options = node.data.options || []
+
+      // Salvar opções atuais para repetir se necessário
+      setCurrentOptions(options)
+      setCurrentOptionsMessage(message)
+
+      let optionsText = message + "\n\n"
+      options.forEach((option: any, index: number) => {
+        optionsText += `${index + 1}. ${option.text}\n`
+      })
+
+      addBotMessage(optionsText)
+
+      // Aguardar input do usuário
+      setWaitingForUserInput(true)
+    } else if (node.type === "finalizar") {
+      const message = node.data.message || "Conversa finalizada. Obrigado!"
+      addBotMessage(message)
+      setCurrentNodeId(null)
+      setWaitingForUserInput(false)
+    }
+  }
+
+  const startFlow = () => {
+    if (!savedFlow) return
+
+    // Encontrar o nó START
+    const startNode = savedFlow.nodes.find((node: any) => node.id === "start-node")
+    if (startNode) {
+      // Encontrar o primeiro nó conectado ao START
+      const firstNode = findNextNode("start-node")
+      if (firstNode) {
+        processNode(firstNode)
+      }
+    }
+  }
+
+  const repeatOptions = () => {
+    if (currentOptions.length > 0) {
+      let optionsText = currentOptionsMessage + "\n\n"
+      currentOptions.forEach((option: any, index: number) => {
+        optionsText += `${index + 1}. ${option.text}\n`
+      })
+
+      addBotMessage("Não consegui identificar essa opção. Por favor, tente novamente.\n\n" + optionsText)
+    }
+  }
+
+  const addBotMessage = (text: string) => {
+    const botMessage: Message = {
+      id: Date.now().toString(),
+      text,
+      sender: "bot",
+      timestamp: new Date(),
+    }
+    setMessages((prev) => [...prev, botMessage])
+  }
+
+  // Inicializar conversa quando abrir
+  useEffect(() => {
+    if (isOpen && messages.length === 0 && savedFlow) {
+      setTimeout(() => {
+        startFlow()
+      }, 500)
+    } else if (isOpen && !savedFlow) {
+      addBotMessage("Nenhum fluxo foi configurado. Por favor, acesse o painel administrativo para criar um fluxo.")
+    }
+  }, [isOpen, savedFlow])
+
+  const handleSendMessage = () => {
+    if (!inputValue.trim()) return
+
+    // Adicionar mensagem do usuário
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: inputValue.trim(),
+      sender: "user",
+      timestamp: new Date(),
+    }
+    setMessages((prev) => [...prev, userMessage])
+
+    const userInput = inputValue.trim()
+    setInputValue("")
+
+    // Se não há fluxo executado, não processar
+    if (!savedFlow) {
       return
     }
 
-    setIsDragging(true)
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    })
-  }
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return
-
-    const newX = e.clientX - dragStart.x
-    const newY = e.clientY - dragStart.y
-
-    // Constrain to viewport
-    const maxX = isOpen ? window.innerWidth - 384 : window.innerWidth - 56 // 384px chat width, 56px icon width
-    const maxY = isOpen ? window.innerHeight - 500 : window.innerHeight - 56 // 500px chat height, 56px icon height
-
-    setPosition({
-      x: Math.max(0, Math.min(newX, maxX)),
-      y: Math.max(0, Math.min(newY, maxY)),
-    })
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
-      document.body.style.userSelect = "none" // Prevent text selection while dragging
-    } else {
-      document.body.style.userSelect = ""
+    // Se é a primeira mensagem e não há nó atual, iniciar o fluxo
+    if (!currentNodeId && !waitingForUserInput) {
+      setTimeout(() => {
+        startFlow()
+      }, 500)
+      return
     }
 
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("mouseup", handleMouseUp)
-      document.body.style.userSelect = ""
-    }
-  }, [isDragging, dragStart, isOpen])
+    // Se estamos aguardando input do usuário (nó de opções)
+    if (waitingForUserInput && currentNodeId) {
+      const currentNode = savedFlow.nodes.find((node: any) => node.id === currentNodeId)
 
-  const toggleChat = () => {
-    if (isMinimized) {
-      setIsMinimized(false)
-    } else {
-      setIsOpen(!isOpen)
+      if (currentNode && currentNode.type === "options") {
+        const options = currentNode.data.options || []
+        const optionIndex = Number.parseInt(userInput) - 1
+
+        if (optionIndex >= 0 && optionIndex < options.length) {
+          // Opção válida - continuar para o próximo nó
+          setWaitingForUserInput(false)
+          setTimeout(() => {
+            const nextNode = findNextNode(currentNodeId, optionIndex)
+            if (nextNode) {
+              processNode(nextNode)
+            } else {
+              setCurrentNodeId(null)
+            }
+          }, 500)
+        } else {
+          // Opção inválida - repetir as opções
+          setTimeout(() => {
+            repeatOptions()
+          }, 500)
+        }
+      }
     }
   }
 
-  const minimizeChat = () => {
-    setIsMinimized(true)
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSendMessage()
+    }
   }
 
-  const maximizeChat = () => {
-    setIsMinimized(false)
-  }
-
-  const closeChat = () => {
-    setIsOpen(false)
-    setIsMinimized(false)
-  }
-
-  const chatStyle = {
-    left: `${24 + position.x}px`,
-    bottom: `${24 + position.y}px`,
-    cursor: isDragging ? "grabbing" : "grab",
+  // Posição do ícone baseada no scroll
+  const iconPosition = {
+    position: "absolute" as const,
+    right: "24px",
+    top: `${scrollY + window.innerHeight / 2 - 40}px`,
+    zIndex: 1000,
   }
 
   return (
     <>
-      {/* Botão para abrir o chat - draggable when not open */}
+      {/* Ícone flutuante */}
       {!isOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-          className="fixed z-50 drag-handle"
-          style={chatStyle}
-          onMouseDown={handleMouseDown}
-        >
-          <Button
-            onClick={toggleChat}
-            className="rounded-full w-14 h-14 bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 shadow-lg shadow-black/50 flex items-center justify-center transition-all duration-300 hover:scale-105"
-          >
-            <BotIcon className="h-6 w-6 text-gray-200" />
-          </Button>
-        </motion.div>
-      )}
-
-      {/* Ventana de chat */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, height: "auto" }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              height: isMinimized ? "60px" : "500px",
-            }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.3 }}
-            className="fixed w-full max-w-sm bg-gray-900 rounded-xl shadow-2xl overflow-hidden z-50 border border-gray-800"
-            style={chatStyle}
-            onMouseDown={handleMouseDown}
-          >
-            {/* Header del chat */}
-            <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-3 flex items-center justify-between border-b border-gray-800 drag-handle">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-8 w-8 bg-gray-700">
-                  <div className="flex items-center justify-center h-full w-full">
-                    <BotIcon className="h-5 w-5 text-gray-200" />
-                  </div>
-                </Avatar>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-200">AURA</h3>
-                  <p className="text-xs text-gray-400">Assistente de IA</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-1">
-                {isMinimized ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={maximizeChat}
-                    className="h-7 w-7 text-gray-400 hover:text-gray-200"
-                  >
-                    <MaximizeIcon className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={minimizeChat}
-                    className="h-7 w-7 text-gray-400 hover:text-gray-200"
-                  >
-                    <MinimizeIcon className="h-4 w-4" />
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={closeChat}
-                  className="h-7 w-7 text-gray-400 hover:text-gray-200"
-                >
-                  <XIcon className="h-4 w-4" />
-                </Button>
-              </div>
+        <div style={iconPosition} className="transition-all duration-300 ease-out">
+          <button onClick={() => setIsOpen(true)} className="relative group">
+            {/* Pontos decorativos */}
+            <div className="absolute -inset-8 pointer-events-none">
+              <div className="absolute top-2 left-2 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-60"></div>
+              <div
+                className="absolute top-6 right-3 w-1 h-1 bg-cyan-300 rounded-full animate-pulse opacity-40"
+                style={{ animationDelay: "0.5s" }}
+              ></div>
+              <div
+                className="absolute bottom-3 left-4 w-1 h-1 bg-cyan-500 rounded-full animate-pulse opacity-50"
+                style={{ animationDelay: "1s" }}
+              ></div>
+              <div
+                className="absolute bottom-1 right-1 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-30"
+                style={{ animationDelay: "1.5s" }}
+              ></div>
             </div>
 
-            {/* Contenido del chat (solo visible si no está minimizado) */}
-            {!isMinimized && (
-              <>
-                {/* Mensajes */}
-                <div className="p-4 h-[360px] overflow-y-auto bg-gray-950">
-                  {error && (
-                    <div className="p-3 mb-4 bg-red-900/20 border border-red-700/30 rounded-lg">
-                      <p className="text-sm text-red-300">
-                        Erro ao conectar com AURA. Por favor, tente novamente mais tarde.
-                      </p>
-                    </div>
-                  )}
+            {/* Ícone principal */}
+            <div className="relative w-20 h-20 bg-gradient-to-br from-gray-900 to-black rounded-2xl border-2 border-cyan-400/50 shadow-2xl group-hover:scale-110 transition-all duration-300">
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-cyan-400/20 rounded-2xl blur-xl animate-pulse"></div>
+              <div className="absolute inset-0 bg-cyan-400/10 rounded-2xl blur-2xl"></div>
 
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`mb-4 ${message.role === "user" ? "flex justify-end" : "flex justify-start"}`}
-                    >
-                      <div
-                        className={`max-w-[80%] p-3 rounded-lg ${
-                          message.role === "user"
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-700 text-gray-100 border border-gray-600/30"
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                      </div>
-                    </div>
-                  ))}
+              {/* Bot icon */}
+              <div className="relative w-full h-full flex items-center justify-center">
+                <Bot className="w-10 h-10 text-cyan-400 drop-shadow-lg" />
+              </div>
+            </div>
+          </button>
+        </div>
+      )}
 
-                  {isLoading && (
-                    <div className="flex justify-start mb-4">
-                      <div className="max-w-[80%] p-3 rounded-lg bg-gray-700 text-gray-100 border border-gray-600/30">
-                        <div className="flex space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></div>
-                          <div
-                            className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"
-                            style={{ animationDelay: "0.2s" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"
-                            style={{ animationDelay: "0.4s" }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div ref={messagesEndRef} />
-                </div>
-
-                {/* Input para enviar mensagens */}
-                <form onSubmit={handleSubmit} className="p-3 border-t border-gray-800 bg-gray-900">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={input}
-                      onChange={handleInputChange}
-                      placeholder="Digite sua mensagem..."
-                      className="flex-1 bg-gray-800 border border-gray-700 rounded-full px-4 py-2 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-600"
-                    />
-                    <Button
-                      type="submit"
-                      disabled={isLoading || !input.trim()}
-                      className="rounded-full w-10 h-10 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 flex items-center justify-center"
-                    >
-                      <SendIcon className="h-4 w-4 text-white" />
-                    </Button>
-                  </div>
-                </form>
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Botão "Fale com AURA" */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-        className="mt-6 flex justify-center"
-      >
-        <Button
-          onClick={toggleChat}
-          variant="outline"
-          className={`text-lg px-6 py-2 border-2 backdrop-blur-lg rounded-xl flex items-center space-x-2 transition-all duration-300 hover:scale-105 ${
-            theme === "dark"
-              ? "border-gray-600 bg-black/80 text-gray-200 hover:bg-gray-800 hover:text-white"
-              : "border-gray-300 bg-white/80 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-          }`}
+      {/* Chat expandido */}
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            right: "24px",
+            top: `${Math.max(scrollY + 50, scrollY + window.innerHeight / 2 - 200)}px`,
+            zIndex: 1000,
+          }}
+          className="w-80 h-96 bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300"
         >
-          <BotIcon className="h-5 w-5" />
-          <span>Fale com AURA</span>
-        </Button>
-      </motion.div>
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <Avatar className="w-8 h-8">
+                <AvatarFallback className="bg-cyan-500 text-white">
+                  <Bot className="w-4 h-4" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-gray-900 dark:text-white">AURA</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-8 w-8 p-0">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((message) => (
+              <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-xs px-3 py-2 rounded-lg whitespace-pre-line ${
+                    message.sender === "user"
+                      ? "bg-cyan-500 text-white"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                  }`}
+                >
+                  {message.text}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Input */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex gap-2">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Digite sua mensagem..."
+                className="flex-1"
+              />
+              <Button onClick={handleSendMessage} size="sm">
+                Enviar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

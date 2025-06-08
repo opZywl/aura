@@ -35,6 +35,7 @@ import { useTheme } from "../homePanels/ThemeContext"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useAuth } from "@/src/aura/contexts/AuthContext"
+import { BotIcon } from "lucide-react"
 
 const nodeTypes: NodeTypes = {
   sendMessage: (props) => (
@@ -65,6 +66,132 @@ const edgeTypes: EdgeTypes = {
 let removeNodeById: (id: string) => void = () => {}
 let updateNodeDataById: (id: string, data: any) => void = () => {}
 
+// Fluxo padrão que sempre funciona
+const createDefaultWorkflow = () => {
+  const defaultNodes = [
+    {
+      id: "start-node",
+      type: "start",
+      position: { x: 250, y: 100 },
+      data: {
+        label: "INÍCIO",
+        description: "Ponto de início do fluxo",
+      },
+      deletable: false,
+      draggable: true,
+    },
+    {
+      id: "welcome-message",
+      type: "sendMessage",
+      position: { x: 250, y: 200 },
+      data: {
+        label: "Mensagem de Boas-vindas",
+        message: "Olá! Bem-vindo ao AURA! 🤖\n\nSou seu assistente virtual e estou aqui para ajudar você.",
+        customId: "#1",
+      },
+      draggable: true,
+    },
+    {
+      id: "main-options",
+      type: "options",
+      position: { x: 250, y: 320 },
+      data: {
+        label: "Menu Principal",
+        message: "Como posso ajudar você hoje?",
+        options: [
+          { id: "opt1", text: "Informações sobre produtos" },
+          { id: "opt2", text: "Suporte técnico" },
+          { id: "opt3", text: "Falar com atendente" },
+        ],
+        customId: "#2",
+      },
+      draggable: true,
+    },
+    {
+      id: "info-produtos",
+      type: "sendMessage",
+      position: { x: 50, y: 480 },
+      data: {
+        label: "Informações Produtos",
+        message:
+          "📦 Nossos produtos incluem:\n\n• Soluções de IA\n• Chatbots inteligentes\n• Automação de processos\n• Integração com sistemas",
+        customId: "#3",
+      },
+      draggable: true,
+    },
+    {
+      id: "suporte-tecnico",
+      type: "sendMessage",
+      position: { x: 250, y: 480 },
+      data: {
+        label: "Suporte Técnico",
+        message:
+          "🔧 Para suporte técnico:\n\n• Acesse nossa documentação\n• Envie um email para suporte@aura.com\n• Ou continue conversando comigo!",
+        customId: "#4",
+      },
+      draggable: true,
+    },
+    {
+      id: "atendente",
+      type: "finalizar",
+      position: { x: 450, y: 480 },
+      data: {
+        label: "Transferir Atendente",
+        message:
+          "👨‍💼 Transferindo você para um atendente humano...\n\nAguarde um momento que alguém da nossa equipe entrará em contato!",
+        customId: "#5",
+      },
+      draggable: true,
+    },
+  ]
+
+  const defaultEdges = [
+    {
+      id: "start-to-welcome",
+      source: "start-node",
+      target: "welcome-message",
+      type: "custom",
+    },
+    {
+      id: "welcome-to-options",
+      source: "welcome-message",
+      target: "main-options",
+      type: "custom",
+    },
+    {
+      id: "option1-to-info",
+      source: "main-options",
+      sourceHandle: "option-0",
+      target: "info-produtos",
+      type: "custom",
+    },
+    {
+      id: "option2-to-suporte",
+      source: "main-options",
+      sourceHandle: "option-1",
+      target: "suporte-tecnico",
+      type: "custom",
+    },
+    {
+      id: "option3-to-atendente",
+      source: "main-options",
+      sourceHandle: "option-2",
+      target: "atendente",
+      type: "custom",
+    },
+  ]
+
+  return {
+    nodes: defaultNodes,
+    edges: defaultEdges,
+    nodeCounters: {
+      sendMessage: 3,
+      options: 1,
+      finalizar: 1,
+    },
+  }
+}
+
 const findConnectedNodes = (nodes: Node[], edges: Edge[], startNodeId: string): Set<string> => {
   const connected = new Set<string>()
   const queue = [startNodeId]
@@ -85,15 +212,11 @@ const findConnectedNodes = (nodes: Node[], edges: Edge[], startNodeId: string): 
   return connected
 }
 
-// Função melhorada para verificar handles desconectados
 const findUnconnectedHandles = (nodes: Node[], edges: Edge[]): string[] => {
   const unconnected: string[] = []
-
-  // Filtrar apenas nós que realmente existem
   const existingNodes = nodes.filter((node) => node && node.id && node.data)
 
   existingNodes.forEach((node) => {
-    // Verificar handles de saída (source) - exceto Finalizar
     if (node.type !== "finalizar") {
       const hasOutgoingConnection = edges.some((edge) => edge.source === node.id)
       if (!hasOutgoingConnection) {
@@ -101,7 +224,6 @@ const findUnconnectedHandles = (nodes: Node[], edges: Edge[]): string[] => {
       }
     }
 
-    // Verificar handles de entrada (target) - exceto START
     if (node.type !== "start") {
       const hasIncomingConnection = edges.some((edge) => edge.target === node.id)
       if (!hasIncomingConnection) {
@@ -109,7 +231,6 @@ const findUnconnectedHandles = (nodes: Node[], edges: Edge[]): string[] => {
       }
     }
 
-    // Verificar múltiplas saídas do nó Options
     if (node.type === "options") {
       const options = node.data.options || []
       const outgoingConnections = edges.filter((edge) => edge.source === node.id)
@@ -130,8 +251,11 @@ interface WorkflowBuilderProps {
   onStartPositionChange?: (position: { x: number; y: number }) => void
   onMousePositionChange?: (position: { x: number; y: number }) => void
   onComponentCountChange?: (count: number) => void
+  onNodesChange?: (nodes: any[]) => void
+  onEdgesChange?: (edges: any[]) => void
   showSidebar?: boolean
   onToggleSidebar?: () => void
+  onOpenBot?: () => void
 }
 
 function WorkflowBuilderInner({
@@ -139,14 +263,17 @@ function WorkflowBuilderInner({
   onStartPositionChange,
   onMousePositionChange,
   onComponentCountChange,
+  onNodesChange,
+  onEdgesChange,
   showSidebar = true,
   onToggleSidebar,
+  onOpenBot,
 }: WorkflowBuilderProps) {
   const { theme, currentGradient } = useTheme()
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [nodes, setNodes, onNodesChange] = useNodesState([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [nodes, setNodes, onNodesChangeInternal] = useNodesState([])
+  const [edges, setEdges, onEdgesChangeInternal] = useEdgesState([])
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null)
   const [nodeCounters, setNodeCounters] = useState<Record<string, number>>({})
@@ -158,24 +285,63 @@ function WorkflowBuilderInner({
   const [disconnectedNodes, setDisconnectedNodes] = useState<string[]>([])
   const { zoomIn, zoomOut, fitView, setCenter } = useReactFlow()
 
-  useEffect(() => {
-    if (nodes.length === 0) {
-      const startNode = {
-        id: "start-node",
-        type: "start",
-        position: { x: 250, y: 100 },
-        data: {
-          label: "INÍCIO",
-          description: "Ponto de início do fluxo",
-        },
-        deletable: false,
-        draggable: true,
-      }
-      setNodes([startNode])
-    }
-  }, [nodes.length, setNodes])
+  // Garantir persistência do localStorage
+  const WORKFLOW_KEY = "aura_workflow_persistent"
+  const EXECUTED_KEY = "aura_workflow_executed_persistent"
 
-  // Atualizar posição do START e contador de componentes
+  // Carregar fluxo salvo ou criar padrão
+  useEffect(() => {
+    const loadSavedWorkflow = () => {
+      try {
+        const savedWorkflow = localStorage.getItem(WORKFLOW_KEY)
+        if (savedWorkflow) {
+          const workflow = JSON.parse(savedWorkflow)
+          setNodes(workflow.nodes || [])
+          setEdges(workflow.edges || [])
+          setNodeCounters(workflow.nodeCounters || {})
+
+          toast({
+            title: "✅ Fluxo carregado",
+            description: "Fluxo salvo anteriormente foi restaurado",
+          })
+          return
+        }
+      } catch (error) {
+        console.error("Erro ao carregar fluxo salvo:", error)
+      }
+
+      // Se não há fluxo salvo, criar o padrão
+      const defaultWorkflow = createDefaultWorkflow()
+      setNodes(defaultWorkflow.nodes)
+      setEdges(defaultWorkflow.edges)
+      setNodeCounters(defaultWorkflow.nodeCounters)
+
+      // Salvar o fluxo padrão
+      localStorage.setItem(WORKFLOW_KEY, JSON.stringify(defaultWorkflow))
+      localStorage.setItem(EXECUTED_KEY, "true")
+
+      toast({
+        title: "🚀 Fluxo padrão carregado",
+        description: "Um fluxo de demonstração foi criado e está pronto para uso!",
+      })
+    }
+
+    loadSavedWorkflow()
+  }, [setNodes, setEdges])
+
+  // Notificar mudanças nos nodes e edges para o componente pai
+  useEffect(() => {
+    if (onNodesChange) {
+      onNodesChange(nodes)
+    }
+  }, [nodes, onNodesChange])
+
+  useEffect(() => {
+    if (onEdgesChange) {
+      onEdgesChange(edges)
+    }
+  }, [edges, onEdgesChange])
+
   useEffect(() => {
     const startNode = nodes.find((node) => node.id === "start-node")
     if (startNode && onStartPositionChange) {
@@ -187,7 +353,6 @@ function WorkflowBuilderInner({
     }
   }, [nodes, onStartPositionChange, onComponentCountChange])
 
-  // Capturar movimento do mouse no ReactFlow
   const handleMouseMove = useCallback(
     (event: React.MouseEvent) => {
       if (reactFlowInstance && onMousePositionChange) {
@@ -215,7 +380,6 @@ function WorkflowBuilderInner({
         return
       }
 
-      // Remover nó e todas as suas conexões
       setNodes((nds) => nds.filter((node) => node.id !== nodeId))
       setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId))
       setSelectedNode(null)
@@ -251,10 +415,8 @@ function WorkflowBuilderInner({
   removeNodeById = removeNode
   updateNodeDataById = updateNodeData
 
-  // Lógica de conexão CORRIGIDA - impedir auto-conexões e garantir 1:1 REAL
   const onConnect = useCallback(
     (params: Edge | Connection) => {
-      // VALIDAÇÃO 1: Impedir auto-conexão (nó conectando consigo mesmo)
       if (params.source === params.target) {
         toast({
           title: "❌ Auto-conexão não permitida",
@@ -264,37 +426,30 @@ function WorkflowBuilderInner({
         return
       }
 
-      // VALIDAÇÃO 2: Lógica 1:1 COMPLETA - saídas E entradas só podem ter UMA conexão
       setEdges((currentEdges) => {
-        // Verificar se a SAÍDA VERDE já está ocupada
         const sourceOccupied = currentEdges.some(
           (edge) => edge.source === params.source && edge.sourceHandle === params.sourceHandle,
         )
 
-        // Verificar se a ENTRADA AMARELA já está ocupada
         const targetOccupied = currentEdges.some(
           (edge) => edge.target === params.target && edge.targetHandle === params.targetHandle,
         )
 
-        // Se ENTRADA AMARELA já está ocupada, BLOQUEAR completamente
         if (targetOccupied) {
           toast({
             title: "❌ Entrada já ocupada",
             description: "Esta entrada amarela já possui uma conexão. Remova a conexão existente primeiro.",
             variant: "destructive",
           })
-          return currentEdges // Não fazer nada, manter edges atuais
+          return currentEdges
         }
 
-        // Remover conexão existente da SAÍDA VERDE (se houver)
         const filteredEdges = currentEdges.filter(
           (edge) => !(edge.source === params.source && edge.sourceHandle === params.sourceHandle),
         )
 
-        // Adicionar a nova conexão
         const newEdges = addEdge({ ...params, type: "custom" }, filteredEdges)
 
-        // Toast informativo
         if (sourceOccupied) {
           toast({
             title: "🔄 Saída substituída",
@@ -366,7 +521,6 @@ function WorkflowBuilderInner({
   )
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    // START não pode ser configurado
     if (node.id === "start-node") {
       return
     }
@@ -409,7 +563,6 @@ function WorkflowBuilderInner({
     const startNode = nodes.find((node) => node.id === "start-node")
     if (!startNode) return { isValid: false, disconnected: ["Nó INÍCIO não encontrado"] }
 
-    // Verificar se START tem pelo menos uma conexão de saída (não pode estar sozinho)
     const startHasOutgoingConnection = edges.some((edge) => edge.source === "start-node")
     if (nodes.length > 1 && !startHasOutgoingConnection) {
       return {
@@ -418,7 +571,6 @@ function WorkflowBuilderInner({
       }
     }
 
-    // NOVA VALIDAÇÃO: Verificar se nós de mensagem têm conteúdo
     const emptyMessageNodes: string[] = []
 
     nodes.forEach((node) => {
@@ -437,7 +589,6 @@ function WorkflowBuilderInner({
           emptyMessageNodes.push(`${node.data.customId || node.id} (Opções sem mensagem)`)
         }
 
-        // Verificar se todas as opções têm texto
         options.forEach((option: any, index: number) => {
           if (!option.text || !option.text.trim()) {
             emptyMessageNodes.push(`${node.data.customId || node.id} (Opção ${index + 1} sem texto)`)
@@ -446,7 +597,6 @@ function WorkflowBuilderInner({
       }
     })
 
-    // Se há nós vazios, retornar erro
     if (emptyMessageNodes.length > 0) {
       return {
         isValid: false,
@@ -454,17 +604,14 @@ function WorkflowBuilderInner({
       }
     }
 
-    // Verificar conectividade geral
     const connectedNodes = findConnectedNodes(nodes, edges, "start-node")
     const allNodeIds = nodes.map((node) => node.id)
     const disconnectedFromStart = allNodeIds.filter((id) => !connectedNodes.has(id))
-
-    // Verificar handles desconectados (apenas nós existentes)
     const unconnectedHandles = findUnconnectedHandles(nodes, edges)
 
     const allDisconnected = [
       ...disconnectedFromStart
-        .filter((id) => id !== "start-node") // Excluir START da lista
+        .filter((id) => id !== "start-node")
         .map((id) => {
           const node = nodes.find((n) => n.id === id)
           return `${node?.data.customId || node?.data.label || id} (não conectado ao INÍCIO)`
@@ -479,7 +626,6 @@ function WorkflowBuilderInner({
   }, [nodes, edges])
 
   const saveWorkflow = useCallback(() => {
-    // CASO 1: Só tem o INÍCIO
     if (nodes.length <= 1) {
       toast({
         title: "❌ Fluxo vazio",
@@ -491,30 +637,30 @@ function WorkflowBuilderInner({
 
     const validation = validateConnectivity()
 
-    // CASO 2: Tem componentes mas estão desconectados
     if (!validation.isValid) {
       setDisconnectedNodes(validation.disconnected)
       setShowValidationDialog(true)
       return
     }
 
-    // CASO 3: Tudo conectado - SALVAR COM SUCESSO
+    // SEMPRE salvar o estado atual dos nodes e edges com chave persistente
     const workflow = { nodes, edges, nodeCounters }
     const workflowString = JSON.stringify(workflow)
-    localStorage.setItem("workflow", workflowString)
+    localStorage.setItem(WORKFLOW_KEY, workflowString)
 
-    // Mostrar popup de sucesso
+    // Também limpar o status de execução para forçar nova execução
+    localStorage.removeItem(EXECUTED_KEY)
+    window.dispatchEvent(new Event("storage"))
+
     setShowSuccessDialog(true)
 
-    // Toast também
     toast({
       title: "✅ Fluxo salvo com sucesso!",
-      description: `${nodes.length} componentes salvos no navegador`,
+      description: `${nodes.length} componentes salvos e prontos para execução`,
     })
   }, [nodes, edges, nodeCounters, validateConnectivity])
 
   const loadWorkflow = useCallback(() => {
-    // Trigger file input
     fileInputRef.current?.click()
   }, [])
 
@@ -528,7 +674,6 @@ function WorkflowBuilderInner({
         try {
           const jsonContent = e.target?.result as string
 
-          // Verificar se o conteúdo não está vazio
           if (!jsonContent || jsonContent.trim() === "") {
             throw new Error("Arquivo vazio ou não é um arquivo de texto válido")
           }
@@ -540,7 +685,6 @@ function WorkflowBuilderInner({
             throw new Error("Arquivo não é um JSON válido - verifique a sintaxe")
           }
 
-          // Verificar se é um JSON válido do nosso formato
           if (!workflowData || typeof workflowData !== "object") {
             throw new Error("Arquivo JSON não contém dados válidos")
           }
@@ -551,7 +695,6 @@ function WorkflowBuilderInner({
 
           const { nodes: loadedNodes, edges: loadedEdges, nodeCounters: loadedCounters } = workflowData.flowData
 
-          // Verificar se os dados são válidos
           if (!Array.isArray(loadedNodes)) {
             throw new Error("Dados de nós corrompidos - estrutura inválida")
           }
@@ -560,7 +703,6 @@ function WorkflowBuilderInner({
             throw new Error("Dados de conexões corrompidos - estrutura inválida")
           }
 
-          // Verificar se os nós têm estrutura mínima válida
           for (let i = 0; i < loadedNodes.length; i++) {
             const node = loadedNodes[i]
             if (!node.id || !node.type || !node.position || !node.data) {
@@ -568,7 +710,6 @@ function WorkflowBuilderInner({
             }
           }
 
-          // Garantir que existe o nó START
           const hasStartNode = loadedNodes.some((node: Node) => node.id === "start-node")
           if (!hasStartNode) {
             const startNode = {
@@ -589,20 +730,23 @@ function WorkflowBuilderInner({
           setEdges(loadedEdges)
           setNodeCounters(loadedCounters || {})
 
+          // Salvar com chave persistente
+          const workflow = { nodes: loadedNodes, edges: loadedEdges, nodeCounters: loadedCounters || {} }
+          localStorage.setItem(WORKFLOW_KEY, JSON.stringify(workflow))
+
+          // Limpar status de execução para forçar nova execução do fluxo importado
+          localStorage.removeItem(EXECUTED_KEY)
+          window.dispatchEvent(new Event("storage"))
+
           toast({
             title: "✅ Fluxo carregado com sucesso!",
-            description: `${loadedNodes.length} componentes carregados do arquivo JSON`,
+            description: `${loadedNodes.length} componentes carregados - clique em Salvar e depois Executar`,
           })
 
-          // Ajustar visualização
           setTimeout(() => {
             fitView()
           }, 100)
         } catch (error) {
-          // REMOVER COMPLETAMENTE O LOG DO CONSOLE
-          // console.error("Erro detalhado ao carregar arquivo:", error)
-
-          // Mostrar popup de erro detalhado SEM logs no console
           const errorMsg = error instanceof Error ? error.message : "Arquivo JSON inválido ou corrompido"
           setErrorMessage(errorMsg)
           setShowErrorDialog(true)
@@ -615,7 +759,6 @@ function WorkflowBuilderInner({
       }
 
       reader.readAsText(file)
-      // Limpar input para permitir recarregar o mesmo arquivo
       event.target.value = ""
     },
     [setNodes, setEdges, fitView],
@@ -638,46 +781,45 @@ function WorkflowBuilderInner({
       return
     }
 
+    // PRIMEIRO: Salvar o estado atual no localStorage com chave persistente
+    const workflow = { nodes, edges, nodeCounters }
+    const workflowString = JSON.stringify(workflow)
+    localStorage.setItem(WORKFLOW_KEY, workflowString)
+
+    // DEPOIS: Marcar como executado com chave persistente
+    localStorage.setItem(EXECUTED_KEY, "true")
+
     toast({
-      title: "Executando fluxo",
-      description: "Seu fluxo está sendo executado (simulação apenas neste MVP)",
+      title: "✅ Fluxo executado com sucesso!",
+      description: "Fluxo atual salvo e executado - bot Aura atualizado!",
     })
 
-    setTimeout(() => {
-      toast({
-        title: "Fluxo executado",
-        description: "Seu fluxo foi executado com sucesso",
-      })
-    }, 2000)
-  }, [nodes, validateConnectivity])
+    // Disparar evento para atualizar o indicador de status
+    window.dispatchEvent(new Event("storage"))
+
+    return true // Retornar true para indicar sucesso
+  }, [nodes, edges, nodeCounters, validateConnectivity])
 
   const resetWorkflow = useCallback(() => {
-    // Manter apenas o nó START
-    const startNode = {
-      id: "start-node",
-      type: "start",
-      position: { x: 250, y: 100 },
-      data: {
-        label: "INÍCIO",
-        description: "Ponto de início do fluxo",
-      },
-      deletable: false,
-      draggable: true,
-    }
-
-    setNodes([startNode])
-    setEdges([])
-    setNodeCounters({})
+    // Criar fluxo padrão novamente
+    const defaultWorkflow = createDefaultWorkflow()
+    setNodes(defaultWorkflow.nodes)
+    setEdges(defaultWorkflow.edges)
+    setNodeCounters(defaultWorkflow.nodeCounters)
     setSelectedNode(null)
 
+    // Salvar o fluxo padrão
+    localStorage.setItem(WORKFLOW_KEY, JSON.stringify(defaultWorkflow))
+    localStorage.setItem(EXECUTED_KEY, "true")
+    window.dispatchEvent(new Event("storage"))
+
     toast({
-      title: "Fluxo resetado",
-      description: "Todos os componentes foram removidos, mantendo apenas o nó INÍCIO",
+      title: "🚀 Fluxo resetado",
+      description: "Fluxo padrão de demonstração foi restaurado e está pronto para uso!",
     })
   }, [setNodes, setEdges])
 
   const downloadWorkflow = useCallback(() => {
-    // CASO 1: Só tem o INÍCIO
     if (nodes.length <= 1) {
       toast({
         title: "❌ Fluxo vazio",
@@ -689,23 +831,19 @@ function WorkflowBuilderInner({
 
     const validation = validateConnectivity()
 
-    // CASO 2: Tem componentes mas estão desconectados OU sem conteúdo
     if (!validation.isValid) {
       setDisconnectedNodes(validation.disconnected)
       setShowValidationDialog(true)
       return
     }
 
-    // CASO 3: Tudo conectado e preenchido - FAZER DOWNLOAD
     try {
-      // Limpar dados dos nós - remover campos desnecessários
       const cleanNodes = nodes.map((node) => ({
         id: node.id,
         type: node.type,
         position: node.position,
         data: {
           ...node.data,
-          // Remover campos desnecessários
           description: undefined,
           label: node.data.label === "Node" ? undefined : node.data.label,
         },
@@ -713,7 +851,6 @@ function WorkflowBuilderInner({
         draggable: node.draggable,
       }))
 
-      // Limpar edges
       const cleanEdges = edges.map((edge) => ({
         id: edge.id,
         source: edge.source,
@@ -723,7 +860,6 @@ function WorkflowBuilderInner({
         type: edge.type,
       }))
 
-      // Obter apelido do usuário logado
       const userNickname = user?.username === "Dev@1" ? "Lucas" : user?.username || "Usuario"
 
       const workflowData = {
@@ -770,6 +906,14 @@ function WorkflowBuilderInner({
     }
   }, [nodes, edges, nodeCounters, validateConnectivity, user])
 
+  // Auto-salvar a cada mudança
+  useEffect(() => {
+    if (nodes.length > 0) {
+      const workflow = { nodes, edges, nodeCounters }
+      localStorage.setItem(WORKFLOW_KEY, JSON.stringify(workflow))
+    }
+  }, [nodes, edges, nodeCounters])
+
   useEffect(() => {
     onActionsReady({
       zoomIn,
@@ -799,48 +943,44 @@ function WorkflowBuilderInner({
 
   const isDark = theme === "dark"
 
-  // Aplicar efeitos de brilho INTENSOS aos pontos do fundo
   const getBackgroundProps = () => {
     return {
       color: isDark ? currentGradient.glow : "#4a5568",
       gap: 20,
-      size: isDark ? 3 : 2, // Pontos maiores no dark
+      size: isDark ? 3 : 2,
       variant: "dots" as const,
       style: {
         filter: isDark
           ? `drop-shadow(0 0 6px ${currentGradient.glow}) drop-shadow(0 0 12px ${currentGradient.glow}80) drop-shadow(0 0 18px ${currentGradient.glow}40)`
           : "none",
-        opacity: isDark ? 0.8 : 1, // Mais visíveis no dark
+        opacity: isDark ? 0.8 : 1,
       },
     }
   }
 
-  // Configurações do MiniMap corrigidas para modo dark
   const getMiniMapProps = () => {
     return {
       nodeColor: (node: Node) => {
         if (isDark) {
-          // Cores específicas por tipo de nó no modo dark
           switch (node.type) {
             case "start":
               return currentGradient.primary
             case "sendMessage":
-              return "#3B82F6" // azul
+              return "#3B82F6"
             case "options":
-              return "#8B5CF6" // roxo
+              return "#8B5CF6"
             case "finalizar":
-              return "#EF4444" // vermelho
+              return "#EF4444"
             default:
               return currentGradient.secondary
           }
         } else {
-          // Cores para modo light
           return "#9CA3AF"
         }
       },
       maskColor: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.8)",
       style: {
-        backgroundColor: isDark ? "#111827" : "#F9FAFB", // Fundo mais claro no dark
+        backgroundColor: isDark ? "#111827" : "#F9FAFB",
         border: isDark ? `1px solid ${currentGradient.glow}40` : "1px solid #E5E7EB",
         borderRadius: "8px",
       },
@@ -849,15 +989,25 @@ function WorkflowBuilderInner({
 
   return (
     <div className="flex h-full">
-      {/* Input file oculto para upload */}
       <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileUpload} style={{ display: "none" }} />
 
-      {/* Sidebar dos Componentes - Agora pode ser ocultada */}
       {showSidebar && (
         <div
           className={`w-64 border-r p-4 ${isDark ? "bg-black border-gray-800" : "bg-white border-gray-200"} transition-all duration-300`}
         >
-          <h2 className={`text-lg font-semibold mb-4 ${isDark ? "text-white" : "text-gray-900"}`}>Componentes</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>Componentes</h2>
+            {/* Botão do Bot Aura na sidebar */}
+            <button
+              onClick={onOpenBot}
+              className={`p-2 rounded-md transition-colors ${
+                isDark ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-600"
+              }`}
+              title="Aura Assistente de IA"
+            >
+              <BotIcon className="h-5 w-5" />
+            </button>
+          </div>
           <NodeLibrary />
         </div>
       )}
@@ -867,8 +1017,8 @@ function WorkflowBuilderInner({
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={onNodesChangeInternal}
+            onEdgesChange={onEdgesChangeInternal}
             onConnect={onConnect}
             onInit={setReactFlowInstance}
             onDrop={onDrop}
@@ -885,7 +1035,6 @@ function WorkflowBuilderInner({
             className={isDark ? "dark" : ""}
             proOptions={{ hideAttribution: true }}
           >
-            {/* Pontos com brilho INTENSO no modo dark */}
             <Background {...getBackgroundProps()} />
             <Controls showZoom={false} showFitView={false} showInteractive={false} />
             <MiniMap {...getMiniMapProps()} />
@@ -910,33 +1059,16 @@ function WorkflowBuilderInner({
       <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
         <DialogContent
           className={`${isDark ? "bg-black border-red-700" : "bg-white border-red-200"} max-w-lg mx-auto rounded-xl`}
-          style={{
-            filter: isDark
-              ? "drop-shadow(0 0 25px rgba(239, 68, 68, 0.2))"
-              : "drop-shadow(0 0 20px rgba(239, 68, 68, 0.1))",
-          }}
         >
           <DialogHeader className="text-center">
             <DialogTitle
               className={`text-xl font-bold ${
                 isDark ? "text-white" : "text-gray-900"
               } flex items-center justify-center gap-2`}
-              style={{
-                filter: isDark
-                  ? "drop-shadow(0 0 8px rgba(239, 68, 68, 0.3))"
-                  : "drop-shadow(0 0 4px rgba(239, 68, 68, 0.2))",
-              }}
             >
               ❌ Arquivo JSON Inválido
             </DialogTitle>
-            <DialogDescription
-              className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-2 text-center`}
-              style={{
-                filter: isDark
-                  ? "drop-shadow(0 0 4px rgba(255, 255, 255, 0.2))"
-                  : "drop-shadow(0 0 2px rgba(0, 0, 0, 0.1))",
-              }}
-            >
+            <DialogDescription className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-2 text-center`}>
               <span className="text-red-500 font-bold text-lg">Não foi possível importar o arquivo!</span>
               <br />
               <span className="text-sm">Verifique se o arquivo é um fluxo Aura válido:</span>
@@ -946,12 +1078,7 @@ function WorkflowBuilderInner({
             <div
               className={`p-4 rounded-lg border ${
                 isDark ? "bg-red-900/20 border-red-700 text-red-300" : "bg-red-50 border-red-200 text-red-700"
-              } transition-all duration-200`}
-              style={{
-                filter: isDark
-                  ? "drop-shadow(0 0 6px rgba(239, 68, 68, 0.2))"
-                  : "drop-shadow(0 0 3px rgba(239, 68, 68, 0.1))",
-              }}
+              }`}
             >
               <div className="flex items-start gap-2">
                 <span className="text-red-500 font-bold text-lg">⚠️</span>
@@ -970,11 +1097,6 @@ function WorkflowBuilderInner({
                   ? "bg-red-800 hover:bg-red-700 text-white border-red-600"
                   : "bg-red-100 hover:bg-red-200 text-red-900 border-red-300"
               } font-semibold px-6`}
-              style={{
-                filter: isDark
-                  ? "drop-shadow(0 0 6px rgba(239, 68, 68, 0.2))"
-                  : "drop-shadow(0 0 3px rgba(239, 68, 68, 0.1))",
-              }}
             >
               Entendi, vou corrigir!
             </Button>
@@ -986,33 +1108,16 @@ function WorkflowBuilderInner({
       <Dialog open={showValidationDialog} onOpenChange={setShowValidationDialog}>
         <DialogContent
           className={`${isDark ? "bg-black border-gray-700" : "bg-white border-gray-200"} max-w-lg mx-auto rounded-xl`}
-          style={{
-            filter: isDark
-              ? "drop-shadow(0 0 25px rgba(255, 255, 255, 0.1))"
-              : "drop-shadow(0 0 20px rgba(0, 0, 0, 0.1))",
-          }}
         >
           <DialogHeader className="text-center">
             <DialogTitle
               className={`text-xl font-bold ${
                 isDark ? "text-white" : "text-gray-900"
               } flex items-center justify-center gap-2`}
-              style={{
-                filter: isDark
-                  ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.3))"
-                  : "drop-shadow(0 0 4px rgba(0, 0, 0, 0.2))",
-              }}
             >
               ⚠️ Componentes Desconectados
             </DialogTitle>
-            <DialogDescription
-              className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-2 text-center`}
-              style={{
-                filter: isDark
-                  ? "drop-shadow(0 0 4px rgba(255, 255, 255, 0.2))"
-                  : "drop-shadow(0 0 2px rgba(0, 0, 0, 0.1))",
-              }}
-            >
+            <DialogDescription className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-2 text-center`}>
               <span className="text-red-500 font-bold text-lg">NADA pode ficar vazio ou desconectado!</span>
               <br />
               <span className="text-sm">Preencha todas as mensagens e conecte todos os componentes:</span>
@@ -1024,12 +1129,7 @@ function WorkflowBuilderInner({
                 key={index}
                 className={`p-3 rounded-lg border ${
                   isDark ? "bg-red-900/20 border-red-700 text-red-300" : "bg-red-50 border-red-200 text-red-700"
-                } transition-all duration-200`}
-                style={{
-                  filter: isDark
-                    ? "drop-shadow(0 0 6px rgba(239, 68, 68, 0.2))"
-                    : "drop-shadow(0 0 3px rgba(239, 68, 68, 0.1))",
-                }}
+                }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-red-500 font-bold">🔗</span>
@@ -1046,11 +1146,6 @@ function WorkflowBuilderInner({
                   ? "bg-gray-800 hover:bg-gray-700 text-white border-gray-600"
                   : "bg-gray-100 hover:bg-gray-200 text-gray-900 border-gray-300"
               } font-semibold px-6`}
-              style={{
-                filter: isDark
-                  ? "drop-shadow(0 0 6px rgba(255, 255, 255, 0.2))"
-                  : "drop-shadow(0 0 3px rgba(0, 0, 0, 0.1))",
-              }}
             >
               Entendi, vou conectar tudo!
             </Button>
@@ -1062,33 +1157,16 @@ function WorkflowBuilderInner({
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent
           className={`${isDark ? "bg-black border-gray-700" : "bg-white border-gray-200"} max-w-md mx-auto rounded-xl`}
-          style={{
-            filter: isDark
-              ? "drop-shadow(0 0 25px rgba(34, 197, 94, 0.2))"
-              : "drop-shadow(0 0 20px rgba(34, 197, 94, 0.1))",
-          }}
         >
           <DialogHeader className="text-center">
             <DialogTitle
               className={`text-2xl font-bold ${
                 isDark ? "text-white" : "text-gray-900"
               } flex items-center justify-center gap-3`}
-              style={{
-                filter: isDark
-                  ? "drop-shadow(0 0 8px rgba(34, 197, 94, 0.4))"
-                  : "drop-shadow(0 0 4px rgba(34, 197, 94, 0.3))",
-              }}
             >
               ✅ Fluxo Salvo!
             </DialogTitle>
-            <DialogDescription
-              className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-3 text-center text-lg`}
-              style={{
-                filter: isDark
-                  ? "drop-shadow(0 0 4px rgba(255, 255, 255, 0.2))"
-                  : "drop-shadow(0 0 2px rgba(0, 0, 0, 0.1))",
-              }}
-            >
+            <DialogDescription className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-3 text-center text-lg`}>
               🎉 <strong>Parabéns!</strong> Seu fluxo foi salvo com sucesso!
               <br />
               <span className="text-sm mt-2 block">
@@ -1100,9 +1178,6 @@ function WorkflowBuilderInner({
             <Button
               onClick={() => setShowSuccessDialog(false)}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-2"
-              style={{
-                filter: "drop-shadow(0 0 8px rgba(34, 197, 94, 0.4))",
-              }}
             >
               🚀 Perfeito!
             </Button>
