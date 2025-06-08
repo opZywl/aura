@@ -125,6 +125,22 @@ export default function ChatSidebar({
         }
     }
 
+    // Função para obter o ícone da plataforma
+    const getPlatformIcon = (platform?: string) => {
+        switch (platform?.toLowerCase()) {
+            case "telegram":
+                return "/redesociais/telegram.svg"
+            case "instagram":
+                return "/redesociais/instagram.svg"
+            case "whatsapp":
+                return "/redesociais/whatsapp.svg"
+            case "messenger":
+                return "/redesociais/messenger.svg"
+            default:
+                return null
+        }
+    }
+
     // Get theme-based colors
     const getThemeColors = () => {
         const currentGradient = themeSettings.currentGradient
@@ -612,26 +628,47 @@ export default function ChatSidebar({
                                                 {getConversationPreview(conversation)}
                                             </p>
                                             {/* Tags de situação - ocultas quando showDetails está ativo */}
-                                            {conversation.situacao && !showDetails && (
-                                                <div className="flex items-center mt-1">
-                          <span
-                              className={`text-xs px-2 py-1 rounded-full transition-all duration-300 ${themeSettings.glowEffects ? "chat-glow-border" : ""}`}
-                              style={
-                                  themeSettings.glowEffects
-                                      ? {
-                                          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                                          color: "white",
-                                          textShadow: "0 0 8px rgba(255, 255, 255, 0.6)",
-                                          boxShadow: "0 0 10px #10b981",
-                                      }
-                                      : {
-                                          background: "#10b981",
-                                          color: "white",
-                                      }
-                              }
-                          >
-                            {conversation.situacao}
-                          </span>
+                                            {conversation.situacao && (
+                                                <div className="flex items-center mt-1 space-x-2">
+                                                    {/* Ícone da plataforma - sempre visível */}
+                                                    {conversation.platform && getPlatformIcon(conversation.platform) && (
+                                                        <img
+                                                            src={getPlatformIcon(conversation.platform) || "/placeholder.svg"}
+                                                            alt={conversation.platform}
+                                                            className={`w-4 h-4 transition-all duration-300 ${
+                                                                themeSettings.glowEffects ? "chat-glow-border" : ""
+                                                            }`}
+                                                            style={{
+                                                                filter: themeSettings.glowEffects
+                                                                    ? `drop-shadow(0 0 8px var(--chat-glow-color))`
+                                                                    : "none",
+                                                            }}
+                                                        />
+                                                    )}
+
+                                                    {/* Tag de situação - ocultar apenas quando showDetails está ativo */}
+                                                    {!showDetails && (
+                                                        <span
+                                                            className={`text-xs px-2 py-1 rounded-full transition-all duration-300 ${
+                                                                themeSettings.glowEffects ? "chat-glow-border" : ""
+                                                            }`}
+                                                            style={
+                                                                themeSettings.glowEffects
+                                                                    ? {
+                                                                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                                                                        color: "white",
+                                                                        textShadow: "0 0 8px rgba(255, 255, 255, 0.6)",
+                                                                        boxShadow: "0 0 10px #10b981",
+                                                                    }
+                                                                    : {
+                                                                        background: "#10b981",
+                                                                        color: "white",
+                                                                    }
+                                                            }
+                                                        >
+                              {conversation.situacao}
+                            </span>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

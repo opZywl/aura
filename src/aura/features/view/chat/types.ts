@@ -19,6 +19,7 @@ export interface Conversation {
   situacao?: string
   isArchived?: boolean
   showDetails?: boolean
+  platform?: string
 }
 
 export interface AIAgent {
