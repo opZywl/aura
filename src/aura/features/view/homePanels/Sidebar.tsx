@@ -109,7 +109,7 @@ const Sidebar = () => {
       icon: Layers,
       label: t("menu.components"),
       hasSubmenu: true,
-      href: "/panel/components",
+      href: "/panel/flow",
       pageId: "components",
     },
     {
