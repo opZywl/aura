@@ -1,0 +1,30 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.glow-text-dark {
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3), 0 0 10px rgba(255, 255, 255, 0.2), 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.glow-text-light {
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.2), 0 0 6px rgba(0, 0, 0, 0.1), 0 0 9px rgba(0, 0, 0, 0.05);
+}
+
+.glow-title-dark {
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5), 0 0 20px rgba(147, 51, 234, 0.3), 0 0 30px rgba(236, 72, 153, 0.2);
+}
+
+.glow-title-light {
+  text-shadow: 0 0 6px rgba(59, 130, 246, 0.4), 0 0 12px rgba(147, 51, 234, 0.2), 0 0 18px rgba(236, 72, 153, 0.1);
+}
