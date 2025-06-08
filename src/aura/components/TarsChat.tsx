@@ -6,6 +6,7 @@ import { Bot, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useTheme } from "next-themes"
 
 interface Message {
   id: string
@@ -24,6 +25,7 @@ export default function TarsChat() {
   const [waitingForUserInput, setWaitingForUserInput] = useState(false)
   const [currentOptions, setCurrentOptions] = useState<any[]>([])
   const [currentOptionsMessage, setCurrentOptionsMessage] = useState("")
+  const { theme } = useTheme()
 
   // Chaves persistentes para localStorage
   const WORKFLOW_KEY = "aura_workflow_persistent"
@@ -258,114 +260,127 @@ export default function TarsChat() {
     }
   }
 
-  // Posição do ícone baseada no scroll
   const iconPosition = {
-    position: "absolute" as const,
+    position: "fixed" as const,
     right: "24px",
-    top: `${scrollY + window.innerHeight / 2 - 40}px`,
-    zIndex: 1000,
+    bottom: "24px",
+    zIndex: 9999,
+  }
+
+  const chatPosition = {
+    position: "fixed" as const,
+    right: "24px",
+    bottom: "100px",
+    zIndex: 9999,
   }
 
   return (
-    <>
-      {/* Ícone flutuante */}
-      {!isOpen && (
-        <div style={iconPosition} className="transition-all duration-300 ease-out">
-          <button onClick={() => setIsOpen(true)} className="relative group">
-            {/* Pontos decorativos */}
-            <div className="absolute -inset-8 pointer-events-none">
-              <div className="absolute top-2 left-2 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-60"></div>
-              <div
-                className="absolute top-6 right-3 w-1 h-1 bg-cyan-300 rounded-full animate-pulse opacity-40"
-                style={{ animationDelay: "0.5s" }}
-              ></div>
-              <div
-                className="absolute bottom-3 left-4 w-1 h-1 bg-cyan-500 rounded-full animate-pulse opacity-50"
-                style={{ animationDelay: "1s" }}
-              ></div>
-              <div
-                className="absolute bottom-1 right-1 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-30"
-                style={{ animationDelay: "1.5s" }}
-              ></div>
-            </div>
+      <>
+        {!isOpen && (
+            <div style={iconPosition} className="transition-all duration-300 ease-out">
+              <button onClick={() => setIsOpen(true)} className="relative group">
+                {/* Pontos decorativos */}
+                <div className="absolute -inset-8 pointer-events-none">
+                  <div className="absolute top-2 left-2 w-1 h-1 bg-purple-400 rounded-full animate-pulse opacity-60"></div>
+                  <div
+                      className="absolute top-6 right-3 w-1 h-1 bg-purple-300 rounded-full animate-pulse opacity-40"
+                      style={{ animationDelay: "0.5s" }}
+                  ></div>
+                  <div
+                      className="absolute bottom-3 left-4 w-1 h-1 bg-purple-500 rounded-full animate-pulse opacity-50"
+                      style={{ animationDelay: "1s" }}
+                  ></div>
+                  <div
+                      className="absolute bottom-1 right-1 w-1 h-1 bg-purple-400 rounded-full animate-pulse opacity-30"
+                      style={{ animationDelay: "1.5s" }}
+                  ></div>
+                </div>
 
-            {/* Ícone principal */}
-            <div className="relative w-20 h-20 bg-gradient-to-br from-gray-900 to-black rounded-2xl border-2 border-cyan-400/50 shadow-2xl group-hover:scale-110 transition-all duration-300">
-              {/* Glow effect */}
-              <div className="absolute inset-0 bg-cyan-400/20 rounded-2xl blur-xl animate-pulse"></div>
-              <div className="absolute inset-0 bg-cyan-400/10 rounded-2xl blur-2xl"></div>
-
-              {/* Bot icon */}
-              <div className="relative w-full h-full flex items-center justify-center">
-                <Bot className="w-10 h-10 text-cyan-400 drop-shadow-lg" />
-              </div>
-            </div>
-          </button>
-        </div>
-      )}
-
-      {/* Chat expandido */}
-      {isOpen && (
-        <div
-          style={{
-            position: "absolute",
-            right: "24px",
-            top: `${Math.max(scrollY + 50, scrollY + window.innerHeight / 2 - 200)}px`,
-            zIndex: 1000,
-          }}
-          className="w-80 h-96 bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <Avatar className="w-8 h-8">
-                <AvatarFallback className="bg-cyan-500 text-white">
-                  <Bot className="w-4 h-4" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="font-semibold text-gray-900 dark:text-white">AURA</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-8 w-8 p-0">
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-xs px-3 py-2 rounded-lg whitespace-pre-line ${
-                    message.sender === "user"
-                      ? "bg-cyan-500 text-white"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                  }`}
+                    className={`relative w-20 h-20 rounded-2xl border-2 shadow-2xl group-hover:scale-110 transition-all duration-300 ${
+                        theme === "dark"
+                            ? "bg-gradient-to-br from-black to-gray-900 border-purple-500/50"
+                            : "bg-gradient-to-br from-gray-900 to-black border-purple-400/50"
+                    }`}
                 >
-                  {message.text}
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 bg-purple-400/20 rounded-2xl blur-xl animate-pulse"></div>
+                  <div className="absolute inset-0 bg-purple-400/10 rounded-2xl blur-2xl"></div>
+
+                  {/* Bot icon */}
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    <Bot className="w-10 h-10 text-purple-400 drop-shadow-lg" />
+                  </div>
+                </div>
+              </button>
+            </div>
+        )}
+
+        {/* Chat expandido - SEMPRE ACIMA DE TUDO */}
+        {isOpen && (
+            <div
+                style={chatPosition}
+                className={`w-80 h-96 rounded-lg shadow-2xl border flex flex-col transition-all duration-300 ${
+                    theme === "dark" ? "bg-black border-gray-800" : "bg-white border-gray-200"
+                }`}
+            >
+              {/* Header */}
+              <div
+                  className={`flex items-center justify-between p-4 border-b ${
+                      theme === "dark" ? "border-gray-800" : "border-gray-200"
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback className="bg-purple-500 text-white">
+                      <Bot className="w-4 h-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>AURA</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-8 w-8 p-0">
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* Input */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex gap-2">
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Digite sua mensagem..."
-                className="flex-1"
-              />
-              <Button onClick={handleSendMessage} size="sm">
-                Enviar
-              </Button>
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.map((message) => (
+                    <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                          className={`max-w-xs px-3 py-2 rounded-lg whitespace-pre-line ${
+                              message.sender === "user"
+                                  ? "bg-purple-500 text-white"
+                                  : theme === "dark"
+                                      ? "bg-gray-800 text-white"
+                                      : "bg-gray-100 text-gray-900"
+                          }`}
+                      >
+                        {message.text}
+                      </div>
+                    </div>
+                ))}
+              </div>
+
+              {/* Input */}
+              <div className={`p-4 border-t ${theme === "dark" ? "border-gray-800" : "border-gray-200"}`}>
+                <div className="flex gap-2">
+                  <Input
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Digite sua mensagem..."
+                      className="flex-1"
+                  />
+                  <Button onClick={handleSendMessage} size="sm" className="bg-purple-500 hover:bg-purple-600">
+                    Enviar
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-    </>
+        )}
+      </>
   )
 }
