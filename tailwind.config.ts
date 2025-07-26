@@ -211,10 +211,8 @@ const config: Config = {
   plugins: [
     animatePlugin,
     require("tailwindcss-animate"),
-    // Plugin customizado para classes específicas do Home Dashboard
     ({ addUtilities, theme }: any) => {
       const homeUtilities = {
-        // Background utilities
         ".home-bg-dark-primary": { backgroundColor: theme("colors.home-dark.primary") },
         ".home-bg-dark-secondary": { backgroundColor: theme("colors.home-dark.secondary") },
         ".home-bg-dark-card": {
@@ -227,8 +225,6 @@ const config: Config = {
           backgroundColor: theme("colors.home-light.card"),
           border: `1px solid ${theme("colors.home-light.border")}`,
         },
-
-        // Text utilities
         ".home-text-white": { color: theme("colors.home-text.white") },
         ".home-text-gray-900": { color: theme("colors.home-text.gray-900") },
         ".home-text-gray-400": { color: theme("colors.home-text.gray-400") },
@@ -237,16 +233,13 @@ const config: Config = {
         ".home-text-blue-400": { color: theme("colors.home-text.blue-400") },
         ".home-text-blue-600": { color: theme("colors.home-text.blue-600") },
 
-        // Hover utilities
         ".hover\\:home-bg-yellow-400-10:hover": { backgroundColor: "rgba(251, 191, 36, 0.1)" },
         ".hover\\:home-bg-blue-50:hover": { backgroundColor: "#eff6ff" },
         ".hover\\:home-text-blue-400:hover": { color: theme("colors.home-text.blue-400") },
         ".hover\\:home-text-blue-600:hover": { color: theme("colors.home-text.blue-600") },
 
-        // Text shadow utilities
         ".home-text-glow": { textShadow: theme("textShadow.home-glow") },
 
-        // Animation utilities
         ".home-animated-path": {
           strokeDasharray: theme("strokeDasharray.home-path"),
           strokeDashoffset: theme("strokeDashoffset.home-path"),
