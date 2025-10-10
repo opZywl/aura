@@ -29,7 +29,7 @@ export const enUS = {
     tryAgain: "Try again",
     emDevelopment: "UNDER DEVELOPMENT!!!!!!!",
     pixOn: "pix onnnn.",
-    upgradeNow: "Upgrade Now",
+    upgradeNow: "AURA",
     apply: "Apply",
     reset: "Reset",
     enabled: "Enabled",

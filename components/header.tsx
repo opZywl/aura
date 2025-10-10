@@ -28,7 +28,6 @@ const Header = () => {
     { name: "Artigo", href: "#artigo" },
     { name: "Prompts", href: "#prompts" },
     { name: "Changelog", href: "#changelog" },
-    { name: "CRM", href: "#crm" },
   ]
 
   const toggleTheme = () => {

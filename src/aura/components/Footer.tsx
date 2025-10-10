@@ -86,32 +86,12 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="/technology"
-                  className={`text-sm transition-colors ${
-                    theme === "dark" ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"
-                  }`}
-                >
-                  Tecnologia
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="#"
                   className={`text-sm transition-colors ${
                     theme === "dark" ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"
                   }`}
                 >
                   Orientadores
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className={`text-sm transition-colors ${
-                    theme === "dark" ? "text-gray-400 hover:text-white" : "text-gray-600 hover:text-black"
-                  }`}
-                >
-                  CRM
                 </Link>
               </li>
               <li>

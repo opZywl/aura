@@ -52,12 +52,6 @@ const Header = () => {
       gradient: "radial-gradient(circle, rgba(34,197,94,0.15) 0%, rgba(22,163,74,0.06) 50%, rgba(21,128,61,0) 100%)",
       color: "text-green-500",
     },
-    {
-      name: "CRM",
-      href: "#crm",
-      gradient: "radial-gradient(circle, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.06) 50%, rgba(185,28,28,0) 100%)",
-      color: "text-red-500",
-    },
   ]
 
   const itemVariants = {

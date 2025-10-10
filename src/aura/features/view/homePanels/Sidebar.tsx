@@ -383,38 +383,6 @@ const Sidebar = () => {
                 )}
 
                 <div className="relative z-10">
-                  <h4
-                      className={`font-semibold text-sm mb-2 transition-all duration-300 group-hover:scale-105 ${getMenuItemClass()} ${
-                          theme === "dark" ? "text-white group-hover:text-blue-300" : "text-gray-900 group-hover:text-blue-700"
-                      }`}
-                      style={
-                        glowEnabled
-                            ? {
-                              textShadow: `0 0 15px var(--glow-color)`,
-                              filter: `drop-shadow(0 0 10px var(--glow-color))`,
-                            }
-                            : {}
-                      }
-                  >
-                    EM DESENVOLVIMENTO!!!!!!!
-                  </h4>
-                  <p
-                      className={`text-xs mb-4 transition-all duration-300 ${getMenuItemClass()} ${
-                          theme === "dark"
-                              ? "text-gray-400 group-hover:text-gray-300"
-                              : "text-gray-600 group-hover:text-gray-700"
-                      }`}
-                      style={
-                        glowEnabled
-                            ? {
-                              textShadow: `0 0 10px var(--glow-color)`,
-                              filter: `drop-shadow(0 0 8px var(--glow-color))`,
-                            }
-                            : {}
-                      }
-                  >
-                    pix onnnn.
-                  </p>
                   <button className="w-full relative overflow-hidden rounded-lg py-2.5 px-4 text-sm font-medium text-white transition-all duration-300 group/btn hover:scale-105">
                     <div
                         className="absolute inset-0 transition-all duration-300"
@@ -460,7 +428,7 @@ const Sidebar = () => {
                   >
                     ⬆
                   </span>
-                  Upgrade Now
+                  Aura
                 </span>
                   </button>
                 </div>

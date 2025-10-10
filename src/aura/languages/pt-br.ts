@@ -30,7 +30,7 @@ export const ptBR = {
     tryAgain: "Tentar novamente",
     emDevelopment: "EM DESENVOLVIMENTO!!!!!!!",
     pixOn: "pix onnnn.",
-    upgradeNow: "Upgrade Now",
+    upgradeNow: "AURA",
     apply: "Aplicar",
     reset: "Resetar",
     enabled: "Ativado",

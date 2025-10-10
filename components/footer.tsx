@@ -77,11 +77,6 @@ const Footer = () => {
               </li>
               <li>
                 <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
-                  CRM
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                   Home
                 </Link>
               </li>
