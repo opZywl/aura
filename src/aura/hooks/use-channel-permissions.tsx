@@ -19,19 +19,14 @@ export function useChannelPermissions() {
         { id: "dashboard", name: "Dashboard", category: "MENU", icon: "📊" },
 
         // TOOLS
-        { id: "products", name: "Produtos", category: "TOOLS", icon: "📦" },
         { id: "account", name: "Conta", category: "TOOLS", icon: "👥" },
         { id: "lobby", name: "Lobby", category: "TOOLS", icon: "🏠" },
 
         // INSIGHTS
-        { id: "analytics", name: "Analytics", category: "INSIGHTS", icon: "📈" },
         { id: "chat", name: "Chat", category: "INSIGHTS", icon: "💬" },
-        { id: "settings", name: "Configurações", category: "INSIGHTS", icon: "⚙️" },
 
         // ELEMENTS
         { id: "components", name: "Componentes", category: "ELEMENTS", icon: "🧩" },
-        { id: "forms", name: "Formulários", category: "ELEMENTS", icon: "📝" },
-        { id: "tables", name: "Tabelas", category: "ELEMENTS", icon: "📋" },
 
         // THEMES
         { id: "colors", name: "Cores", category: "THEMES", icon: "🎨" },

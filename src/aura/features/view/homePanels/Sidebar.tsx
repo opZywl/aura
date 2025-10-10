@@ -62,12 +62,6 @@ const Sidebar = () => {
 
   const adminTools: MenuItem[] = [
     {
-      icon: Package,
-      label: t("menu.products"),
-      href: "/panel/products",
-      pageId: "products",
-    },
-    {
       icon: Users,
       label: t("menu.account"),
       hasSubmenu: false,
@@ -84,23 +78,10 @@ const Sidebar = () => {
 
   const insights: MenuItem[] = [
     {
-      icon: TrendingUp,
-      label: t("menu.analytics"),
-      href: "/panel/analytics",
-      pageId: "analytics",
-    },
-    {
       icon: MessageSquare,
       label: t("menu.chat"),
       href: "/panel/chat",
       pageId: "chat",
-    },
-    {
-      icon: Settings,
-      label: t("menu.settings"),
-      hasSubmenu: true,
-      href: "/panel/settings",
-      pageId: "settings",
     },
   ]
 
@@ -111,20 +92,6 @@ const Sidebar = () => {
       hasSubmenu: true,
       href: "/panel/flow",
       pageId: "components",
-    },
-    {
-      icon: FileText,
-      label: t("menu.forms"),
-      hasSubmenu: true,
-      href: "/panel/forms",
-      pageId: "forms",
-    },
-    {
-      icon: Table,
-      label: t("menu.tables"),
-      hasSubmenu: true,
-      href: "/panel/tables",
-      pageId: "tables",
     },
   ]
 

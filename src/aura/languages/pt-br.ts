@@ -51,8 +51,6 @@ export const ptBR = {
     chat: "Chat",
     settings: "Configurações",
     components: "Componentes",
-    forms: "Formulários",
-    tables: "Tabelas",
     colors: "Cores",
     channels: "Canais",
     menu: "MENU",

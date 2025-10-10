@@ -37,15 +37,10 @@ export const useChannelPermissions = (): ChannelPermissionsHook => {
                     channels: ["general", "support", "sales", "development"],
                     pages: [
                         "dashboard",
-                        "products",
                         "account",
                         "lobby",
-                        "analytics",
                         "chat",
-                        "settings",
                         "components",
-                        "forms",
-                        "tables",
                         "colors",
                     ],
                 }

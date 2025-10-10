@@ -77,19 +77,14 @@ export default function AccessLevelsPage() {
     { id: "dashboard", name: "Dashboard", category: "MENU", icon: "BarChart3" },
 
     // TOOLS
-    { id: "products", name: "Produtos", category: "TOOLS", icon: "Package" },
     { id: "account", name: "Conta", category: "TOOLS", icon: "Users" },
     { id: "lobby", name: "Lobby", category: "TOOLS", icon: "Home" },
 
     // INSIGHTS
-    { id: "analytics", name: "Analytics", category: "INSIGHTS", icon: "TrendingUp" },
     { id: "chat", name: "Chat", category: "INSIGHTS", icon: "MessageCircle" },
-    { id: "settings", name: "Configurações", category: "INSIGHTS", icon: "Settings" },
 
     // ELEMENTS
     { id: "components", name: "Componentes", category: "ELEMENTS", icon: "Layers" },
-    { id: "forms", name: "Formulários", category: "ELEMENTS", icon: "FileText" },
-    { id: "tables", name: "Tabelas", category: "ELEMENTS", icon: "Table" },
 
     // THEMES
     { id: "colors", name: "Cores", category: "THEMES", icon: "Palette" },
