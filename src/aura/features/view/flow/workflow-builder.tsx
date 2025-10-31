@@ -724,7 +724,7 @@ function WorkflowBuilderInner({
         description: "Adicione pelo menos um componente ao seu fluxo antes de salvar",
         variant: "destructive",
       })
-      return
+      return false
     }
 
     const validation = validateConnectivity()
@@ -732,7 +732,7 @@ function WorkflowBuilderInner({
     if (!validation.isValid) {
       setDisconnectedNodes(validation.disconnected)
       setShowValidationDialog(true)
-      return
+      return false
     }
 
     // SEMPRE salvar o estado atual dos nodes e edges com chave persistente
@@ -764,6 +764,7 @@ function WorkflowBuilderInner({
         title: "✅ Fluxo salvo com sucesso!",
         description: `${nodes.length} componentes sincronizados com o backend`,
       })
+      return true
     } catch (error) {
       console.error("Erro ao salvar workflow no backend:", error)
       toast({
@@ -771,6 +772,7 @@ function WorkflowBuilderInner({
         description: "Não foi possível sincronizar com o backend. Tente novamente.",
         variant: "destructive",
       })
+      return false
     }
   }, [nodes, edges, nodeCounters, validateConnectivity])
 
@@ -878,21 +880,21 @@ function WorkflowBuilderInner({
     [setNodes, setEdges, fitView],
   )
 
-  const executeWorkflow = useCallback(() => {
+  const executeWorkflow = useCallback(async () => {
     if (nodes.length <= 1) {
       toast({
         title: "Nada para executar",
         description: "Adicione alguns nós ao seu fluxo primeiro",
         variant: "destructive",
       })
-      return
+      return false
     }
 
     const validation = validateConnectivity()
     if (!validation.isValid) {
       setDisconnectedNodes(validation.disconnected)
       setShowValidationDialog(true)
-      return
+      return false
     }
 
     // PRIMEIRO: Salvar o estado atual no localStorage com chave persistente
@@ -900,15 +902,37 @@ function WorkflowBuilderInner({
     const workflowString = JSON.stringify(workflow)
     localStorage.setItem(WORKFLOW_KEY, workflowString)
 
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/workflow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: workflowString,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || "Falha ao sincronizar workflow no backend")
+      }
+    } catch (error) {
+      console.error("Erro ao executar workflow no backend:", error)
+      toast({
+        title: "⚠️ Falha ao sincronizar",
+        description: "Não foi possível atualizar o backend. Tente novamente.",
+        variant: "destructive",
+      })
+      return false
+    }
+
     // DEPOIS: Marcar como executado com chave persistente
     localStorage.setItem(EXECUTED_KEY, "true")
+    window.dispatchEvent(new Event("storage"))
 
     toast({
       title: "✅ Fluxo executado com sucesso!",
-      description: "Fluxo atual salvo e executado - bot Aura atualizado!",
+      description: "Fluxo atual sincronizado com o bot Aura.",
     })
-
-    window.dispatchEvent(new Event("storage"))
 
     return true
   }, [nodes, edges, nodeCounters, validateConnectivity])

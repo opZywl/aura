@@ -245,12 +245,22 @@ const FlowHeader = ({
         setShowResetDialog(false)
     }
 
-    const handleExecute = () => {
-        if (onExecute) {
-            onExecute()
-            setShowExecuteDialog(true)
+    const handleExecute = useCallback(async () => {
+        if (!onExecute) {
+            return
         }
-    }
+
+        try {
+            const result = await onExecute()
+            const executed = result === undefined ? true : Boolean(result)
+
+            if (executed) {
+                setShowExecuteDialog(true)
+            }
+        } catch (error) {
+            console.error("Erro ao executar fluxo:", error)
+        }
+    }, [onExecute])
 
     const isDark = theme === "dark"
 
