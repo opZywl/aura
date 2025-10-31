@@ -8,7 +8,8 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "dev-alt": "next dev -p 3002",
-    "start-alt": "next start -p 3002"
+    "start-alt": "next start -p 3002",
+    "start:all": "bash start-all.sh"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
