@@ -58,7 +58,7 @@ app = Flask(__name__)
 
 # Habilita CORS para todas as rotas
 CORS(app, origins="*", methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"])
-logger.info("✅ Aplicação Flask iniciada e CORS configurado.")
+logger.info("Aplicação Flask iniciada e CORS configurado.")
 
 # Configuração de timezone brasileiro
 BRASIL_TZ = timezone(timedelta(hours=-3))
@@ -74,11 +74,11 @@ if os.environ.get('FLASK_ENV') == 'development' and not ngrok_url_env:
         tunnel = ngrok.connect(int(os.environ.get('PORT', 3001)), "http")
         public_url = tunnel.public_url
         os.environ['NGROK_URL'] = public_url
-        logger.info(f"🌐 ngrok iniciado automaticamente: {public_url}")
+        logger.info(f"ngrok iniciado automaticamente: {public_url}")
     except Exception as e:
-        logger.warning(f"⚠️ Falha ao iniciar ngrok automaticamente: {e}")
+        logger.warning(f"Falha ao iniciar ngrok automaticamente: {e}")
 elif ngrok_url_env:
-    logger.info(f"🌐 Usando NGROK_URL do .env: {ngrok_url_env}")
+    logger.info(f"Usando NGROK_URL do .env: {ngrok_url_env}")
 
 # --- Definições de dataclasses para conversas e mensagens ---
 @dataclass
@@ -159,7 +159,7 @@ def cleanup_old_conversations():
 
         for conv_id in to_remove:
             del _conversations[conv_id]
-            logger.info(f"🗑️ Conversa inativa removida: {conv_id}")
+            logger.info(f"Conversa inativa removida: {conv_id}")
 
 def broadcast_to_subscribers(conv_id: str, message_data: dict):
     """Envia mensagem para todos os subscribers SSE"""
@@ -183,15 +183,15 @@ def send_telegram_message(chat_id: str, text: str, account_id: str, options: Lis
         bot_token = None
         if account:
             bot_token = account.apiKey
-            logger.info(f"✅ Conta Telegram encontrada: {account_id} - {account.botName}")
+            logger.info(f"Conta Telegram encontrada: {account_id} - {account.botName}")
         else:
             # Fallback: usar token da variável de ambiente
             bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
             if bot_token:
-                logger.warning(f"⚠️ Conta {account_id} não encontrada em listTelegramAccounts, usando TELEGRAM_BOT_TOKEN da variável de ambiente")
+                logger.warning(f"Conta {account_id} não encontrada em listTelegramAccounts, usando TELEGRAM_BOT_TOKEN da variável de ambiente")
             else:
-                logger.error(f"❌ Conta Telegram não encontrada: {account_id} e TELEGRAM_BOT_TOKEN não configurado")
-                logger.error(f"📋 Contas disponíveis: {[acc.id for acc in accounts]}")
+                logger.error(f"Conta Telegram não encontrada: {account_id} e TELEGRAM_BOT_TOKEN não configurado")
+                logger.error(f"Contas disponíveis: {[acc.id for acc in accounts]}")
                 return False
 
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
@@ -204,29 +204,29 @@ def send_telegram_message(chat_id: str, text: str, account_id: str, options: Lis
 
         # Don't add reply_markup - we want plain text messages only
 
-        logger.info(f"📤 Enviando mensagem Telegram para chat {chat_id}: {text[:50]}...")
+        logger.info(f"Enviando mensagem Telegram para chat {chat_id}: {text[:50]}...")
 
         response = requests.post(url, json=payload, timeout=10)
 
         if response.status_code == 200:
             result = response.json()
             if result.get('ok'):
-                logger.info(f"✅ Mensagem Telegram enviada com sucesso para {chat_id}")
+                logger.info(f"Mensagem Telegram enviada com sucesso para {chat_id}")
                 return True
             else:
-                logger.error(f"❌ Erro na API Telegram: {result.get('description', 'Erro desconhecido')}")
+                logger.error(f"Erro na API Telegram: {result.get('description', 'Erro desconhecido')}")
                 return False
         else:
-            logger.error(f"❌ Erro HTTP ao enviar mensagem Telegram: {response.status_code}")
+            logger.error(f"Erro HTTP ao enviar mensagem Telegram: {response.status_code}")
             return False
 
     except Exception as e:
-        logger.error(f"❌ Erro ao enviar mensagem Telegram: {e}")
+        logger.error(f"Erro ao enviar mensagem Telegram: {e}")
         return False
 
 def create_test_conversation():
     """Cria uma conversa de teste para debug"""
-    logger.info("🧪 Criando conversa de teste...")
+    logger.info("Criando conversa de teste...")
 
     test_conv_id = "test-123"
 
@@ -255,7 +255,7 @@ def create_test_conversation():
             _conversations[test_conv_id] = test_conv
             _cache['conversations_last_update'] = 0
 
-            logger.info(f"✅ Conversa de teste criada: {test_conv_id}")
+            logger.info(f"Conversa de teste criada: {test_conv_id}")
             return test_conv
 
     return None
@@ -270,7 +270,7 @@ def handle_exception(e):
     if isinstance(e, HTTPException):
         return jsonify({"erro": e.description, "status": e.code}), e.code
 
-    logger.exception("❌ Erro interno inesperado:")
+    logger.exception("Erro interno inesperado:")
     return jsonify({"erro": "Erro interno no servidor", "status": 500}), 500
 
 # --- Health Check otimizado ---
@@ -308,7 +308,7 @@ def save_workflow():
         enabled = workflow_data.get('_enabled', True)
 
         logger.info("=" * 80)
-        logger.info(f"📥 RECEBENDO WORKFLOW PARA SALVAR")
+        logger.info(f"RECEBENDO WORKFLOW PARA SALVAR")
         logger.info(f"   ID: {workflow_id}")
         logger.info(f"   Enabled: {enabled}")
         logger.info(f"   Tag: {workflow_data.get('_tag', 'Sem tag')}")
@@ -318,7 +318,7 @@ def save_workflow():
 
         if success:
             logger.info("=" * 80)
-            logger.info(f"✅ WORKFLOW SALVO COM SUCESSO!")
+            logger.info(f"WORKFLOW SALVO COM SUCESSO!")
             logger.info(f"   ID: {workflow_id}")
             logger.info(f"   Status: {'ATIVADO' if enabled else 'DESATIVADO'}")
             logger.info(f"   Todas as conversas ativas foram resetadas")
@@ -332,11 +332,11 @@ def save_workflow():
                 "enabled": enabled
             }), 201
         else:
-            logger.error(f"❌ Erro ao salvar workflow: {workflow_id}")
+            logger.error(f"Erro ao salvar workflow: {workflow_id}")
             return jsonify({"erro": "Erro ao salvar workflow"}), 500
 
     except Exception as e:
-        logger.error(f"❌ Erro ao salvar workflow: {e}")
+        logger.error(f"Erro ao salvar workflow: {e}")
         logger.exception("Stack trace:")
         return jsonify({"erro": str(e)}), 500
 
@@ -362,7 +362,7 @@ def activate_workflow():
         if not workflow_id:
             return jsonify({"erro": "workflow_id é obrigatório"}), 400
 
-        logger.info(f"🔄 {'Ativando' if enabled else 'Desativando'} workflow: {workflow_id}")
+        logger.info(f"{'Ativando' if enabled else 'Desativando'} workflow: {workflow_id}")
 
         success = bot_components_api.set_workflow_status(workflow_id, enabled)
 
@@ -377,7 +377,7 @@ def activate_workflow():
             return jsonify({"erro": "Workflow não encontrado"}), 404
 
     except Exception as e:
-        logger.error(f"❌ Erro ao ativar/desativar workflow: {e}")
+        logger.error(f"Erro ao ativar/desativar workflow: {e}")
         return jsonify({"erro": str(e)}), 500
 
 @app.route('/api/bot/workflows', methods=['GET'])
@@ -385,10 +385,10 @@ def list_workflows():
     """Lista todos os workflows REAIS publicados"""
     try:
         workflows = bot_components_api.get_all_workflows()
-        logger.info(f"📋 Retornando {len(workflows)} workflows REAIS")
+        logger.info(f"Retornando {len(workflows)} workflows REAIS")
         return jsonify({"workflows": workflows}), 200
     except Exception as e:
-        logger.error(f"❌ Erro ao listar workflows: {e}")
+        logger.error(f"Erro ao listar workflows: {e}")
         return jsonify({"erro": str(e)}), 500
 
 @app.route('/api/bot/workflows/<workflow_id>', methods=['GET'])
@@ -400,7 +400,7 @@ def get_workflow(workflow_id):
             return jsonify(workflow), 200
         return jsonify({"erro": "Workflow não encontrado"}), 404
     except Exception as e:
-        logger.error(f"❌ Erro ao obter workflow: {e}")
+        logger.error(f"Erro ao obter workflow: {e}")
         return jsonify({"erro": str(e)}), 500
 
 @app.route('/api/bot/conversations/<user_id>/reset', methods=['POST'])
@@ -423,7 +423,7 @@ def reset_user_conversation(user_id):
                 "message": "Nenhuma conversa ativa para resetar"
             }), 404
     except Exception as e:
-        logger.error(f"❌ Erro ao resetar conversa: {e}")
+        logger.error(f"Erro ao resetar conversa: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Endpoint para criar conversa de teste ---
@@ -444,7 +444,7 @@ def create_test_conversation_endpoint():
                 "message": "Conversa de teste já existe"
             }), 200
     except Exception as e:
-        logger.error(f"❌ Erro ao criar conversa de teste: {e}")
+        logger.error(f"Erro ao criar conversa de teste: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Listar contas Telegram ---
@@ -454,10 +454,10 @@ def obter_accounts():
     try:
         contas = listTelegramAccounts()
         response_data = [acc.__dict__ for acc in contas]
-        logger.info(f"📋 Retornando {len(response_data)} contas Telegram")
+        logger.info(f"Retornando {len(response_data)} contas Telegram")
         return jsonify(response_data), 200
     except Exception as e:
-        logger.error(f"❌ Erro ao listar contas Telegram: {e}")
+        logger.error(f"Erro ao listar contas Telegram: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Criar conta Telegram ---
@@ -476,7 +476,7 @@ def criar_account():
             return jsonify({"erro": "apiKey e botName são obrigatórios"}), 400
 
         nova_acc = connectTelegram(api_key.strip(), bot_name.strip())
-        logger.info(f"✅ Conta Telegram conectada: {nova_acc.id} - {nova_acc.botName}")
+        logger.info(f"Conta Telegram conectada: {nova_acc.id} - {nova_acc.botName}")
 
         ngrok_url = os.environ.get('NGROK_URL')
         if ngrok_url:
@@ -496,23 +496,23 @@ def criar_account():
                 if resp.status_code == 200:
                     result = resp.json()
                     if result.get('ok'):
-                        logger.info(f"🔗 Webhook configurado com sucesso: {webhook_url}")
+                        logger.info(f"Webhook configurado com sucesso: {webhook_url}")
                     else:
-                        logger.error(f"❌ Erro ao configurar webhook: {result.get('description')}")
+                        logger.error(f"Erro ao configurar webhook: {result.get('description')}")
                 else:
-                    logger.error(f"❌ Erro HTTP ao configurar webhook: {resp.status_code}")
+                    logger.error(f"Erro HTTP ao configurar webhook: {resp.status_code}")
 
             except Exception as webhook_error:
-                logger.error(f"❌ Erro ao configurar webhook: {webhook_error}")
+                logger.error(f"Erro ao configurar webhook: {webhook_error}")
         else:
-            logger.warning("⚠️ NGROK_URL não configurado - webhook não será configurado")
+            logger.warning("NGROK_URL não configurado - webhook não será configurado")
 
         _cache['conversations_last_update'] = 0
 
         return jsonify(nova_acc.__dict__), 201
 
     except Exception as e:
-        logger.error(f"❌ Erro ao criar conta Telegram: {e}")
+        logger.error(f"Erro ao criar conta Telegram: {e}")
         return jsonify({"erro": str(e)}), 400
 
 # --- Deletar conta Telegram ---
@@ -529,9 +529,9 @@ def deletar_account(account_id):
                     f"https://api.telegram.org/bot{bot.apiKey}/deleteWebhook",
                     timeout=10
                 )
-                logger.info(f"🗑️ Webhook removido: {resp.status_code}")
+                logger.info(f"Webhook removido: {resp.status_code}")
             except Exception as e:
-                logger.warning(f"⚠️ Erro ao remover webhook: {e}")
+                logger.warning(f"Erro ao remover webhook: {e}")
 
         for chat_id, acc_id in list(chat_to_account.items()):
             if acc_id == account_id:
@@ -544,11 +544,11 @@ def deletar_account(account_id):
 
         _cache['conversations_last_update'] = 0
 
-        logger.info(f"✅ Conta Telegram {account_id} removida completamente")
+        logger.info(f"Conta Telegram {account_id} removida completamente")
         return '', 204
 
     except Exception as e:
-        logger.error(f"❌ Erro ao remover conta Telegram: {e}")
+        logger.error(f"Erro ao remover conta Telegram: {e}")
         return jsonify({"erro": str(e)}), 400
 
 # --- ROTAS INSTAGRAM ---
@@ -557,7 +557,7 @@ def deletar_account(account_id):
 def get_instagram_accounts():
     """Lista todas as contas Instagram conectadas"""
     try:
-        logger.info("📸 GET /api/instagram/accounts - Listando contas Instagram")
+        logger.info("GET /api/instagram/accounts - Listando contas Instagram")
 
         accounts = listInstagramAccounts()
 
@@ -572,33 +572,33 @@ def get_instagram_accounts():
                 "platform": "instagram"
             })
 
-        logger.info(f"✅ GET /api/instagram/accounts - Retornando {len(accounts_data)} contas")
+        logger.info(f"GET /api/instagram/accounts - Retornando {len(accounts_data)} contas")
 
         return jsonify(accounts_data), 200
 
     except Exception as e:
-        logger.error(f"❌ GET /api/instagram/accounts - Erro: {str(e)}")
+        logger.error(f"GET /api/instagram/accounts - Erro: {str(e)}")
         return jsonify({"erro": f"Erro ao listar contas Instagram: {str(e)}"}), 500
 
 @app.route('/api/instagram/accounts', methods=['POST'])
 def create_instagram_account():
     """Conecta uma nova conta Instagram"""
     logger.info("=" * 80)
-    logger.info("📸 POST /api/instagram/accounts - REQUISIÇÃO RECEBIDA")
+    logger.info("POST /api/instagram/accounts - REQUISIÇÃO RECEBIDA")
     logger.info("=" * 80)
 
     try:
-        logger.info("📥 Processando dados da requisição...")
+        logger.info("Processando dados da requisição...")
 
         if not request.is_json:
-            logger.error("❌ Requisição não é JSON")
+            logger.error("Requisição não é JSON")
             return jsonify({"erro": "Content-Type deve ser application/json"}), 415
 
         data = request.get_json()
-        logger.info(f"📦 Dados recebidos: {data}")
+        logger.info(f"Dados recebidos: {data}")
 
         if not data:
-            logger.error("❌ Dados JSON estão vazios")
+            logger.error("Dados JSON estão vazios")
             return jsonify({"erro": "Dados JSON são obrigatórios"}), 400
 
         login = data.get('login', '').strip()
@@ -606,24 +606,24 @@ def create_instagram_account():
         display_name = data.get('displayName', '').strip()
         description = data.get('description', '').strip()
 
-        logger.info(f"📸 Dados extraídos:")
-        logger.info(f"  ├─ Login: '{login}'")
-        logger.info(f"  ├─ Password: {'*' * len(password)} ({len(password)} chars)")
-        logger.info(f"  ├─ Display Name: '{display_name}'")
-        logger.info(f"  └─ Description: '{description}'")
+        logger.info(f"Dados extraídos:")
+        logger.info(f"  - Login: '{login}'")
+        logger.info(f"  - Password: {'*' * len(password)} ({len(password)} chars)")
+        logger.info(f"  - Display Name: '{display_name}'")
+        logger.info(f"  - Description: '{description}'")
 
         if not login or not password:
-            logger.error("❌ Login ou senha estão vazios")
+            logger.error("Login ou senha estão vazios")
             return jsonify({"erro": "Login e senha são obrigatórios"}), 400
 
-        logger.info("🚀 Chamando connectInstagram...")
+        logger.info("Chamando connectInstagram...")
 
         account = connectInstagram(login, password, display_name, description)
 
-        logger.info("✅ connectInstagram retornou com sucesso!")
+        logger.info("connectInstagram retornou com sucesso!")
 
         initialize_sample_instagram_conversations(account.id, 3)
-        logger.info(f"✅ Conversas de exemplo inicializadas para a conta {account.id}")
+        logger.info(f"Conversas de exemplo inicializadas para a conta {account.id}")
 
         account_data = {
             "id": account.id,
@@ -634,27 +634,27 @@ def create_instagram_account():
             "platform": "instagram"
         }
 
-        logger.info(f"📤 Retornando dados da conta:")
-        logger.info(f"  ├─ ID: {account_data['id']}")
-        logger.info(f"  ├─ Login: {account_data['login']}")
-        logger.info(f"  ├─ Display Name: {account_data['displayName']}")
-        logger.info(f"  └─ Is Active: {account_data['isActive']}")
+        logger.info(f"Retornando dados da conta:")
+        logger.info(f"  - ID: {account_data['id']}")
+        logger.info(f"  - Login: {account_data['login']}")
+        logger.info(f"  - Display Name: {account_data['displayName']}")
+        logger.info(f"  - Is Active: {account_data['isActive']}")
 
         logger.info("=" * 80)
-        logger.info("✅ POST /api/instagram/accounts - SUCESSO!")
+        logger.info("POST /api/instagram/accounts - SUCESSO!")
         logger.info("=" * 80)
 
         return jsonify(account_data), 201
 
     except ValueError as e:
         logger.error("=" * 80)
-        logger.error(f"⚠️ POST /api/instagram/accounts - ERRO DE VALIDAÇÃO")
+        logger.error(f"POST /api/instagram/accounts - ERRO DE VALIDAÇÃO")
         logger.error(f"Erro: {str(e)}")
         logger.error("=" * 80)
         return jsonify({"erro": str(e)}), 400
     except Exception as e:
         logger.error("=" * 80)
-        logger.error(f"❌ POST /api/instagram/accounts - ERRO INTERNO")
+        logger.error(f"POST /api/instagram/accounts - ERRO INTERNO")
         logger.error(f"Erro: {str(e)}")
         logger.error("=" * 80)
         return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
@@ -663,29 +663,29 @@ def create_instagram_account():
 def delete_instagram_account(account_id):
     """Remove uma conta Instagram"""
     try:
-        logger.info(f"📸 DELETE /api/instagram/accounts/{account_id} - Removendo conta")
+        logger.info(f"DELETE /api/instagram/accounts/{account_id} - Removendo conta")
 
         if not account_id:
             return jsonify({"erro": "ID da conta é obrigatório"}), 400
 
         removeInstagram(account_id)
 
-        logger.info(f"✅ DELETE /api/instagram/accounts/{account_id} - Conta removida")
+        logger.info(f"DELETE /api/instagram/accounts/{account_id} - Conta removida")
 
         return jsonify({"mensagem": "Conta Instagram removida com sucesso"}), 200
 
     except ValueError as e:
-        logger.warning(f"⚠️ DELETE /api/instagram/accounts/{account_id} - Erro: {str(e)}")
+        logger.warning(f"DELETE /api/instagram/accounts/{account_id} - Erro: {str(e)}")
         return jsonify({"erro": str(e)}), 404
     except Exception as e:
-        logger.error(f"❌ DELETE /api/instagram/accounts/{account_id} - Erro: {str(e)}")
+        logger.error(f"DELETE /api/instagram/accounts/{account_id} - Erro: {str(e)}")
         return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
 
 @app.route('/api/instagram/accounts/<account_id>/status', methods=['GET'])
 def get_instagram_account_status(account_id):
     """Verifica o status de uma conta Instagram"""
     try:
-        logger.info(f"📸 GET /api/instagram/accounts/{account_id}/status - Verificando status")
+        logger.info(f"GET /api/instagram/accounts/{account_id}/status - Verificando status")
 
         accounts = listInstagramAccounts()
         account = next((acc for acc in accounts if acc.id == account_id), None)
@@ -701,12 +701,12 @@ def get_instagram_account_status(account_id):
             "platform": "instagram"
         }
 
-        logger.info(f"✅ GET /api/instagram/accounts/{account_id}/status - Status retornado")
+        logger.info(f"GET /api/instagram/accounts/{account_id}/status - Status retornado")
 
         return jsonify(status_data), 200
 
     except Exception as e:
-        logger.error(f"❌ GET /api/instagram/accounts/{account_id}/status - Erro: {str(e)}")
+        logger.error(f"GET /api/instagram/accounts/{account_id}/status - Erro: {str(e)}")
         return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
 
 # --- ROTAS DE CHAT INSTAGRAM ---
@@ -719,7 +719,7 @@ def list_instagram_conversations():
         if not account_id:
             return jsonify({"erro": "account_id é obrigatório"}), 400
 
-        logger.info(f"📸 GET /api/instagram/conversations - Listando conversas da conta {account_id}")
+        logger.info(f"GET /api/instagram/conversations - Listando conversas da conta {account_id}")
 
         accounts = listInstagramAccounts()
         account = next((acc for acc in accounts if acc.id == account_id), None)
@@ -731,12 +731,12 @@ def list_instagram_conversations():
 
         api_conversations = [convert_instagram_conversation_to_api_format(conv) for conv in conversations]
 
-        logger.info(f"📸 GET /api/instagram/conversations - Retornando {len(api_conversations)} conversas")
+        logger.info(f"GET /api/instagram/conversations - Retornando {len(api_conversations)} conversas")
 
         return jsonify(api_conversations), 200
 
     except Exception as e:
-        logger.error(f"❌ GET /api/instagram/conversations - Erro: {str(e)}")
+        logger.error(f"GET /api/instagram/conversations - Erro: {str(e)}")
         return jsonify({"erro": f"Erro ao listar conversas Instagram: {str(e)}"}), 500
 
 @app.route('/api/instagram/conversations/<conversation_id>/messages', methods=['GET'])
@@ -746,18 +746,18 @@ def get_instagram_conversation_messages(conversation_id):
         limit = request.args.get('limit', type=int)
         offset = request.args.get('offset', type=int, default=0)
 
-        logger.info(f"📸 GET /api/instagram/conversations/{conversation_id}/messages - Buscando mensagens")
+        logger.info(f"GET /api/instagram/conversations/{conversation_id}/messages - Buscando mensagens")
 
         messages = get_instagram_messages(conversation_id, limit, offset)
 
         api_messages = [convert_instagram_message_to_api_format(msg) for msg in messages]
 
-        logger.info(f"📸 GET /api/instagram/conversations/{conversation_id}/messages - Retornando {len(api_messages)} mensagens")
+        logger.info(f"GET /api/instagram/conversations/{conversation_id}/messages - Retornando {len(api_messages)} mensagens")
 
         return jsonify(api_messages), 200
 
     except Exception as e:
-        logger.error(f"❌ GET /api/instagram/conversations/{conversation_id}/messages - Erro: {str(e)}")
+        logger.error(f"GET /api/instagram/conversations/{conversation_id}/messages - Erro: {str(e)}")
         return jsonify({"erro": f"Erro ao buscar mensagens: {str(e)}"}), 500
 
 @app.route('/api/instagram/conversations/<conversation_id>/messages', methods=['POST'])
@@ -777,7 +777,7 @@ def send_instagram_conversation_message(conversation_id):
         if not account_id or not text:
             return jsonify({"erro": "account_id e text são obrigatórios"}), 400
 
-        logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/messages - Enviando mensagem")
+        logger.info(f"POST /api/instagram/conversations/{conversation_id}/messages - Enviando mensagem")
 
         message = send_instagram_message(account_id, conversation_id, text)
 
@@ -786,28 +786,28 @@ def send_instagram_conversation_message(conversation_id):
 
         api_message = convert_instagram_message_to_api_format(message)
 
-        logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/messages - Mensagem enviada: {message.id}")
+        logger.info(f"POST /api/instagram/conversations/{conversation_id}/messages - Mensagem enviada: {message.id}")
 
         return jsonify(api_message), 201
 
     except Exception as e:
-        logger.error(f"❌ POST /api/instagram/conversations/{conversation_id}/messages - Erro: {str(e)}")
+        logger.error(f"POST /api/instagram/conversations/{conversation_id}/messages - Erro: {str(e)}")
         return jsonify({"erro": f"Erro ao enviar mensagem: {str(e)}"}), 500
 
 @app.route('/api/instagram/conversations/<conversation_id>/mark-read', methods=['POST'])
 def mark_instagram_conversation_read(conversation_id):
     """Marca todas as mensagens de uma conversa Instagram como lidas"""
     try:
-        logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/mark-read - Marcando como lidas")
+        logger.info(f"POST /api/instagram/conversations/{conversation_id}/mark-read - Marcando como lidas")
 
         count = mark_instagram_messages_as_read(conversation_id)
 
-        logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/mark-read - {count} mensagens marcadas como lidas")
+        logger.info(f"POST /api/instagram/conversations/{conversation_id}/mark-read - {count} mensagens marcadas como lidas")
 
         return jsonify({"mensagens_marcadas": count}), 200
 
     except Exception as e:
-        logger.error(f"❌ POST /api/instagram/conversations/{conversation_id}/mark-read - Erro: {str(e)}")
+        logger.error(f"POST /api/instagram/conversations/{conversation_id}/mark-read - Erro: {str(e)}")
         return jsonify({"erro": f"Erro ao marcar mensagens como lidas: {str(e)}"}), 500
 
 @app.route('/api/instagram/conversations/<conversation_id>/archive', methods=['POST'])
@@ -817,19 +817,19 @@ def archive_instagram_conversation_route(conversation_id):
         data = request.get_json() or {}
         is_archived = data.get('is_archived', True)
 
-        logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/archive - {'Arquivando' if is_archived else 'Desarquivando'}")
+        logger.info(f"POST /api/instagram/conversations/{conversation_id}/archive - {'Arquivando' if is_archived else 'Desarquivando'}")
 
         success = archive_instagram_conversation(conversation_id, is_archived)
 
         if not success:
             return jsonify({"erro": "Conversa não encontrada"}), 404
 
-        logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/archive - {'Arquivada' if is_archived else 'Desarquivada'}")
+        logger.info(f"POST /api/instagram/conversations/{conversation_id}/archive - {'Arquivada' if is_archived else 'Desarquivada'}")
 
         return jsonify({"mensagem": f"Conversa {'arquivada' if is_archived else 'desarquivada'} com sucesso"}), 200
 
     except Exception as e:
-        logger.error(f"❌ POST /api/instagram/conversations/{conversation_id}/archive - Erro: {str(e)}")
+        logger.error(f"POST /api/instagram/conversations/{conversation_id}/archive - Erro: {str(e)}")
         return jsonify({"erro": f"Erro ao arquivar conversa: {str(e)}"}), 500
 
 @app.route('/api/instagram/simulate-message', methods=['POST'])
@@ -844,7 +844,7 @@ def simulate_instagram_message_route():
         if not account_id:
             return jsonify({"erro": "account_id é obrigatório"}), 400
 
-        logger.info(f"📸 POST /api/instagram/simulate-message - Simulando mensagem para conta {account_id}")
+        logger.info(f"POST /api/instagram/simulate-message - Simulando mensagem para conta {account_id}")
 
         message = simulate_instagram_message(account_id, conversation_id, user_data)
 
@@ -853,12 +853,12 @@ def simulate_instagram_message_route():
 
         api_message = convert_instagram_message_to_api_format(message)
 
-        logger.info(f"📸 POST /api/instagram/simulate-message - Mensagem simulada: {message.id}")
+        logger.info(f"POST /api/instagram/simulate-message - Mensagem simulada: {message.id}")
 
         return jsonify(api_message), 201
 
     except Exception as e:
-        logger.error(f"❌ POST /api/instagram/simulate-message - Erro: {str(e)}")
+        logger.error(f"POST /api/instagram/simulate-message - Erro: {str(e)}")
         return jsonify({"erro": f"Erro ao simular mensagem: {str(e)}"}), 500
 
 # --- Listar conversas otimizado ---
@@ -869,19 +869,19 @@ def listar_conversas():
         current_time = time.time()
 
         if (current_time - _cache['conversations_last_update']) < _cache['cache_duration']:
-            logger.info(f"📋 Cache hit - Retornando {len(_cache['conversations_cache'])} conversas")
+            logger.info(f"Cache hit - Retornando {len(_cache['conversations_cache'])} conversas")
             return jsonify(_cache['conversations_cache']), 200
 
         telegram_conversations = []
         with _conversation_lock:
-            logger.info(f"🔍 Verificando {len(_conversations)} conversas no armazenamento")
+            logger.info(f"Verificando {len(_conversations)} conversas no armazenamento")
             for conv_id, conv in _conversations.items():
-                logger.info(f"  📋 Conversa {conv_id}: {conv.title} - Arquivada: {conv.isArchived}, Bot: {conv.is_bot_conversation}")
+                logger.info(f"   Conversa {conv_id}: {conv.title} - Arquivada: {conv.isArchived}, Bot: {conv.is_bot_conversation}")
                 if not conv.isArchived and not conv.is_bot_conversation:
                     telegram_conversations.append(conv.to_dict())
-                    logger.info(f"    ✅ Incluída na lista")
+                    logger.info(f"     Incluída na lista")
                 else:
-                    logger.info(f"    ❌ Filtrada (arquivada ou bot)")
+                    logger.info(f"     Filtrada (arquivada ou bot)")
 
         instagram_conversations = []
         instagram_accounts = listInstagramAccounts()
@@ -898,11 +898,11 @@ def listar_conversas():
         _cache['conversations_cache'] = all_conversations
         _cache['conversations_last_update'] = current_time
 
-        logger.info(f"📋 Retornando {len(all_conversations)} conversas ({len(telegram_conversations)} Telegram + {len(instagram_conversations)} Instagram)")
+        logger.info(f"Retornando {len(all_conversations)} conversas ({len(telegram_conversations)} Telegram + {len(instagram_conversations)} Instagram)")
         return jsonify(all_conversations), 200
 
     except Exception as e:
-        logger.error(f"❌ Erro ao listar conversas: {e}")
+        logger.error(f"Erro ao listar conversas: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Obter conversa específica ---
@@ -910,24 +910,24 @@ def listar_conversas():
 def obter_conversa(conversation_id):
     """Obtém uma conversa específica (Telegram ou Instagram)"""
     try:
-        logger.info(f"📋 Buscando conversa: {conversation_id}")
+        logger.info(f"Buscando conversa: {conversation_id}")
 
         with _conversation_lock:
             if conversation_id in _conversations:
                 conv = _conversations[conversation_id]
-                logger.info(f"📋 Conversa Telegram encontrada: {conv.title}")
+                logger.info(f"Conversa Telegram encontrada: {conv.title}")
                 return jsonify(conv.to_dict()), 200
 
         instagram_conv = get_instagram_conversation(conversation_id)
         if instagram_conv:
-            logger.info(f"📸 Conversa Instagram encontrada: {instagram_conv.username}")
+            logger.info(f"Conversa Instagram encontrada: {instagram_conv.username}")
             return jsonify(convert_instagram_conversation_to_api_format(instagram_conv)), 200
 
-        logger.warning(f"⚠️ Conversa não encontrada: {conversation_id}")
+        logger.warning(f"Conversa não encontrada: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
 
     except Exception as e:
-        logger.error(f"❌ Erro ao obter conversa: {e}")
+        logger.error(f"Erro ao obter conversa: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Obter mensagens de uma conversa ---
@@ -938,7 +938,7 @@ def obter_mensagens(conversation_id):
         limit = request.args.get('limit', type=int)
         offset = request.args.get('offset', type=int, default=0)
 
-        logger.info(f"📋 Buscando mensagens da conversa: {conversation_id}")
+        logger.info(f"Buscando mensagens da conversa: {conversation_id}")
 
         with _conversation_lock:
             if conversation_id in _conversations:
@@ -951,20 +951,20 @@ def obter_mensagens(conversation_id):
                     messages = messages[offset:]
 
                 messages_data = [msg.to_dict() for msg in messages]
-                logger.info(f"📋 Retornando {len(messages_data)} mensagens Telegram")
+                logger.info(f"Retornando {len(messages_data)} mensagens Telegram")
                 return jsonify(messages_data), 200
 
         instagram_messages = get_instagram_messages(conversation_id, limit, offset)
         if instagram_messages:
             messages_data = [convert_instagram_message_to_api_format(msg) for msg in instagram_messages]
-            logger.info(f"📸 Retornando {len(messages_data)} mensagens Instagram")
+            logger.info(f"Retornando {len(messages_data)} mensagens Instagram")
             return jsonify(messages_data), 200
 
-        logger.warning(f"⚠️ Conversa não encontrada: {conversation_id}")
+        logger.warning(f"Conversa não encontrada: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
 
     except Exception as e:
-        logger.error(f"❌ Erro ao obter mensagens: {e}")
+        logger.error(f"Erro ao obter mensagens: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Enviar mensagem ---
@@ -985,7 +985,7 @@ def enviar_mensagem(conversation_id):
         if not text:
             return jsonify({"erro": "Texto da mensagem é obrigatório"}), 400
 
-        logger.info(f"📤 Enviando mensagem para conversa: {conversation_id}")
+        logger.info(f"Enviando mensagem para conversa: {conversation_id}")
 
         with _conversation_lock:
             if conversation_id in _conversations:
@@ -1014,7 +1014,7 @@ def enviar_mensagem(conversation_id):
 
                         _cache['conversations_last_update'] = 0
 
-                        logger.info(f"✅ Mensagem Telegram enviada: {nova_mensagem.id}")
+                        logger.info(f"Mensagem Telegram enviada: {nova_mensagem.id}")
                         return jsonify(nova_mensagem.to_dict()), 201
                     else:
                         return jsonify({"erro": "Falha ao enviar mensagem via Telegram"}), 500
@@ -1026,14 +1026,14 @@ def enviar_mensagem(conversation_id):
             instagram_message = send_instagram_message(account_id, conversation_id, text)
             if instagram_message:
                 message_data = convert_instagram_message_to_api_format(instagram_message)
-                logger.info(f"✅ Mensagem Instagram enviada: {instagram_message.id}")
+                logger.info(f"Mensagem Instagram enviada: {instagram_message.id}")
                 return jsonify(message_data), 201
 
-        logger.warning(f"⚠️ Conversa não encontrada: {conversation_id}")
+        logger.warning(f"Conversa não encontrada: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
 
     except Exception as e:
-        logger.error(f"❌ Erro ao enviar mensagem: {e}")
+        logger.error(f"Erro ao enviar mensagem: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Renomear conversa ---
@@ -1052,7 +1052,7 @@ def renomear_conversa(conversation_id):
         if not new_title:
             return jsonify({"erro": "Título não pode estar vazio"}), 400
 
-        logger.info(f"📝 Renomeando conversa {conversation_id} para: {new_title}")
+        logger.info(f"Renomeando conversa {conversation_id} para: {new_title}")
 
         with _conversation_lock:
             if conversation_id in _conversations:
@@ -1062,14 +1062,14 @@ def renomear_conversa(conversation_id):
 
                 _cache['conversations_last_update'] = 0
 
-                logger.info(f"✅ Conversa Telegram renomeada: '{old_title}' -> '{new_title}'")
+                logger.info(f"Conversa Telegram renomeada: '{old_title}' -> '{new_title}'")
                 return jsonify(conv.to_dict()), 200
 
-        logger.warning(f"⚠️ Conversa não encontrada para renomeação: {conversation_id}")
+        logger.warning(f"Conversa não encontrada para renomeação: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
 
     except Exception as e:
-        logger.error(f"❌ Erro ao renomear conversa: {e}")
+        logger.error(f"Erro ao renomear conversa: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Arquivar conversa ---
@@ -1080,7 +1080,7 @@ def arquivar_conversa(conversation_id):
         data = request.get_json() or {}
         is_archived = data.get('isArchived', data.get('is_archived', True))
 
-        logger.info(f"📁 {'Arquivando' if is_archived else 'Desarquivando'} conversa: {conversation_id}")
+        logger.info(f"{'Arquivando' if is_archived else 'Desarquivando'} conversa: {conversation_id}")
 
         with _conversation_lock:
             if conversation_id in _conversations:
@@ -1089,7 +1089,7 @@ def arquivar_conversa(conversation_id):
 
                 _cache['conversations_last_update'] = 0
 
-                logger.info(f"✅ Conversa Telegram {'arquivada' if is_archived else 'desarquivada'}: {conversation_id}")
+                logger.info(f"Conversa Telegram {'arquivada' if is_archived else 'desarquivada'}: {conversation_id}")
                 return jsonify({
                     "success": True,
                     "message": f"Conversa {'arquivada' if is_archived else 'desarquivada'} com sucesso",
@@ -1098,17 +1098,17 @@ def arquivar_conversa(conversation_id):
 
         success = archive_instagram_conversation(conversation_id, is_archived)
         if success:
-            logger.info(f"✅ Conversa Instagram {'arquivada' if is_archived else 'desarquivada'}: {conversation_id}")
+            logger.info(f"Conversa Instagram {'arquivada' if is_archived else 'desarquivada'}: {conversation_id}")
             return jsonify({
                 "success": True,
                 "message": f"Conversa {'arquivada' if is_archived else 'desarquivada'} com sucesso"
             }), 200
 
-        logger.warning(f"⚠️ Conversa não encontrada para arquivamento: {conversation_id}")
+        logger.warning(f"Conversa não encontrada para arquivamento: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
 
     except Exception as e:
-        logger.error(f"❌ Erro ao arquivar conversa: {e}")
+        logger.error(f"Erro ao arquivar conversa: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Deletar conversa ---
@@ -1116,7 +1116,7 @@ def arquivar_conversa(conversation_id):
 def deletar_conversa(conversation_id):
     """Remove uma conversa completamente"""
     try:
-        logger.info(f"🗑️ Deletando conversa: {conversation_id}")
+        logger.info(f"Deletando conversa: {conversation_id}")
 
         with _conversation_lock:
             if conversation_id in _conversations:
@@ -1127,19 +1127,19 @@ def deletar_conversa(conversation_id):
 
                 _cache['conversations_last_update'] = 0
 
-                logger.info(f"✅ Conversa Telegram deletada: {conversation_id}")
+                logger.info(f"Conversa Telegram deletada: {conversation_id}")
                 return '', 204
 
         success = delete_instagram_conversation(conversation_id)
         if success:
-            logger.info(f"✅ Conversa Instagram deletada: {conversation_id}")
+            logger.info(f"Conversa Instagram deletada: {conversation_id}")
             return '', 204
 
-        logger.warning(f"⚠️ Conversa não encontrada para deleção: {conversation_id}")
+        logger.warning(f"Conversa não encontrada para deleção: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
 
     except Exception as e:
-        logger.error(f"❌ Erro ao deletar conversa: {e}")
+        logger.error(f"Erro ao deletar conversa: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Webhook Telegram - INTEGRADO COM BOT DE WORKFLOWS REAIS ---
@@ -1150,17 +1150,17 @@ def webhook_telegram(account_id):
     PROCESSA MENSAGENS USANDO O BOT DE WORKFLOWS REAIS - SEM MOCK!
     """
     try:
-        logger.info(f"📨 Webhook recebido para conta: {account_id}")
+        logger.info(f"Webhook recebido para conta: {account_id}")
 
         data = request.get_json()
-        logger.info(f"📦 Dados do webhook: {json.dumps(data, indent=2)}")
+        logger.info(f"Dados do webhook: {json.dumps(data, indent=2)}")
 
         if not data:
-            logger.warning("⚠️ Webhook sem dados")
+            logger.warning("Webhook sem dados")
             return '', 200
 
         if 'message' not in data:
-            logger.warning("⚠️ Webhook sem campo 'message'")
+            logger.warning("Webhook sem campo 'message'")
             return '', 200
 
         message = data['message']
@@ -1170,25 +1170,25 @@ def webhook_telegram(account_id):
         user_name = user_info.get('first_name', 'Usuário')
         is_bot = user_info.get('is_bot', False)
 
-        logger.info(f"📨 Mensagem recebida:")
-        logger.info(f"  ├─ Chat ID: {chat_id}")
-        logger.info(f"  ├─ Usuário: {user_name}")
-        logger.info(f"  ├─ É bot: {is_bot}")
-        logger.info(f"  └─ Texto: {text}")
+        logger.info(f"Mensagem recebida:")
+        logger.info(f"  - Chat ID: {chat_id}")
+        logger.info(f"  - Usuário: {user_name}")
+        logger.info(f"  - É bot: {is_bot}")
+        logger.info(f"  - Texto: {text}")
 
         # FILTRO: Ignorar mensagens de bots
         if is_bot:
-            logger.info(f"🤖 Ignorando mensagem de bot: {user_name}")
+            logger.info(f"Ignorando mensagem de bot: {user_name}")
             return '', 200
 
         # Mapear chat para conta
         chat_to_account[chat_id] = account_id
-        logger.info(f"🔗 Chat {chat_id} mapeado para conta {account_id}")
+        logger.info(f"Chat {chat_id} mapeado para conta {account_id}")
 
         # Buscar ou criar conversa
         with _conversation_lock:
             if chat_id not in _conversations:
-                logger.info(f"🆕 Criando nova conversa para chat {chat_id}")
+                logger.info(f"Criando nova conversa para chat {chat_id}")
                 _conversations[chat_id] = Conversation(
                     id=chat_id,
                     title=user_name,
@@ -1197,7 +1197,7 @@ def webhook_telegram(account_id):
                     is_bot_conversation=False
                 )
             else:
-                logger.info(f"📋 Conversa existente encontrada para chat {chat_id}")
+                logger.info(f"Conversa existente encontrada para chat {chat_id}")
 
             conv = _conversations[chat_id]
 
@@ -1214,7 +1214,7 @@ def webhook_telegram(account_id):
             conv.lastMessage = text
             conv.lastAt = nova_mensagem.timestamp
 
-            logger.info(f"✅ Mensagem do usuário adicionada à conversa {chat_id}: {nova_mensagem.id}")
+            logger.info(f"Mensagem do usuário adicionada à conversa {chat_id}: {nova_mensagem.id}")
 
             # Broadcast para subscribers
             broadcast_to_subscribers(chat_id, nova_mensagem.to_dict())
@@ -1222,40 +1222,40 @@ def webhook_telegram(account_id):
         workflows = bot_components_api.get_all_workflows()
         active_workflows = [w for w in workflows if w.get('enabled', True)]
 
-        logger.info(f"📋 Total de workflows: {len(workflows)}")
-        logger.info(f"✅ Workflows ATIVOS: {len(active_workflows)}")
+        logger.info(f"Total de workflows: {len(workflows)}")
+        logger.info(f"Workflows ATIVOS: {len(active_workflows)}")
 
         if not active_workflows:
-            logger.warning("⚠️ INTERNO: Nenhum workflow ATIVO configurado - mensagem ignorada silenciosamente")
+            logger.warning("INTERNO: Nenhum workflow ATIVO configurado - mensagem ignorada silenciosamente")
             return '', 200
 
         active_workflows.sort(key=lambda w: w.get('updated_at', w.get('created_at', '')), reverse=True)
         active_workflow = active_workflows[0]
         workflow_id = active_workflow['id']
 
-        logger.info(f"🤖 Processando mensagem com workflow ATIVO MAIS RECENTE: {workflow_id}")
+        logger.info(f"Processando mensagem com workflow ATIVO MAIS RECENTE: {workflow_id}")
         logger.info(f"   Tag: {active_workflow.get('tag', 'Sem tag')}")
         logger.info(f"   Enabled: {active_workflow.get('enabled', False)}")
         logger.info(f"   Atualizado em: {active_workflow.get('updated_at', 'N/A')}")
 
         bot_response = bot_components_api.process_user_message(chat_id, workflow_id, text)
 
-        logger.info(f"🤖 Resposta do bot: {json.dumps(bot_response, indent=2)}")
+        logger.info(f"Resposta do bot: {json.dumps(bot_response, indent=2)}")
 
         if bot_response.get('success'):
             messages_to_send = bot_response.get('messages', [])
 
-            logger.info(f"📨 Total de mensagens para enviar: {len(messages_to_send)}")
+            logger.info(f"Total de mensagens para enviar: {len(messages_to_send)}")
 
             for idx, msg_data in enumerate(messages_to_send):
                 response_text = msg_data.get('text', '')
                 response_options = msg_data.get('options', [])
 
                 if not response_text.strip():
-                    logger.info(f"⏭️ Pulando mensagem vazia #{idx + 1}")
+                    logger.info(f"Pulando mensagem vazia #{idx + 1}")
                     continue
 
-                logger.info(f"📤 Enviando mensagem #{idx + 1}/{len(messages_to_send)}: {response_text[:50]}...")
+                logger.info(f"Enviando mensagem #{idx + 1}/{len(messages_to_send)}: {response_text[:50]}...")
 
                 success = send_telegram_message(chat_id, response_text, account_id, response_options)
 
@@ -1277,32 +1277,32 @@ def webhook_telegram(account_id):
 
                         broadcast_to_subscribers(chat_id, bot_message.to_dict())
 
-                    logger.info(f"✅ Mensagem #{idx + 1} enviada e salva na conversa")
+                    logger.info(f"Mensagem #{idx + 1} enviada e salva na conversa")
 
                     if idx < len(messages_to_send) - 1:
                         import time
                         time.sleep(0.5)
                 else:
-                    logger.error(f"❌ Falha ao enviar mensagem #{idx + 1} via Telegram API")
+                    logger.error(f"Falha ao enviar mensagem #{idx + 1} via Telegram API")
 
             if bot_response.get('archive_conversation'):
-                logger.info(f"📁 Arquivando conversa {chat_id} após finalização do fluxo")
+                logger.info(f"Arquivando conversa {chat_id} após finalização do fluxo")
                 with _conversation_lock:
                     if chat_id in _conversations:
                         _conversations[chat_id].isArchived = True
         else:
             error_message = bot_response.get('messages', [{}])[0].get('text', 'Erro ao processar mensagem')
-            logger.error(f"❌ INTERNO: Erro no processamento do bot: {error_message}")
+            logger.error(f"INTERNO: Erro no processamento do bot: {error_message}")
 
         # Limpar cache
         _cache['conversations_last_update'] = 0
-        logger.info("🔄 Cache limpo - conversas serão recarregadas")
+        logger.info("Cache limpo - conversas serão recarregadas")
 
-        logger.info(f"✅ Webhook processado com sucesso para {chat_id}")
+        logger.info(f"Webhook processado com sucesso para {chat_id}")
         return '', 200
 
     except Exception as e:
-        logger.error(f"❌ Erro no webhook Telegram: {e}")
+        logger.error(f"Erro no webhook Telegram: {e}")
         logger.exception("Stack trace completo:")
         return '', 200
 
@@ -1358,7 +1358,7 @@ def debug_status():
             }
         }), 200
     except Exception as e:
-        logger.error(f"❌ Erro no debug status: {e}")
+        logger.error(f"Erro no debug status: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Teste de arquivamento ---
@@ -1370,7 +1370,7 @@ def test_archive():
         conversation_id = data.get('conversation_id', 'test-123')
         is_archived = data.get('is_archived', True)
 
-        logger.info(f"🧪 Teste de arquivamento: {conversation_id} -> {is_archived}")
+        logger.info(f"Teste de arquivamento: {conversation_id} -> {is_archived}")
 
         return jsonify({
             "success": True,
@@ -1383,7 +1383,7 @@ def test_archive():
         }), 200
 
     except Exception as e:
-        logger.error(f"❌ Erro no teste de arquivamento: {e}")
+        logger.error(f"Erro no teste de arquivamento: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --- Inicialização ---
@@ -1391,8 +1391,8 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3001))
     debug_mode = os.environ.get('FLASK_ENV') == 'development'
 
-    logger.info(f"🚀 Iniciando servidor Flask na porta {port}")
-    logger.info(f"🔧 Modo debug: {debug_mode}")
+    logger.info(f"Iniciando servidor Flask na porta {port}")
+    logger.info(f"Modo debug: {debug_mode}")
 
     # Criar conversa de teste na inicialização
     create_test_conversation()

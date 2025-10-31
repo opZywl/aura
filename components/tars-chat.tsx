@@ -36,33 +36,33 @@ export default function AuraChat() {
     // Carregar fluxo do localStorage
     const loadWorkflow = () => {
         try {
-            console.log("🔍 Tentando carregar fluxo...")
+            console.log("Tentando carregar fluxo...")
 
             const savedWorkflow = localStorage.getItem(WORKFLOW_KEY)
             const isExecuted = localStorage.getItem(EXECUTED_KEY) === "true"
 
-            console.log("📦 Workflow no localStorage:", savedWorkflow ? "ENCONTRADO" : "NÃO ENCONTRADO")
-            console.log("✅ Status de execução:", isExecuted ? "EXECUTADO" : "NÃO EXECUTADO")
+            console.log("Workflow no localStorage:", savedWorkflow ? "ENCONTRADO" : "NÃO ENCONTRADO")
+            console.log("Status de execução:", isExecuted ? "EXECUTADO" : "NÃO EXECUTADO")
 
             if (!savedWorkflow) {
-                console.log("❌ Nenhum workflow salvo encontrado")
+                console.log("Nenhum workflow salvo encontrado")
                 return null
             }
 
             if (!isExecuted) {
-                console.log("❌ Workflow não foi executado ainda")
+                console.log("Workflow não foi executado ainda")
                 return null
             }
 
             const workflow = JSON.parse(savedWorkflow)
-            console.log("✅ Workflow carregado com sucesso:", {
+            console.log("Workflow carregado com sucesso:", {
                 nodes: workflow.nodes?.length || 0,
                 edges: workflow.edges?.length || 0,
             })
 
             return workflow
         } catch (error) {
-            console.error("❌ Erro ao carregar workflow:", error)
+            console.error("Erro ao carregar workflow:", error)
             return null
         }
     }
@@ -77,7 +77,7 @@ export default function AuraChat() {
                 {
                     id: "flow-ready",
                     role: "assistant",
-                    content: "✅ Olá! Fluxo carregado e pronto para uso.\n\nDigite qualquer mensagem para começar!",
+                    content: "Olá! Fluxo carregado e pronto para uso.\n\nDigite qualquer mensagem para começar!",
                 },
             ]
         } else {
@@ -86,7 +86,7 @@ export default function AuraChat() {
                 {
                     id: "no-flow",
                     role: "assistant",
-                    content: "❌ Nenhum fluxo foi configurado.\n\nPor favor, acesse o painel administrativo para criar um fluxo.",
+                    content: "Nenhum fluxo foi configurado.\n\nPor favor, acesse o painel administrativo para criar um fluxo.",
                 },
             ]
         }
@@ -101,7 +101,7 @@ export default function AuraChat() {
     // Carregar fluxo quando abrir o chat
     useEffect(() => {
         if (isOpen) {
-            console.log("🚀 Chat aberto, carregando fluxo...")
+            console.log("Chat aberto, carregando fluxo...")
             const workflow = loadWorkflow()
             setSavedFlow(workflow)
             setIsFlowExecuted(localStorage.getItem(EXECUTED_KEY) === "true")
@@ -116,7 +116,7 @@ export default function AuraChat() {
     useEffect(() => {
         const handleStorageChange = () => {
             if (isOpen) {
-                console.log("🔄 Detectada mudança no localStorage")
+                console.log("Detectada mudança no localStorage")
                 const workflow = loadWorkflow()
                 setSavedFlow(workflow)
                 setIsFlowExecuted(localStorage.getItem(EXECUTED_KEY) === "true")
@@ -175,7 +175,7 @@ export default function AuraChat() {
 
     const processNode = (node: any) => {
         setCurrentNodeId(node.id)
-        console.log("🔄 Processando nó:", node.id, node.type, node.data?.customId)
+        console.log("Processando nó:", node.id, node.type, node.data?.customId)
 
         if (node.type === "sendMessage") {
             const message = node.data.message || "Mensagem não configurada"
@@ -198,7 +198,7 @@ export default function AuraChat() {
                 } else {
                     setWaitingForUserInput(false)
                     setCurrentNodeId(null)
-                    console.log("✅ Fluxo finalizado - conversa resetada")
+                    console.log("Fluxo finalizado - conversa resetada")
                 }
             }, 1500)
         } else if (node.type === "options") {
@@ -213,7 +213,7 @@ export default function AuraChat() {
             options.forEach((option: any, index: number) => {
                 optionsText += `${index + 1}. ${option.text}\n`
             })
-            optionsText += "\n💡 Digite o número da opção desejada"
+            optionsText += "\nDica: digite o número da opção desejada"
 
             // Adicionar mensagem com opções
             setMessages((prev) => [
@@ -227,7 +227,7 @@ export default function AuraChat() {
 
             // Aguardar input do usuário
             setWaitingForUserInput(true)
-            console.log("⏳ Aguardando seleção do usuário...")
+        console.log("Aguardando seleção do usuário...")
         } else if (node.type === "finalizar") {
             const message = node.data.message || "Conversa finalizada. Obrigado!"
 
@@ -243,26 +243,26 @@ export default function AuraChat() {
             setTimeout(() => {
                 setCurrentNodeId(null)
                 setWaitingForUserInput(false)
-                console.log("🏁 Conversa finalizada e resetada")
+                console.log("Conversa finalizada e resetada")
             }, 2000)
         }
     }
 
     const startFlow = () => {
         if (!savedFlow || !savedFlow.nodes) {
-            console.log("⚠️ Nenhum fluxo disponível para iniciar")
+            console.log("Nenhum fluxo disponível para iniciar")
             setMessages((prev) => [
                 ...prev,
                 {
                     id: Date.now().toString(),
                     role: "assistant",
-                    content: "❌ Erro: Nenhum fluxo configurado encontrado.",
+                    content: "Erro: Nenhum fluxo configurado encontrado.",
                 },
             ])
             return
         }
 
-        console.log("🚀 Iniciando fluxo...")
+        console.log("Iniciando fluxo...")
 
         // Encontrar o nó START
         const startNode = savedFlow.nodes.find((node: any) => node.id === "start-node")
@@ -270,27 +270,27 @@ export default function AuraChat() {
             // Encontrar o primeiro nó conectado ao START
             const firstNode = findNextNode("start-node")
             if (firstNode) {
-                console.log("✅ Primeiro nó encontrado:", firstNode.id, firstNode.data?.customId)
+                console.log("Primeiro nó encontrado:", firstNode.id, firstNode.data?.customId)
                 processNode(firstNode)
             } else {
-                console.log("⚠️ Nenhum nó conectado ao START")
+                console.log("Nenhum nó conectado ao START")
                 setMessages((prev) => [
                     ...prev,
                     {
                         id: Date.now().toString(),
                         role: "assistant",
-                        content: "⚠️ Fluxo não está configurado corretamente - nenhum nó conectado ao início.",
+                        content: "Fluxo não está configurado corretamente - nenhum nó conectado ao início.",
                     },
                 ])
             }
         } else {
-            console.log("⚠️ Nó START não encontrado")
+            console.log("Nó START não encontrado")
             setMessages((prev) => [
                 ...prev,
                 {
                     id: Date.now().toString(),
                     role: "assistant",
-                    content: "⚠️ Fluxo inválido - nó de início não encontrado.",
+                    content: "Fluxo inválido - nó de início não encontrado.",
                 },
             ])
         }
@@ -298,11 +298,11 @@ export default function AuraChat() {
 
     const repeatOptions = () => {
         if (currentOptions.length > 0) {
-            let optionsText = "❌ Opção inválida! " + currentOptionsMessage + "\n\n"
+            let optionsText = "Opção inválida! " + currentOptionsMessage + "\n\n"
             currentOptions.forEach((option: any, index: number) => {
                 optionsText += `${index + 1}. ${option.text}\n`
             })
-            optionsText += "\n💡 Digite apenas o número da opção (1, 2, 3...)"
+            optionsText += "\nDica: digite apenas o número da opção (1, 2, 3...)"
 
             setMessages((prev) => [
                 ...prev,
@@ -322,7 +322,7 @@ export default function AuraChat() {
         if (!input.trim()) return
 
         const userInput = input.trim()
-        console.log("💬 Mensagem do usuário:", userInput)
+        console.log("Mensagem do usuário:", userInput)
 
         // Adicionar mensagem do usuário
         setMessages((prev) => [
@@ -339,7 +339,7 @@ export default function AuraChat() {
 
         // Se não há fluxo executado, mostrar mensagem de erro
         if (!isFlowExecuted || !savedFlow) {
-            console.log("⚠️ Sem fluxo executado, mostrando mensagem de erro")
+            console.log("Sem fluxo executado, mostrando mensagem de erro")
             setTimeout(() => {
                 setMessages((prev) => [
                     ...prev,
@@ -347,7 +347,7 @@ export default function AuraChat() {
                         id: Date.now().toString(),
                         role: "assistant",
                         content:
-                            "❌ Nenhum fluxo foi configurado ou executado.\n\nPor favor, acesse o painel administrativo e:\n1. Crie um fluxo\n2. Clique em 'Salvar'\n3. Clique em 'Executar'",
+                            "Nenhum fluxo foi configurado ou executado.\n\nPor favor, acesse o painel administrativo e:\n1. Crie um fluxo\n2. Clique em 'Salvar'\n3. Clique em 'Executar'",
                     },
                 ])
             }, 500)
@@ -355,7 +355,7 @@ export default function AuraChat() {
         }
 
         if (!currentNodeId && !waitingForUserInput) {
-            console.log("🚀 Primeira mensagem - iniciando fluxo do zero")
+            console.log("Primeira mensagem - iniciando fluxo do zero")
             setTimeout(() => {
                 startFlow()
             }, 800)
@@ -370,11 +370,11 @@ export default function AuraChat() {
                 const options = currentNode.data.options || []
                 const optionIndex = Number.parseInt(userInput) - 1
 
-                console.log("🔢 Processando opção:", userInput, "índice:", optionIndex, "total opções:", options.length)
+                console.log("Processando opção:", userInput, "índice:", optionIndex, "total opções:", options.length)
 
                 if (optionIndex >= 0 && optionIndex < options.length) {
                     // Opção válida - continuar para o próximo nó
-                    console.log("✅ Opção válida selecionada:", options[optionIndex].text)
+                    console.log("Opção válida selecionada:", options[optionIndex].text)
                     setWaitingForUserInput(false)
                     setTimeout(() => {
                         const nextNode = findNextNode(currentNodeId, optionIndex)
@@ -382,12 +382,12 @@ export default function AuraChat() {
                             processNode(nextNode)
                         } else {
                             setCurrentNodeId(null)
-                            console.log("✅ Fim do fluxo - conversa resetada")
+                            console.log("Fim do fluxo - conversa resetada")
                         }
                     }, 800)
                 } else {
                     // Opção inválida - repetir as opções
-                    console.log("❌ Opção inválida:", userInput)
+                    console.log("Opção inválida:", userInput)
                     setTimeout(() => {
                         repeatOptions()
                     }, 500)

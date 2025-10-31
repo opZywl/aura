@@ -111,7 +111,7 @@ const ColorPanel: React.FC = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   useEffect(() => {
-    console.log("🎨 Renderização do ColorPanel - showColorPanel:", showColorPanel)
+    console.log("Renderização do ColorPanel - showColorPanel:", showColorPanel)
   }, [showColorPanel])
 
   const createCustomGradient = () => {
@@ -144,7 +144,7 @@ const ColorPanel: React.FC = () => {
       // Aplicar as configurações imediatamente
       applyGlowFadeSettings()
 
-      console.log("✅ Configurações salvas e aplicadas:", settings)
+      console.log("Configurações salvas e aplicadas:", settings)
 
       // Feedback visual
       const root = document.documentElement
@@ -153,7 +153,7 @@ const ColorPanel: React.FC = () => {
         root.style.setProperty("--save-feedback", "transparent")
       }, 1000)
     } catch (error) {
-      console.error("❌ Erro ao salvar configurações:", error)
+      console.error("ERRO ao salvar configurações:", error)
     }
   }
 

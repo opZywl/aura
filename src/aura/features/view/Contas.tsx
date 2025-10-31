@@ -169,7 +169,7 @@ export default function Contas() {
   // Enhanced API health check
   const checkApiHealth = async () => {
     try {
-      console.log("🔍 Verificando saúde da API em:", `${API_BASE_URL}/api/health`)
+      console.log("Verificando saúde da API em:", `${API_BASE_URL}/api/health`)
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 8000)
 
@@ -188,25 +188,25 @@ export default function Contas() {
 
       if (response.ok) {
         const data = await response.json()
-        console.log("✅ API Health Check OK:", data)
+        console.log("API Health Check OK:", data)
         setApiError(null)
         return true
       } else {
-        console.log("❌ API Health Check Failed - Status:", response.status)
+        console.log("API Health Check Failed - Status:", response.status)
         setApiError("API_ERROR")
         return false
       }
     } catch (error) {
-      console.log("❌ API Health Check Error:", error)
+      console.log("API Health Check Error:", error)
       if (error instanceof Error) {
         if (error.name === "AbortError") {
-          console.log("⏰ Request timeout")
+          console.log("Request timeout")
           setApiError("API_TIMEOUT")
         } else if (error.message.includes("fetch")) {
-          console.log("🔌 Connection refused")
+          console.log("Connection refused")
           setApiError("API_NOT_RUNNING")
         } else {
-          console.log("❓ Unknown error")
+          console.log("Unknown error")
           setApiError("API_UNKNOWN")
         }
       } else {
@@ -228,7 +228,7 @@ export default function Contas() {
       if (response.ok) {
         const data = await response.json()
         setDebugInfo(data)
-        console.log("🐛 Debug Info:", data)
+        console.log("Debug Info:", data)
       }
     } catch (error) {
       console.log("Debug info fetch failed:", error)
@@ -244,11 +244,11 @@ export default function Contas() {
     setIsLoading(true)
     setApiError(null)
 
-    console.log("🚀 Iniciando fetchAccounts...")
+    console.log("Iniciando fetchAccounts...")
 
     const isApiHealthy = await checkApiHealth()
     if (!isApiHealthy) {
-      console.log("❌ API não está disponível")
+      console.log("API não está disponível")
       setConnectedAccounts([])
       setIsLoading(false)
       return
@@ -257,7 +257,7 @@ export default function Contas() {
     await fetchDebugInfo()
 
     try {
-      console.log("📡 Fazendo requisição para /api/accounts...")
+      console.log("Fazendo requisição para /api/accounts...")
       const response = await fetch(`${API_BASE_URL}/api/accounts`, {
         method: "GET",
         headers: {
@@ -268,23 +268,23 @@ export default function Contas() {
         credentials: "omit",
       })
 
-      console.log("📡 Response status:", response.status)
+      console.log("Response status:", response.status)
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error("❌ Response error:", errorText)
+        console.error("Response error:", errorText)
         throw new Error(`Erro HTTP: ${response.status} - ${errorText}`)
       }
 
       const data = await response.json()
-      console.log("📦 Dados recebidos da API:", data)
+      console.log("Dados recebidos da API:", data)
       setAccounts(data)
 
       const connected = data.map((acc: TelegramAccount) => ({
         id: acc.id,
-        platform: "telegram" as const,
+        platform: "telegram"as const,
         name: acc.botName,
-        status: "connected" as const,
+        status: "connected"as const,
         stats: {
           messages: 0,
           conversations: 0,
@@ -293,13 +293,13 @@ export default function Contas() {
       }))
 
       setConnectedAccounts(connected)
-      console.log("✅ Contas Telegram atualizadas:", connected)
+      console.log("Contas Telegram atualizadas:", connected)
 
       if (connected.length > 0) {
         await fetchAccountStats(connected)
       }
     } catch (error) {
-      console.error("❌ Erro ao buscar contas:", error)
+      console.error("Erro ao buscar contas:", error)
       setApiError("FETCH_ERROR")
       setConnectedAccounts([])
     } finally {
@@ -307,7 +307,7 @@ export default function Contas() {
     }
 
     try {
-      console.log("📸 Fazendo requisição para /api/instagram/accounts...")
+      console.log("Fazendo requisição para /api/instagram/accounts...")
       const instagramResponse = await fetch(`${API_BASE_URL}/api/instagram/accounts`, {
         method: "GET",
         headers: {
@@ -318,17 +318,17 @@ export default function Contas() {
         credentials: "omit",
       })
 
-      console.log("📸 Instagram Response status:", instagramResponse.status)
+      console.log("Instagram Response status:", instagramResponse.status)
 
       if (instagramResponse.ok) {
         const instagramData = await instagramResponse.json()
-        console.log("📦 Dados Instagram recebidos:", instagramData)
+        console.log("Dados Instagram recebidos:", instagramData)
 
         const instagramConnected = instagramData.map((acc: any) => ({
           id: acc.id,
-          platform: "instagram" as const,
+          platform: "instagram"as const,
           name: acc.displayName || acc.login,
-          status: acc.isActive ? ("connected" as const) : ("disconnected" as const),
+          status: acc.isActive ? ("connected"as const) : ("disconnected"as const),
           stats: {
             messages: 0,
             conversations: 0,
@@ -336,20 +336,20 @@ export default function Contas() {
           },
         }))
 
-        console.log("📸 Contas Instagram processadas:", instagramConnected)
+        console.log("Contas Instagram processadas:", instagramConnected)
 
         // CORRIGIDO: Adicionar às contas conectadas existentes
         setConnectedAccounts((prev) => {
           const telegramAccounts = prev.filter((acc) => acc.platform === "telegram")
           const allAccounts = [...telegramAccounts, ...instagramConnected]
-          console.log("📋 Total de contas após Instagram:", allAccounts)
+          console.log("Total de contas após Instagram:", allAccounts)
           return allAccounts
         })
       } else {
-        console.log("⚠️ Erro na resposta Instagram:", instagramResponse.status)
+        console.log("Erro na resposta Instagram:", instagramResponse.status)
       }
     } catch (error) {
-      console.error("❌ Erro ao buscar contas Instagram:", error)
+      console.error("Erro ao buscar contas Instagram:", error)
     }
   }
 
@@ -396,7 +396,7 @@ export default function Contas() {
     }
 
     setIsConnecting(true)
-    console.log("🔗 Tentando conectar conta:", {
+    console.log("Tentando conectar conta:", {
       botName: connectionData.botName,
       tokenLength: connectionData.botToken.length,
     })
@@ -416,16 +416,16 @@ export default function Contas() {
         }),
       })
 
-      console.log("📡 Response status (POST):", response.status)
+      console.log("Response status (POST):", response.status)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ erro: "Erro desconhecido" }))
-        console.error("❌ Erro na resposta:", errorData)
+        console.error("Erro na resposta:", errorData)
         throw new Error(errorData.erro || `HTTP ${response.status}`)
       }
 
       const newAccount = await response.json()
-      console.log("✅ Conta criada com sucesso:", newAccount)
+      console.log("Conta criada com sucesso:", newAccount)
 
       await fetchAccounts()
 
@@ -433,7 +433,7 @@ export default function Contas() {
       setConnectionData({ botToken: "", botName: "" })
       alert("Conta Telegram conectada com sucesso!")
     } catch (error) {
-      console.error("❌ Erro ao conectar:", error)
+      console.error("Erro ao conectar:", error)
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido"
       alert(`Erro ao conectar conta: ${errorMessage}`)
     } finally {
@@ -446,7 +446,7 @@ export default function Contas() {
       return
     }
 
-    console.log("🗑️ Removendo conta:", accountId)
+    console.log("Removendo conta:", accountId)
 
     try {
       // Determinar o tipo de conta pelo ID ou platform
@@ -466,15 +466,15 @@ export default function Contas() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error("❌ Delete error:", errorText)
+        console.error("Delete error:", errorText)
         throw new Error(`Erro ao excluir conta: HTTP ${response.status}`)
       }
 
-      console.log("✅ Conta removida com sucesso")
+      console.log("Conta removida com sucesso")
       await fetchAccounts()
       alert(t("accounts.accountRemovedSuccess"))
     } catch (error) {
-      console.error("❌ Erro ao excluir:", error)
+      console.error("Erro ao excluir:", error)
       alert(t("accounts.errorDeleting"))
     }
   }
@@ -614,18 +614,18 @@ export default function Contas() {
 
   // Instagram form handler
   const handleInstagramConnect = async () => {
-    console.log("📸 handleInstagramConnect - INICIANDO")
-    console.log("📦 Dados do formulário:", instagramData)
+    console.log("handleInstagramConnect - INICIANDO")
+    console.log("Dados do formulário:", instagramData)
 
     if (!instagramData.login || !instagramData.senha) {
-      console.error("❌ Campos obrigatórios vazios")
+      console.error("Campos obrigatórios vazios")
       alert("Preencha login e senha")
       return
     }
 
     setIsConnecting(true)
-    console.log("📸 Tentando conectar conta Instagram...")
-    console.log("📡 URL da API:", `${API_BASE_URL}/api/instagram/accounts`)
+    console.log("Tentando conectar conta Instagram...")
+    console.log("URL da API:", `${API_BASE_URL}/api/instagram/accounts`)
 
     try {
       const requestBody = {
@@ -635,7 +635,7 @@ export default function Contas() {
         description: instagramData.descricao.trim(),
       }
 
-      console.log("📤 Enviando dados:", {
+      console.log("Enviando dados:", {
         ...requestBody,
         password: "*".repeat(requestBody.password.length),
       })
@@ -651,12 +651,12 @@ export default function Contas() {
         body: JSON.stringify(requestBody),
       })
 
-      console.log("📡 Response status (POST Instagram):", response.status)
-      console.log("📡 Response headers:", Object.fromEntries(response.headers.entries()))
+      console.log("Response status (POST Instagram):", response.status)
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()))
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error("❌ Erro na resposta Instagram:", errorText)
+        console.error("Erro na resposta Instagram:", errorText)
 
         let errorData
         try {
@@ -669,10 +669,10 @@ export default function Contas() {
       }
 
       const newAccount = await response.json()
-      console.log("✅ Conta Instagram criada com sucesso:", newAccount)
+      console.log("Conta Instagram criada com sucesso:", newAccount)
 
       // Atualizar lista de contas
-      console.log("🔄 Atualizando lista de contas...")
+      console.log("Atualizando lista de contas...")
       await fetchAccounts()
 
       // Limpar formulário
@@ -684,10 +684,10 @@ export default function Contas() {
         descricao: "",
       })
 
-      console.log("🎉 Processo concluído com sucesso!")
+      console.log("Processo concluído com sucesso!")
       alert("Instagram conectado com sucesso!")
     } catch (error) {
-      console.error("❌ Erro ao conectar Instagram:", error)
+      console.error("Erro ao conectar Instagram:", error)
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido"
       alert(`Erro ao conectar Instagram: ${errorMessage}`)
     } finally {
@@ -1492,7 +1492,7 @@ export default function Contas() {
                             theme === "dark" ? "bg-yellow-900/20 border-yellow-800" : "bg-yellow-50 border-yellow-200"
                         }`}
                     >
-                      ⚠️ {getApiErrorMessage()}
+                       {getApiErrorMessage()}
                     </p>
                 )}
               </div>
@@ -1666,12 +1666,12 @@ export default function Contas() {
                   color: theme === "dark" ? "#4ade80" : "#16a34a",
                 }}
             >
-              <p>🐛 Debug: API Status = {debugInfo.status}</p>
+              <p> Debug: API Status = {debugInfo.status}</p>
               <p>
-                📊 Accounts: {debugInfo.accounts_count} | Conversations: {debugInfo.conversations_count}
+                 Accounts: {debugInfo.accounts_count} | Conversations: {debugInfo.conversations_count}
               </p>
-              <p>🌐 Ngrok: {debugInfo.ngrok_url || "Not configured"}</p>
-              <p>🔗 API Base: {API_BASE_URL}</p>
+              <p> Ngrok: {debugInfo.ngrok_url || "Not configured"}</p>
+              <p> API Base: {API_BASE_URL}</p>
             </div>
         )}
 
@@ -1705,7 +1705,7 @@ export default function Contas() {
                           textShadow: `0 0 8px rgba(239, 68, 68, 0.5)`,
                         }}
                     >
-                      🚫 Flask API Offline
+                       Flask API Offline
                     </p>
                     <p className={`text-sm ${theme === "dark" ? "text-red-300" : "text-red-700"}`}>
                       {getApiErrorMessage()}
@@ -2314,7 +2314,7 @@ export default function Contas() {
                         textShadow: `0 0 8px rgba(245, 158, 11, 0.5)`,
                       }}
                   >
-                    ⚠️ {t("accounts.needHelp")}
+                     {t("accounts.needHelp")}
                   </h3>
                   <p
                       className={`${theme === "dark" ? "text-yellow-300" : "text-yellow-700"}`}

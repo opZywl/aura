@@ -80,7 +80,7 @@ export const OptionsNode = memo(({ data, isConnectable, onRemove, onUpdateData }
             <List className="h-3 w-3" />
           </div>
           <div className="ml-2">
-            <div className="text-sm font-bold text-white">🚀 Opções - ID: {data.customId || "#1"}</div>
+            <div className="text-sm font-bold text-white"> Opções - ID: {data.customId || "#1"}</div>
           </div>
         </div>
       </div>

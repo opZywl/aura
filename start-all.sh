@@ -20,24 +20,24 @@ cleanup() {
 # Capturar Ctrl+C
 trap cleanup SIGINT SIGTERM
 
-echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║     Iniciando Aura Dev Services        ║${NC}"
-echo -e "${BLUE}╚════════════════════════════════════════╝${NC}\n"
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}|     Iniciando Aura Dev Services      |${NC}"
+echo -e "${BLUE}========================================${NC}\n"
 
 # Verificar se as dependências estão instaladas
 if ! command -v python3 &> /dev/null; then
-    echo -e "${RED}❌ Python3 não encontrado. Instale o Python3 primeiro.${NC}"
+    echo -e "${RED}ERRO: Python3 não encontrado. Instale o Python3 primeiro.${NC}"
     exit 1
 fi
 
 if ! command -v node &> /dev/null; then
-    echo -e "${RED}❌ Node.js não encontrado. Instale o Node.js primeiro.${NC}"
+    echo -e "${RED}ERRO: Node.js não encontrado. Instale o Node.js primeiro.${NC}"
     exit 1
 fi
 
 # Iniciar Backend Python/Flask
 if [ -f "backend/app.py" ] || [ -f "server.py" ] || [ -f "api/app.py" ]; then
-    echo -e "${GREEN}🐍 Iniciando Backend Python/Flask...${NC}"
+    echo -e "${GREEN}Iniciando Backend Python/Flask...${NC}"
 
     # Tentar encontrar o arquivo principal
     if [ -f "backend/app.py" ]; then
@@ -53,22 +53,22 @@ if [ -f "backend/app.py" ] || [ -f "server.py" ] || [ -f "api/app.py" ]; then
         cd ..
     fi
 
-    echo -e "${GREEN}✓ Backend iniciado (PID: $BACKEND_PID)${NC}\n"
+    echo -e "${GREEN}[OK] Backend iniciado (PID: $BACKEND_PID)${NC}\n"
     sleep 2
 else
-    echo -e "${YELLOW}⚠ Nenhum arquivo Python encontrado. Pulando backend...${NC}\n"
+    echo -e "${YELLOW}AVISO: Nenhum arquivo Python encontrado. Pulando backend...${NC}\n"
 fi
 
 # Iniciar Frontend Next.js
-echo -e "${GREEN}⚛️  Iniciando Frontend Next.js...${NC}"
+echo -e "${GREEN}Iniciando Frontend Next.js...${NC}"
 npm run dev &
 FRONTEND_PID=$!
-echo -e "${GREEN}✓ Frontend iniciado (PID: $FRONTEND_PID)${NC}\n"
+echo -e "${GREEN}[OK] Frontend iniciado (PID: $FRONTEND_PID)${NC}\n"
 sleep 3
 
 # Iniciar Ngrok
 if command -v ngrok &> /dev/null; then
-    echo -e "${GREEN}🌐 Iniciando Ngrok...${NC}"
+    echo -e "${GREEN}Iniciando Ngrok...${NC}"
 
     # Porta padrão do Next.js
     NEXT_PORT=3000
@@ -79,7 +79,7 @@ if command -v ngrok &> /dev/null; then
     # Iniciar ngrok para o frontend
     ngrok http $NEXT_PORT --log=stdout > ngrok.log &
     NGROK_PID=$!
-    echo -e "${GREEN}✓ Ngrok iniciado para porta $NEXT_PORT (PID: $NGROK_PID)${NC}\n"
+    echo -e "${GREEN}[OK] Ngrok iniciado para porta $NEXT_PORT (PID: $NGROK_PID)${NC}\n"
 
     sleep 2
 
@@ -87,28 +87,27 @@ if command -v ngrok &> /dev/null; then
     if command -v curl &> /dev/null; then
         NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o '"public_url":"[^"]*' | grep -o 'https://[^"]*' | head -1)
         if [ ! -z "$NGROK_URL" ]; then
-            echo -e "${BLUE}🔗 URL Pública Ngrok: ${NGROK_URL}${NC}\n"
+            echo -e "${BLUE}URL pública do Ngrok: ${NGROK_URL}${NC}\n"
         fi
     fi
 else
-    echo -e "${YELLOW}⚠ Ngrok não encontrado. Instale com: npm install -g ngrok${NC}\n"
+    echo -e "${YELLOW}AVISO: Ngrok não encontrado. Instale com: npm install -g ngrok${NC}\n"
 fi
 
 # Exibir informações dos serviços
-echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║         Serviços em Execução           ║${NC}"
-echo -e "${BLUE}╠════════════════════════════════════════╣${NC}"
-echo -e "${BLUE}║${NC} Frontend: ${GREEN}http://localhost:3000${NC}      ${BLUE}║${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}|         Serviços em Execução         |${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}|${NC} Frontend: ${GREEN}http://localhost:3000${NC}      ${BLUE}|${NC}"
 if [ ! -z "$BACKEND_PID" ]; then
-    echo -e "${BLUE}║${NC} Backend:  ${GREEN}http://localhost:5000${NC}      ${BLUE}║${NC}"
+    echo -e "${BLUE}|${NC} Backend:  ${GREEN}http://localhost:5000${NC}      ${BLUE}|${NC}"
 fi
 if [ ! -z "$NGROK_URL" ]; then
-    echo -e "${BLUE}║${NC} Ngrok:    ${GREEN}$NGROK_URL${NC}"
+    echo -e "${BLUE}|${NC} Ngrok:    ${GREEN}$NGROK_URL${NC}"
 fi
-echo -e "${BLUE}╚════════════════════════════════════════╝${NC}\n"
+echo -e "${BLUE}========================================${NC}\n"
 
 echo -e "${YELLOW}Pressione Ctrl+C para encerrar todos os serviços${NC}\n"
 
 # Manter o script rodando
 wait
-</merged_code

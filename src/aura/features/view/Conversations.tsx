@@ -137,7 +137,7 @@ export default function Conversations() {
 
   const getSatisfactionStars = (rating?: number) => {
     if (!rating) return "N/A"
-    return "★".repeat(rating) + "☆".repeat(5 - rating)
+    return `${rating}/5`
   }
 
   const totalConversations = conversations.length

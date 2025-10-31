@@ -32,7 +32,7 @@ export const FinalizarNode = memo(({ data, isConnectable, onRemove }: FinalizarN
                     <CheckCircle className="h-3 w-3" />
                 </div>
                 <div className="ml-2">
-                    <div className="text-sm font-bold text-gray-800">🔚 Finalizar</div>
+                    <div className="text-sm font-bold text-gray-800">Finalizar</div>
                 </div>
             </div>
 

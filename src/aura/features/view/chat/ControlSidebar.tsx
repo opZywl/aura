@@ -133,12 +133,12 @@ export default function ControlSidebar({
 
   const handleThemeSettingChange = (setting: keyof ThemeSettings, value: any) => {
     const newSettings = { ...themeSettings, [setting]: value }
-    console.log(`🔧 Alterando ${setting}:`, value)
+    console.log(`Alterando ${setting}:`, value)
     onThemeSettingsChange(newSettings)
   }
 
   const applyGradientTheme = (gradientTheme: any) => {
-    console.log("🎨 Aplicando tema gradiente:", gradientTheme.name)
+    console.log("Aplicando tema gradiente:", gradientTheme.name)
 
     const root = document.documentElement
     root.style.setProperty("--chat-gradient-primary", gradientTheme.primary)
@@ -357,7 +357,7 @@ export default function ControlSidebar({
               className={`w-96 max-h-[80vh] overflow-y-auto scrollbar-hide backdrop-blur-sm ${theme === "dark" ? "bg-gray-900/95 text-gray-100 border-gray-700" : "bg-white/95 border-gray-200"}`}
             >
               <DropdownMenuLabel className="text-lg font-bold chat-glow-title">
-                {t("colorPanel.title") || "🎨 Personalização Visual"}
+                {t("colorPanel.title") || "Personalização Visual"}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <div className="p-4 space-y-6">
@@ -388,7 +388,7 @@ export default function ControlSidebar({
                 {/* Glow Effects */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium chat-glow-title">
-                    {t("colorPanel.glowSettings") || "✨ Configurações de Glow"}
+                    {t("colorPanel.glowSettings") || "Configurações de Glow"}
                   </h3>
 
                   <div className="flex items-center justify-between">
@@ -453,7 +453,7 @@ export default function ControlSidebar({
                 {/* Fade Effects */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium chat-glow-title">
-                    {t("colorPanel.fadeEffects") || "🌈 Efeitos de Fade"}
+                    {t("colorPanel.fadeEffects") || "Efeitos de Fade"}
                   </h3>
 
                   <div className="flex items-center justify-between">
@@ -523,7 +523,7 @@ export default function ControlSidebar({
                 {/* Text Animations */}
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium chat-glow-title">
-                    {t("settings.themes.textAnimations") || "🎭 Animações de Texto"}
+                    {t("settings.themes.textAnimations") || "Animações de Texto"}
                   </span>
                   <Switch
                     checked={themeSettings.textAnimations}
@@ -541,7 +541,7 @@ export default function ControlSidebar({
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white transition-all hover:scale-105"
                     data-save-button
                   >
-                    {t("colorPanel.saveSettings") || "💾 Salvar"}
+                    {t("colorPanel.saveSettings") || "Salvar"}
                   </Button>
                   <Button
                     onClick={onResetSettings}
@@ -550,15 +550,15 @@ export default function ControlSidebar({
                     className="flex-1 hover:scale-105 transition-all"
                     data-reset-button
                   >
-                    {t("colorPanel.resetSettings") || "🔄 Reset"}
+                    {t("colorPanel.resetSettings") || "Reset"}
                   </Button>
                 </div>
 
                 {/* Status Indicator */}
                 <div className="text-xs text-center opacity-70">
                   <div className="chat-fade-text">
-                    Glow: {themeSettings.glowEffects ? "✅" : "❌"} | Fade: {themeSettings.fadeEnabled ? "✅" : "❌"} |
-                    Anim: {themeSettings.textAnimations ? "✅" : "❌"}
+                    Glow: {themeSettings.glowEffects ? "Sim" : "Não"} | Fade: {themeSettings.fadeEnabled ? "Sim" : "Não"} |
+                    Anim: {themeSettings.textAnimations ? "Sim" : "Não"}
                   </div>
                   <div className="text-xs mt-1 opacity-50">Tema: {themeSettings.currentGradient}</div>
                 </div>

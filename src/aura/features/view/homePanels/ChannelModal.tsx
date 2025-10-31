@@ -24,19 +24,19 @@ const ChannelModal: React.FC<ChannelModalProps> = ({ isOpen, onClose }) => {
     {
       id: "telegram",
       name: "Telegram",
-      icon: "🔵",
+    icon: "AZUL",
       color: "#0088cc",
     },
     {
       id: "messenger",
       name: "Messenger",
-      icon: "🔵",
+    icon: "AZUL",
       color: "#0084ff",
     },
     {
       id: "whatsapp",
       name: "WhatsApp",
-      icon: "🟢",
+    icon: "VERDE",
       color: "#25d366",
     },
   ]

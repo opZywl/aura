@@ -14,7 +14,7 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
 
 ---
 
-## 🛠️ Pré-requisitos
+## Pré-requisitos
 
 - Python 3.9+
 - Node.js 18+ com npm ou pnpm
@@ -22,7 +22,7 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
 
 ---
 
-## 🚀 Instalação
+## Instalação
 
 1. **Clone o repositório**
    ```bash
@@ -54,7 +54,7 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
 
 ---
 
-## ▶️ Como executar
+## Como executar
 
 1. **Inicie o backend**
    ```bash
@@ -80,6 +80,6 @@ Um chatbot com CRM integrado para otimizar o atendimento ao cliente.
 
 ---
 
-## 📜 Licença
+## Licença
 
 Este projeto está licenciado sob a [MIT License](LICENSE).

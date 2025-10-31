@@ -185,7 +185,7 @@ function HomeContent() {
                       </>
                   )}
                   <span className="relative z-10 font-medium">
-                  ✨ 100% experimental – válido até o final do semestre!
+                  100% experimental – válido até o final do semestre!
                 </span>
                 </div>
               </div>
