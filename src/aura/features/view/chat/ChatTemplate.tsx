@@ -21,13 +21,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
 const determineMessageRole = (sender: string | undefined | null): "user" | "operator" => {
     if (!sender || typeof sender !== "string") {
-        console.warn("⚠️ Sender inválido:", sender, "- assumindo como user")
+        console.warn("AVISO: Sender inválido:", sender, "- assumindo como user")
         return "user"
     }
 
     const operatorSenders = ["operator", "assistant", "bot", "system"]
     const result = operatorSenders.includes(sender.toLowerCase()) ? "operator" : "user"
-    console.log(`📝 determineMessageRole: "${sender}" -> "${result}"`)
+    console.log(`Anotação determineMessageRole: "${sender}" -> "${result}"`)
     return result
 }
 
@@ -45,7 +45,7 @@ const chatAPI = {
             clearTimeout(timeoutId)
             return response.ok
         } catch (error) {
-            console.warn("🔌 Backend API não disponível:", error)
+            console.warn("Conexão Backend API não disponível:", error)
             return false
         }
     },
@@ -57,10 +57,10 @@ const chatAPI = {
             if (!response.ok) throw new Error("Failed to fetch conversations")
 
             const data = await response.json()
-            console.log("✅ Conversas reais carregadas:", data)
+            console.log("[OK] Conversas reais carregadas:", data)
             return data
         } catch (error) {
-            console.error("❌ Erro ao carregar conversas:", error)
+            console.error("ERRO: Erro ao carregar conversas:", error)
             return []
         }
     },
@@ -71,10 +71,10 @@ const chatAPI = {
             if (!response.ok) throw new Error("Failed to fetch conversation")
 
             const data = await response.json()
-            console.log("✅ Detalhes da conversa:", data)
+            console.log("[OK] Detalhes da conversa:", data)
             return data
         } catch (error) {
-            console.error("❌ Erro ao carregar conversa:", error)
+            console.error("ERRO: Erro ao carregar conversa:", error)
             return null
         }
     },
@@ -95,10 +95,10 @@ const chatAPI = {
             if (!response.ok) throw new Error("Failed to fetch messages")
 
             const data = await response.json()
-            console.log(`✅ ${data.length} mensagens carregadas para conversa ${conversationId}`)
+            console.log(`[OK] ${data.length} mensagens carregadas para conversa ${conversationId}`)
             return data
         } catch (error) {
-            console.error("❌ Erro ao carregar mensagens:", error)
+            console.error("ERRO: Erro ao carregar mensagens:", error)
             return []
         }
     },
@@ -118,10 +118,10 @@ const chatAPI = {
             }
 
             const data = await response.json()
-            console.log("✅ Mensagem enviada via API:", data)
+            console.log("[OK] Mensagem enviada via API:", data)
             return data
         } catch (error) {
-            console.error("❌ Erro ao enviar mensagem:", error)
+            console.error("ERRO: Erro ao enviar mensagem:", error)
             throw error
         }
     },
@@ -137,17 +137,17 @@ const chatAPI = {
             if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to rename conversation`)
 
             const data = await response.json()
-            console.log("✅ Conversa renomeada:", data)
+            console.log("[OK] Conversa renomeada:", data)
             return data
         } catch (error) {
-            console.error("❌ Erro ao renomear conversa:", error)
+            console.error("ERRO: Erro ao renomear conversa:", error)
             throw error
         }
     },
 
     deleteConversation: async (conversationId: string): Promise<void> => {
         try {
-            console.log(`🗑️ Deletando conversa via API: ${conversationId}`)
+            console.log(`Excluir Deletando conversa via API: ${conversationId}`)
 
             const response = await fetch(`${API_BASE_URL}/api/conversations/${conversationId}`, {
                 method: "DELETE",
@@ -158,9 +158,9 @@ const chatAPI = {
                 throw new Error(errorData.erro || `HTTP ${response.status}: Failed to delete conversation`)
             }
 
-            console.log("✅ Conversa deletada via API com sucesso")
+            console.log("[OK] Conversa deletada via API com sucesso")
         } catch (error) {
-            console.error("❌ Erro ao deletar conversa:", error)
+            console.error("ERRO: Erro ao deletar conversa:", error)
             throw error
         }
     },
@@ -172,9 +172,9 @@ const chatAPI = {
             })
 
             if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to delete message`)
-            console.log("✅ Mensagem deletada via API")
+            console.log("[OK] Mensagem deletada via API")
         } catch (error) {
-            console.error("❌ Erro ao deletar mensagem:", error)
+            console.error("ERRO: Erro ao deletar mensagem:", error)
             throw error
         }
     },
@@ -190,17 +190,17 @@ const chatAPI = {
             if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to edit message`)
 
             const data = await response.json()
-            console.log("✅ Mensagem editada:", data)
+            console.log("[OK] Mensagem editada:", data)
             return data
         } catch (error) {
-            console.error("❌ Erro ao editar mensagem:", error)
+            console.error("ERRO: Erro ao editar mensagem:", error)
             throw error
         }
     },
 
     archiveConversation: async (conversationId: string, isArchived: boolean): Promise<any> => {
         try {
-            console.log(`📁 ${isArchived ? "Arquivando" : "Desarquivando"} conversa: ${conversationId}`)
+            console.log(`${isArchived ? "Arquivando" : "Desarquivando"} conversa: ${conversationId}`)
 
             const response = await fetch(`${API_BASE_URL}/api/conversations/${conversationId}/archive`, {
                 method: "PATCH",
@@ -214,41 +214,41 @@ const chatAPI = {
             }
 
             const data = await response.json()
-            console.log("✅ Conversa arquivada via API:", data)
+            console.log("[OK] Conversa arquivada via API:", data)
             return data
         } catch (error) {
-            console.error("❌ Erro ao arquivar conversa:", error)
+            console.error("ERRO: Erro ao arquivar conversa:", error)
             throw error
         }
     },
 
     streamConversation: (conversationId: string, onMessage: (message: any) => void): EventSource => {
         try {
-            console.log(`🔄 Iniciando stream SSE para conversa: ${conversationId}`)
+            console.log(`Iniciando stream SSE para conversa: ${conversationId}`)
             const eventSource = new EventSource(`${API_BASE_URL}/api/conversations/${conversationId}/stream`)
 
             eventSource.onmessage = (event) => {
                 try {
                     const message = JSON.parse(event.data)
-                    console.log("📨 Nova mensagem via SSE:", message)
+                    console.log("Nova mensagem via SSE:", message)
                     onMessage(message)
                 } catch (error) {
-                    console.error("❌ Erro ao processar mensagem SSE:", error)
+                    console.error("ERRO: Erro ao processar mensagem SSE:", error)
                 }
             }
 
             eventSource.onerror = (error) => {
-                console.error("❌ Erro na conexão SSE:", error)
+                console.error("ERRO: Erro na conexão SSE:", error)
 
                 setTimeout(() => {
-                    console.log("🔄 Tentando reconectar SSE...")
+                    console.log("Tentando reconectar SSE...")
                     eventSource.close()
                 }, 5000)
             }
 
             return eventSource
         } catch (error) {
-            console.error("❌ Erro ao criar conexão SSE:", error)
+            console.error("ERRO: Erro ao criar conexão SSE:", error)
 
             return {
                 close: () => console.log("Fechando SSE falso"),
@@ -263,10 +263,10 @@ const chatAPI = {
             if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to fetch debug status`)
 
             const data = await response.json()
-            console.log("🔍 Status de debug:", data)
+            console.log("Detalhe Status de debug:", data)
             return data
         } catch (error) {
-            console.error("❌ Erro ao obter status de debug:", error)
+            console.error("ERRO: Erro ao obter status de debug:", error)
             return null
         }
     },
@@ -281,10 +281,10 @@ const chatAPI = {
             if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to create test conversation`)
 
             const data = await response.json()
-            console.log("🧪 Conversa de teste criada:", data)
+            console.log("Teste Conversa de teste criada:", data)
             return data
         } catch (error) {
-            console.error("❌ Erro ao criar conversa de teste:", error)
+            console.error("ERRO: Erro ao criar conversa de teste:", error)
             throw error
         }
     },
@@ -293,7 +293,7 @@ const chatAPI = {
 // Adicionar função de teste de conectividade
 const testAPIConnectivity = async () => {
     try {
-        console.log("🔍 Testando conectividade da API...")
+        console.log("Detalhe Testando conectividade da API...")
 
         const response = await fetch(`${API_BASE_URL}/api/health`, {
             method: "GET",
@@ -302,14 +302,14 @@ const testAPIConnectivity = async () => {
 
         if (response.ok) {
             const data = await response.json()
-            console.log("✅ API conectada:", data)
+            console.log("[OK] API conectada:", data)
             return true
         } else {
-            console.error("❌ API retornou erro:", response.status)
+            console.error("ERRO: API retornou erro:", response.status)
             return false
         }
     } catch (error) {
-        console.error("❌ Erro de conectividade:", error)
+        console.error("ERRO: Erro de conectividade:", error)
         return false
     }
 }
@@ -366,7 +366,7 @@ const DEFAULT_THEME_SETTINGS: ThemeSettings = {
 const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
     const root = document.documentElement
 
-    console.log("🎨 Aplicando configurações de tema:", settings)
+    console.log("Aplicando configurações de tema:", settings)
 
     // Apply glow settings
     if (settings.glowEffects) {
@@ -387,13 +387,13 @@ const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
             root.style.setProperty("--chat-glow-animation", "none")
         }
 
-        console.log("✅ Glow effects aplicados:", { intensity, thickness, animation: settings.glowAnimation })
+        console.log("[OK] Glow effects aplicados:", { intensity, thickness, animation: settings.glowAnimation })
     } else {
         root.style.setProperty("--chat-glow-intensity", "0")
         root.style.setProperty("--chat-glow-thickness", "0px")
         root.style.setProperty("--chat-title-glow", "none")
         root.style.setProperty("--chat-glow-animation", "none")
-        console.log("❌ Glow effects desabilitados")
+        console.log("ERRO: Glow effects desabilitados")
     }
 
     // Apply fade settings
@@ -414,7 +414,7 @@ const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
             root.style.setProperty("--chat-fade-animation", "none")
         }
 
-        console.log("✅ Fade effects aplicados:", {
+        console.log("[OK] Fade effects aplicados:", {
             color1: settings.fadeColor1,
             color2: settings.fadeColor2,
             speed: settings.fadeSpeed,
@@ -422,16 +422,16 @@ const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
         })
     } else {
         root.style.setProperty("--chat-fade-animation", "none")
-        console.log("❌ Fade effects desabilitados")
+        console.log("ERRO: Fade effects desabilitados")
     }
 
     // Apply text animations
     if (settings.textAnimations) {
         root.style.setProperty("--chat-text-animations", "1")
-        console.log("✅ Text animations habilitadas")
+        console.log("[OK] Text animations habilitadas")
     } else {
         root.style.setProperty("--chat-text-animations", "0")
-        console.log("❌ Text animations desabilitadas")
+        console.log("ERRO: Text animations desabilitadas")
     }
 
     // Apply theme colors
@@ -503,7 +503,7 @@ const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
     root.style.setProperty("--chat-glow-color-light", currentGradient.glowLight)
     root.style.setProperty("--chat-glow-color-strong", currentGradient.glowStrong)
 
-    console.log("🎨 Tema aplicado:", settings.currentGradient)
+    console.log("Tema aplicado:", settings.currentGradient)
 }
 
 // Component that uses the language context
@@ -554,19 +554,19 @@ const ChatTemplateContent = () => {
     const loadConversations = async () => {
         try {
             setLoading(true)
-            console.log("🔄 Verificando disponibilidade da API...")
+            console.log("Verificando disponibilidade da API...")
 
             const isAvailable = await chatAPI.checkHealth()
             setApiAvailable(isAvailable)
 
             if (!isAvailable) {
-                console.warn("⚠️ API não disponível - Chat funcionará apenas quando houver conversas do Telegram")
+                console.warn("AVISO: API não disponível - Chat funcionará apenas quando houver conversas do Telegram")
                 setConversations([])
                 setLoading(false)
                 return
             }
 
-            console.log("🔄 Carregando conversas reais do Telegram...")
+            console.log("Carregando conversas reais do Telegram...")
             const apiConversations = await chatAPI.getConversations()
 
             const formattedConversations: Conversation[] = apiConversations.map((conv) => ({
@@ -585,7 +585,7 @@ const ChatTemplateContent = () => {
             }))
 
             setConversations(formattedConversations)
-            console.log(`✅ ${formattedConversations.length} conversas reais carregadas`)
+            console.log(`[OK] ${formattedConversations.length} conversas reais carregadas`)
 
             // Set first conversation as current if exists
             if (formattedConversations.length > 0 && !currentConversation) {
@@ -593,7 +593,7 @@ const ChatTemplateContent = () => {
                 await loadMessages(formattedConversations[0].id)
             }
         } catch (error) {
-            console.error("❌ Erro ao carregar conversas:", error)
+            console.error("ERRO: Erro ao carregar conversas:", error)
             setConversations([])
         } finally {
             setLoading(false)
@@ -603,13 +603,13 @@ const ChatTemplateContent = () => {
     // Load messages for a conversation - com lógica consistente de role
     const loadMessages = async (conversationId: string) => {
         try {
-            console.log(`🔄 Carregando mensagens para conversa: ${conversationId}`)
+            console.log(`Carregando mensagens para conversa: ${conversationId}`)
             const apiMessages = await chatAPI.getMessages(conversationId)
 
             const formattedMessages: Message[] = apiMessages
                 .map((msg, index) => {
                     const role = determineMessageRole(msg.sender)
-                    console.log(`📝 Mensagem ${index}: sender="${msg.sender}" -> role="${role}"`)
+                    console.log(`Anotação Mensagem ${index}: sender="${msg.sender}" -> role="${role}"`)
 
                     return {
                         id: msg.id || `api-${conversationId}-${index}-${Date.now()}`,
@@ -622,9 +622,9 @@ const ChatTemplateContent = () => {
                 .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Ordenar por timestamp
 
             setMessages(formattedMessages)
-            console.log(`✅ ${formattedMessages.length} mensagens carregadas e ordenadas`)
+            console.log(`[OK] ${formattedMessages.length} mensagens carregadas e ordenadas`)
         } catch (error) {
-            console.error("❌ Erro ao carregar mensagens:", error)
+            console.error("ERRO: Erro ao carregar mensagens:", error)
             setMessages([])
         }
     }
@@ -632,12 +632,12 @@ const ChatTemplateContent = () => {
     // Send message (integra com Telegram) - CORRIGIDO para enviar realmente
     const sendMessage = async (content: string) => {
         if (!currentConversation || !apiAvailable) {
-            console.warn("⚠️ Não é possível enviar mensagem - conversa ou API indisponível")
+            console.warn("AVISO: Não é possível enviar mensagem - conversa ou API indisponível")
             return
         }
 
         try {
-            console.log("📤 Enviando mensagem:", content)
+            console.log("Envio Enviando mensagem:", content)
 
             // Enviar mensagem via API (será enviada para o Telegram)
             const apiMessage = await chatAPI.sendMessage(currentConversation.id, "operator", content)
@@ -663,9 +663,9 @@ const ChatTemplateContent = () => {
                 ),
             )
 
-            console.log("✅ Mensagem enviada com sucesso!")
+            console.log("[OK] Mensagem enviada com sucesso!")
         } catch (error) {
-            console.error("❌ Erro ao enviar mensagem:", error)
+            console.error("ERRO: Erro ao enviar mensagem:", error)
 
             // Em caso de erro, adicionar mensagem localmente como fallback com ID único
             const fallbackMessage: Message = {
@@ -686,12 +686,12 @@ const ChatTemplateContent = () => {
     // Delete conversation - CORRIGIDO
     const deleteConversation = async (conversationId: string) => {
         if (!apiAvailable) {
-            console.warn("⚠️ API não disponível - não é possível deletar conversa")
+            console.warn("AVISO: API não disponível - não é possível deletar conversa")
             return
         }
 
         try {
-            console.log(`🗑️ Deletando conversa: ${conversationId}`)
+            console.log(`Excluir Deletando conversa: ${conversationId}`)
 
             // Deletar via API
             await chatAPI.deleteConversation(conversationId)
@@ -711,9 +711,9 @@ const ChatTemplateContent = () => {
                 }
             }
 
-            console.log("✅ Conversa deletada com sucesso!")
+            console.log("[OK] Conversa deletada com sucesso!")
         } catch (error) {
-            console.error("❌ Erro ao deletar conversa:", error)
+            console.error("ERRO: Erro ao deletar conversa:", error)
             // Mostrar erro para o usuário
             alert("Erro ao finalizar conversa. Tente novamente.")
         }
@@ -725,25 +725,25 @@ const ChatTemplateContent = () => {
         const isConnected = await testAPIConnectivity()
 
         if (!isConnected) {
-            alert("❌ Erro de conexão com o backend. Verifique se o servidor está rodando na porta 3001.")
+            alert("ERRO: Erro de conexão com o backend. Verifique se o servidor está rodando na porta 3001.")
             return
         }
 
         if (!apiAvailable) {
-            console.warn("⚠️ API não disponível - não é possível arquivar conversa")
+            console.warn("AVISO: API não disponível - não é possível arquivar conversa")
             return
         }
 
         const conversation = conversations.find((c) => c.id === conversationId)
         if (!conversation) {
-            console.warn("⚠️ Conversa não encontrada na lista local")
+            console.warn("AVISO: Conversa não encontrada na lista local")
             return
         }
 
         const newArchivedState = !conversation.isArchived
 
         try {
-            console.log(`📁 Tentando ${newArchivedState ? "arquivar" : "desarquivar"} conversa: ${conversationId}`)
+            console.log(`Tentando ${newArchivedState ? "arquivar" : "desarquivar"} conversa: ${conversationId}`)
 
             // Update via API
             await chatAPI.archiveConversation(conversationId, newArchivedState)
@@ -753,15 +753,15 @@ const ChatTemplateContent = () => {
                 prev.map((conv) => (conv.id === conversationId ? { ...conv, isArchived: newArchivedState } : conv)),
             )
 
-            console.log(`✅ Conversa ${newArchivedState ? "arquivada" : "desarquivada"} com sucesso: ${conversationId}`)
+            console.log(`[OK] Conversa ${newArchivedState ? "arquivada" : "desarquivada"} com sucesso: ${conversationId}`)
         } catch (error) {
-            console.error("❌ Erro ao arquivar conversa:", error)
+            console.error("ERRO: Erro ao arquivar conversa:", error)
 
             // Verificar se é erro de rede ou do servidor
             if (error.message.includes("Failed to fetch") || error.message.includes("HTTP")) {
-                alert("❌ Erro de conexão. Verifique se o backend está rodando:\n\npython src/aura/app.py")
+                alert("ERRO: Erro de conexão. Verifique se o backend está rodando:\n\npython src/aura/app.py")
             } else {
-                alert(`❌ Erro ao ${conversation.isArchived ? "desarquivar" : "arquivar"} conversa: ${error.message}`)
+                alert(`ERRO: Erro ao ${conversation.isArchived ? "desarquivar" : "arquivar"} conversa: ${error.message}`)
             }
         }
     }
@@ -784,16 +784,16 @@ const ChatTemplateContent = () => {
                 prev.map((conv) => (conv.id === conversationId ? { ...conv, isArchived: newArchivedState } : conv)),
             )
 
-            console.log(`✅ Conversa ${newArchivedState ? "arquivada" : "desarquivada"}: ${conversationId}`)
+            console.log(`[OK] Conversa ${newArchivedState ? "arquivada" : "desarquivada"}: ${conversationId}`)
         } catch (error) {
-            console.error("❌ Erro ao arquivar conversa:", error)
+            console.error("ERRO: Erro ao arquivar conversa:", error)
         }
     }
 
     // SSE connection for real-time updates - DESABILITADO por enquanto
     const setupSSE = (conversationId: string) => {
         // SSE desabilitado por enquanto - usando polling
-        console.log(`⚠️ SSE desabilitado - usando polling para conversa: ${conversationId}`)
+        console.log(`AVISO: SSE desabilitado - usando polling para conversa: ${conversationId}`)
         return
     }
 
@@ -803,7 +803,7 @@ const ChatTemplateContent = () => {
 
         const pollForUpdates = async () => {
             try {
-                console.log("🔄 Polling: Verificando atualizações...")
+                console.log("Polling: Verificando atualizações...")
 
                 // Verificar novas conversas
                 const apiConversations = await chatAPI.getConversations()
@@ -811,7 +811,7 @@ const ChatTemplateContent = () => {
                 const newConversations = apiConversations.filter((conv) => !currentIds.includes(conv.id))
 
                 if (newConversations.length > 0) {
-                    console.log(`📨 ${newConversations.length} novas conversas detectadas`)
+                    console.log(`${newConversations.length} novas conversas detectadas`)
 
                     const formattedNew: Conversation[] = newConversations.map((conv) => ({
                         id: conv.id,
@@ -841,7 +841,7 @@ const ChatTemplateContent = () => {
                 })
 
                 if (updatedConversations.length > 0) {
-                    console.log(`🔄 ${updatedConversations.length} conversas atualizadas detectadas`)
+                    console.log(`Recarregando ${updatedConversations.length} conversas atualizadas detectadas`)
 
                     setConversations((prev) =>
                         prev.map((conv) => {
@@ -883,7 +883,7 @@ const ChatTemplateContent = () => {
                     }
                 }
             } catch (error) {
-                console.error("❌ Erro no polling:", error)
+                console.error("ERRO: Erro no polling:", error)
             }
         }
 
@@ -896,29 +896,29 @@ const ChatTemplateContent = () => {
     const showDebugStatus = async () => {
         try {
             const status = await chatAPI.getDebugStatus()
-            console.log("🔍 Status completo do sistema:", status)
+            console.log("Detalhe Status completo do sistema:", status)
 
             // Show alert with key info
             const info = `
-🔍 DEBUG STATUS:
-📋 Conversas no backend: ${status?.telegram?.conversations_count || 0}
-🤖 Contas Telegram: ${status?.telegram?.accounts_count || 0}
-📱 Conversas no frontend: ${conversations.length}
-🌐 NGROK (opcional): ${status?.system?.ngrok_url || "Auto-configurado ou não necessário"}
+DEBUG STATUS:
+Conexões no backend: ${status?.telegram?.conversations_count || 0}
+Contas do Telegram: ${status?.telegram?.accounts_count || 0}
+Conversas no frontend: ${conversations.length}
+Ngrok (opcional): ${status?.system?.ngrok_url || "Auto-configurado ou não necessário"}
 
-ℹ️ Ngrok é usado apenas para webhooks públicos do Telegram.
-   O sistema funciona localmente sem ele.
+Ngrok é usado apenas para webhooks públicos do Telegram.
+O sistema funciona localmente sem ele.
       `
             alert(info)
         } catch (error) {
-            console.error("❌ Erro ao obter status:", error)
+            console.error("ERRO: Erro ao obter status:", error)
         }
     }
 
     // Create test conversation function
     const createTestConversation = async () => {
         try {
-            console.log("🧪 Criando conversa de teste...")
+            console.log("Criando conversa de teste...")
             await chatAPI.createTestConversation()
 
             // Reload conversations after creating test
@@ -926,10 +926,10 @@ const ChatTemplateContent = () => {
                 loadConversations()
             }, 1000)
 
-            alert("✅ Conversa de teste criada! Verifique a lista de conversas.")
+            alert("Conversa de teste criada! Verifique a lista de conversas.")
         } catch (error) {
-            console.error("❌ Erro ao criar conversa de teste:", error)
-            alert("❌ Erro ao criar conversa de teste")
+            console.error("ERRO: Erro ao criar conversa de teste:", error)
+            alert("ERRO ao criar conversa de teste")
         }
     }
 
@@ -941,15 +941,15 @@ const ChatTemplateContent = () => {
             const savedSettings = localStorage.getItem("chat-theme-settings")
             if (savedSettings) {
                 const parsed = JSON.parse(savedSettings)
-                console.log("📂 Configurações carregadas do localStorage:", parsed)
+                console.log("Configurações carregadas do localStorage:", parsed)
                 setThemeSettings(parsed)
                 applyThemeSettingsToCSS(parsed, theme)
             } else {
-                console.log("🆕 Usando configurações padrão")
+                console.log("NOVO: Usando configurações padrão")
                 applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, theme)
             }
         } catch (error) {
-            console.error("❌ Erro ao carregar configurações:", error)
+            console.error("ERRO: Erro ao carregar configurações:", error)
             applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, theme)
         }
 
@@ -1091,7 +1091,7 @@ const ChatTemplateContent = () => {
 
                 setIsEditingNickname(false)
             } catch (error) {
-                console.error("❌ Erro ao renomear conversa:", error)
+                console.error("ERRO: Erro ao renomear conversa:", error)
             }
         }
     }
@@ -1099,7 +1099,7 @@ const ChatTemplateContent = () => {
     // CORRIGIR função de finalizar
     const handleFinalizarConfirm = async () => {
         if (currentConversation) {
-            console.log("🗑️ Finalizando conversa:", currentConversation.id)
+            console.log("Excluir Finalizando conversa:", currentConversation.id)
             await deleteConversation(currentConversation.id)
             setShowFinalizarModal(false)
         }
@@ -1114,7 +1114,7 @@ const ChatTemplateContent = () => {
     }
 
     const handleThemeSettingsChange = (newSettings: ThemeSettings) => {
-        console.log("🔄 Mudando configurações de tema:", newSettings)
+        console.log("Mudando configurações de tema:", newSettings)
         setThemeSettings(newSettings)
         applyThemeSettingsToCSS(newSettings, theme)
     }
@@ -1126,23 +1126,23 @@ const ChatTemplateContent = () => {
                 timestamp: Date.now(),
             }
             localStorage.setItem("chat-theme-settings", JSON.stringify(settingsToSave))
-            console.log("💾 Configurações salvas com sucesso:", settingsToSave)
+            console.log("Salvar Configurações salvas com sucesso:", settingsToSave)
 
             // Mostrar feedback visual
             const saveButton = document.querySelector("[data-save-button]")
             if (saveButton) {
-                saveButton.textContent = "✅ Salvo!"
+                saveButton.textContent = "[OK] Salvo!"
                 setTimeout(() => {
-                    saveButton.textContent = "💾 Salvar"
+                    saveButton.textContent = "Salvar Salvar"
                 }, 2000)
             }
         } catch (error) {
-            console.error("❌ Erro ao salvar configurações:", error)
+            console.error("ERRO: Erro ao salvar configurações:", error)
         }
     }
 
     const handleResetSettings = () => {
-        console.log("🔄 Resetando configurações para padrão")
+        console.log("Resetando configurações para padrão")
         setThemeSettings(DEFAULT_THEME_SETTINGS)
         applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, theme)
         localStorage.removeItem("chat-theme-settings")
@@ -1150,9 +1150,9 @@ const ChatTemplateContent = () => {
         // Mostrar feedback visual
         const resetButton = document.querySelector("[data-reset-button]")
         if (resetButton) {
-            resetButton.textContent = "✅ Reset!"
+            resetButton.textContent = "[OK] Reset!"
             setTimeout(() => {
-                resetButton.textContent = "🔄 Reset"
+                resetButton.textContent = "Reset"
             }, 2000)
         }
     }
@@ -1170,7 +1170,7 @@ const ChatTemplateContent = () => {
                 prev.map((conv) => (conv.id === currentConversation.id ? { ...conv, platform: newPlatform } : conv)),
             )
 
-            console.log(`✅ Plataforma alterada para: ${newPlatform}`)
+            console.log(`[OK] Plataforma alterada para: ${newPlatform}`)
         }
     }
 
@@ -1289,7 +1289,7 @@ const ChatTemplateContent = () => {
                             <div className="text-center">
                                 {!apiAvailable ? (
                                     <>
-                                        <h2 className="text-2xl font-bold mb-4 text-red-500">⚠️ Serviços Indisponíveis</h2>
+                                        <h2 className="text-2xl font-bold mb-4 text-red-500">AVISO: Serviços Indisponíveis</h2>
                                         <p className="text-gray-500 mb-6">
                                             Os serviços de backend não estão disponíveis. Conecte os serviços para receber mensagens de
                                             WhatsApp, Telegram e outros canais.
@@ -1300,14 +1300,14 @@ const ChatTemplateContent = () => {
                                     </>
                                 ) : conversations.length === 0 ? (
                                     <>
-                                        <h2 className="text-2xl font-bold mb-4">📱 Aguardando Mensagens</h2>
+                                        <h2 className="text-2xl font-bold mb-4">Aplicativo Aguardando Mensagens</h2>
                                         <p className="text-gray-500 mb-6">
                                             Nenhuma conversa ainda. As conversas aparecerão automaticamente quando usuários enviarem mensagens
                                             via WhatsApp, Telegram ou outros canais conectados.
                                         </p>
                                         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4">
                                             <p className="text-blue-600 dark:text-blue-400">
-                                                ✅ Sistema conectado e aguardando mensagens dos canais
+                                                [OK] Sistema conectado e aguardando mensagens dos canais
                                             </p>
                                         </div>
                                         <div className="flex gap-4 justify-center">
@@ -1315,13 +1315,13 @@ const ChatTemplateContent = () => {
                                                 onClick={createTestConversation}
                                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
                                             >
-                                                🧪 Criar Conversa de Teste
+                                                Teste Criar Conversa de Teste
                                             </button>
                                             <button
                                                 onClick={showDebugStatus}
                                                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
                                             >
-                                                🔍 Debug Status
+                                                Detalhe Debug Status
                                             </button>
                                         </div>
                                     </>

@@ -16,20 +16,20 @@ export function useChannelPermissions() {
     // Available pages/sections in the sidebar
     const availablePages: PagePermission[] = [
         // MENU
-        { id: "dashboard", name: "Dashboard", category: "MENU", icon: "📊" },
+        { id: "dashboard", name: "Dashboard", category: "MENU", icon: "Dashboard" },
 
         // TOOLS
-        { id: "account", name: "Conta", category: "TOOLS", icon: "👥" },
-        { id: "lobby", name: "Lobby", category: "TOOLS", icon: "🏠" },
+        { id: "account", name: "Conta", category: "TOOLS", icon: "Usuários" },
+        { id: "lobby", name: "Lobby", category: "TOOLS", icon: "Home" },
 
         // INSIGHTS
-        { id: "chat", name: "Chat", category: "INSIGHTS", icon: "💬" },
+        { id: "chat", name: "Chat", category: "INSIGHTS", icon: "Mensagem" },
 
         // ELEMENTS
-        { id: "components", name: "Componentes", category: "ELEMENTS", icon: "🧩" },
+        { id: "components", name: "Componentes", category: "ELEMENTS", icon: "UI" },
 
         // THEMES
-        { id: "colors", name: "Cores", category: "THEMES", icon: "🎨" },
+        { id: "colors", name: "Cores", category: "THEMES", icon: "Tema" },
     ]
 
     useEffect(() => {

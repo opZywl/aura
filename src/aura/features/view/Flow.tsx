@@ -191,7 +191,7 @@ const FlowStatusIndicator = ({ startPosition, mousePosition, componentCount, the
 
         {/* Posição do Mouse */}
         <div className="flex items-center gap-1">
-          <span className="text-purple-500">🖱️</span>
+          <span className="text-purple-500">Cursor</span>
           <span className={`font-mono ${isDark ? "text-white" : "text-gray-900"}`}>
           Mouse: ({Math.round(mousePosition.x)}, {Math.round(mousePosition.y)})
         </span>

@@ -141,7 +141,7 @@ export const ptBR = {
   // Home Page
   home: {
     hero: {
-      badge: "✨ 100% experimental – válido até o final do semestre!",
+      badge: "100% experimental – válido até o final do semestre!",
       title: "Habilidades de Conversação Hoje!",
       subtitle: "Junte-se ao melhor chatbot do planeta 1%!",
       description: "O sucesso dos engenheiros e designers foi graças à passagem por lugares como",
@@ -548,10 +548,10 @@ export const ptBR = {
     primaryColorFade: "Cor Primária",
     secondaryColorFade: "Cor Secundária",
     movementSpeed: "Velocidade do Movimento",
-    saveSettings: "💾 Salvar",
-    resetSettings: "🔄 Reset",
+    saveSettings: "Salvar",
+    resetSettings: "Reset",
     chooseColorTheme: "Escolha um tema de cor para personalizar seu painel",
-    unsavedChanges: "⚠️ Você tem alterações não salvas",
+    unsavedChanges: "Você tem alterações não salvas",
     saving: "Salvando...",
     resetting: "Resetando...",
   },

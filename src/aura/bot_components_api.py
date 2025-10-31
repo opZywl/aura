@@ -109,11 +109,11 @@ def parse_workflow_data(workflow_data: Dict) -> Tuple[List[FlowNode], List[FlowE
             )
             edges.append(edge)
 
-        logger.info(f"✅ Workflow REAL parseado: {len(nodes)} nós, {len(edges)} conexões")
+        logger.info(f"Workflow REAL parseado: {len(nodes)} nós, {len(edges)} conexões")
         return nodes, edges
 
     except Exception as e:
-        logger.error(f"❌ Erro ao parsear workflow: {e}")
+        logger.error(f"Erro ao parsear workflow: {e}")
         return [], []
 
 def register_workflow(workflow_data: Dict) -> bool:
@@ -123,17 +123,17 @@ def register_workflow(workflow_data: Dict) -> bool:
     try:
         workflow_id = workflow_data.get("_id", "")
         if not workflow_id:
-            logger.error("❌ Workflow sem ID")
+            logger.error("Workflow sem ID")
             return False
 
         nodes, edges = parse_workflow_data(workflow_data)
         if not nodes:
-            logger.error("❌ Workflow sem nós")
+            logger.error("Workflow sem nós")
             return False
 
         is_update = workflow_id in _published_workflows
         if is_update:
-            logger.info(f"🔄 Workflow {workflow_id} JÁ EXISTE - Atualizando com novo JSON")
+            logger.info(f"Workflow {workflow_id} JÁ EXISTE - Atualizando com novo JSON")
 
             executions_to_clear = []
             for execution_key, execution in _active_executions.items():
@@ -142,17 +142,17 @@ def register_workflow(workflow_data: Dict) -> bool:
 
             for execution_key in executions_to_clear:
                 del _active_executions[execution_key]
-                logger.info(f"🗑️ Execução ativa removida: {execution_key}")
+                logger.info(f"Execução ativa removida: {execution_key}")
 
             if executions_to_clear:
-                logger.info(f"✅ {len(executions_to_clear)} execuções ativas resetadas para o workflow {workflow_id}")
+                logger.info(f"{len(executions_to_clear)} execuções ativas resetadas para o workflow {workflow_id}")
         else:
-            logger.info(f"🆕 Registrando NOVO workflow: {workflow_id}")
+            logger.info(f"Registrando NOVO workflow: {workflow_id}")
 
             for other_id in list(_published_workflows.keys()):
                 if other_id != workflow_id:
                     _published_workflows[other_id]["enabled"] = False
-                    logger.info(f"🔕 Workflow antigo desativado: {other_id}")
+                    logger.info(f"Workflow antigo desativado: {other_id}")
 
         _published_workflows[workflow_id] = {
             "id": workflow_id,
@@ -164,23 +164,23 @@ def register_workflow(workflow_data: Dict) -> bool:
             "updated_at": datetime.now(BRASIL_TZ).isoformat()  # Add updated_at timestamp
         }
 
-        logger.info(f"✅ Workflow REAL {'ATUALIZADO' if is_update else 'REGISTRADO'}: {workflow_id}")
-        logger.info(f"   📊 Nós: {len(nodes)}")
-        logger.info(f"   🔗 Conexões: {len(edges)}")
-        logger.info(f"   🏷️ Tag: {workflow_data.get('_tag', 'Sem tag')}")
-        logger.info(f"   ✅ Enabled: {workflow_data.get('_enabled', True)}")
+        logger.info(f"Workflow REAL {'ATUALIZADO' if is_update else 'REGISTRADO'}: {workflow_id}")
+        logger.info(f"    Nós: {len(nodes)}")
+        logger.info(f"    Conexões: {len(edges)}")
+        logger.info(f"    Tag: {workflow_data.get('_tag', 'Sem tag')}")
+        logger.info(f"    Enabled: {workflow_data.get('_enabled', True)}")
 
         # Log node details for debugging
         for node in nodes:
-            logger.info(f"   📍 Nó: {node.id} ({node.type}) - {node.data.label}")
-            if node.type == "options" and node.data.options:
+            logger.info(f"    Nó: {node.id} ({node.type}) - {node.data.label}")
+            if node.type == "options"and node.data.options:
                 for i, opt in enumerate(node.data.options):
                     logger.info(f"      {i+1}. {opt.get('text', '')}")
 
         return True
 
     except Exception as e:
-        logger.error(f"❌ Erro ao registrar workflow: {e}")
+        logger.error(f"Erro ao registrar workflow: {e}")
         return False
 
 def set_workflow_status(workflow_id: str, enabled: bool) -> bool:
@@ -189,15 +189,15 @@ def set_workflow_status(workflow_id: str, enabled: bool) -> bool:
     """
     try:
         if workflow_id not in _published_workflows:
-            logger.error(f"❌ Workflow não encontrado: {workflow_id}")
+            logger.error(f"Workflow não encontrado: {workflow_id}")
             return False
 
         _published_workflows[workflow_id]["enabled"] = enabled
-        logger.info(f"✅ Workflow {workflow_id} {'ativado' if enabled else 'desativado'}")
+        logger.info(f"Workflow {workflow_id} {'ativado' if enabled else 'desativado'}")
         return True
 
     except Exception as e:
-        logger.error(f"❌ Erro ao alterar status do workflow: {e}")
+        logger.error(f"Erro ao alterar status do workflow: {e}")
         return False
 
 def find_next_node(workflow_id: str, current_node_id: str, option_index: Optional[int] = None) -> Optional[FlowNode]:
@@ -207,7 +207,7 @@ def find_next_node(workflow_id: str, current_node_id: str, option_index: Optiona
     try:
         workflow = _published_workflows.get(workflow_id)
         if not workflow:
-            logger.error(f"❌ Workflow não encontrado: {workflow_id}")
+            logger.error(f"Workflow não encontrado: {workflow_id}")
             return None
 
         edges: List[FlowEdge] = workflow["edges"]
@@ -217,7 +217,7 @@ def find_next_node(workflow_id: str, current_node_id: str, option_index: Optiona
         outgoing_edges = [e for e in edges if e.source == current_node_id]
 
         if not outgoing_edges:
-            logger.info(f"🏁 Nenhuma conexão de saída do nó {current_node_id}")
+            logger.info(f"Nenhuma conexão de saída do nó {current_node_id}")
             return None
 
         # Se option_index foi fornecido, procurar pela edge específica
@@ -226,7 +226,7 @@ def find_next_node(workflow_id: str, current_node_id: str, option_index: Optiona
             target_edge = next((e for e in outgoing_edges if e.sourceHandle == target_handle), None)
 
             if not target_edge:
-                logger.warning(f"⚠️ Edge não encontrada para opção {option_index}")
+                logger.warning(f"Edge não encontrada para opção {option_index}")
                 return None
         else:
             # Pegar a primeira edge disponível
@@ -236,14 +236,14 @@ def find_next_node(workflow_id: str, current_node_id: str, option_index: Optiona
         next_node = next((n for n in nodes if n.id == target_edge.target), None)
 
         if next_node:
-            logger.info(f"➡️ Próximo nó: {next_node.id} ({next_node.type})")
+            logger.info(f"Próximo nó: {next_node.id} ({next_node.type})")
         else:
-            logger.warning(f"⚠️ Nó de destino não encontrado: {target_edge.target}")
+            logger.warning(f"Nó de destino não encontrado: {target_edge.target}")
 
         return next_node
 
     except Exception as e:
-        logger.error(f"❌ Erro ao encontrar próximo nó: {e}")
+        logger.error(f"Erro ao encontrar próximo nó: {e}")
         return None
 
 def start_workflow_execution(workflow_id: str, user_id: str) -> Optional[WorkflowExecution]:
@@ -253,11 +253,11 @@ def start_workflow_execution(workflow_id: str, user_id: str) -> Optional[Workflo
     try:
         workflow = _published_workflows.get(workflow_id)
         if not workflow:
-            logger.error(f"❌ Workflow não encontrado: {workflow_id}")
+            logger.error(f"Workflow não encontrado: {workflow_id}")
             return None
 
         if not workflow["enabled"]:
-            logger.error(f"❌ Workflow desabilitado: {workflow_id}")
+            logger.error(f"Workflow desabilitado: {workflow_id}")
             return None
 
         # Criar nova execução
@@ -274,11 +274,11 @@ def start_workflow_execution(workflow_id: str, user_id: str) -> Optional[Workflo
         execution_key = f"{user_id}:{workflow_id}"
         _active_executions[execution_key] = execution
 
-        logger.info(f"✅ Execução iniciada: {execution_key}")
+        logger.info(f"Execução iniciada: {execution_key}")
         return execution
 
     except Exception as e:
-        logger.error(f"❌ Erro ao iniciar execução: {e}")
+        logger.error(f"Erro ao iniciar execução: {e}")
         return None
 
 def get_execution(user_id: str, workflow_id: str) -> Optional[WorkflowExecution]:
@@ -296,20 +296,20 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
     Retorna uma lista de mensagens para enviar sequencialmente
     """
     try:
-        logger.info(f"💬 Processando mensagem de {user_id}: '{message}'")
+        logger.info(f"Processando mensagem de {user_id}: '{message}'")
 
         # Verificar se há execução ativa
         execution = get_execution(user_id, workflow_id)
 
         # Se não há execução, iniciar nova
         if not execution:
-            logger.info(f"🚀 Iniciando nova execução para {user_id}")
+            logger.info(f"Iniciando nova execução para {user_id}")
             execution = start_workflow_execution(workflow_id, user_id)
             if not execution:
                 return {
                     "success": False,
                     "messages": [{
-                        "text": "❌ Erro ao iniciar fluxo",
+                        "text": "Erro ao iniciar fluxo",
                         "options": []
                     }],
                     "requires_input": False,
@@ -328,7 +328,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
             return {
                 "success": False,
                 "messages": [{
-                    "text": "❌ Workflow não encontrado",
+                    "text": "Workflow não encontrado",
                     "options": []
                 }],
                 "requires_input": False,
@@ -345,7 +345,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 return {
                     "success": False,
                     "messages": [{
-                        "text": "❌ Nó de início não encontrado",
+                        "text": "Nó de início não encontrado",
                         "options": []
                     }],
                     "requires_input": False,
@@ -353,7 +353,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 }
 
             execution.current_node_id = start_node.id
-            logger.info(f"🎬 Iniciando do nó START: {start_node.id}")
+            logger.info(f"Iniciando do nó START: {start_node.id}")
 
             # Avançar automaticamente do START
             current_node = find_next_node(workflow_id, start_node.id)
@@ -361,7 +361,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
             # Processar todos os nós até encontrar um que requer input ou é final
             while current_node:
                 execution.current_node_id = current_node.id
-                logger.info(f"🔄 Processando nó: {current_node.id} ({current_node.type})")
+                logger.info(f"Processando nó: {current_node.id} ({current_node.type})")
 
                 if current_node.type == "sendMessage":
                     # Coletar mensagem para enviar
@@ -370,7 +370,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "text": msg_text,
                         "options": []
                     })
-                    logger.info(f"📝 Mensagem coletada: {msg_text[:50]}...")
+                    logger.info(f"Mensagem coletada: {msg_text[:50]}...")
 
                     # Adicionar ao histórico
                     execution.conversation_history.append({
@@ -389,7 +389,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                     # Build the full message with numbered options
                     if options:
-                        options_text = "\n\n" + "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)])
+                        options_text = "\n\n" + "\n".join([f"{i+1}. {opt.get('text', '')}"for i, opt in enumerate(options)])
                         full_message = msg_text + options_text
                     else:
                         full_message = msg_text
@@ -406,7 +406,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     })
 
                     execution.waiting_for_input = True
-                    logger.info(f"⏸️ Aguardando input do usuário no nó: {current_node.id}")
+                    logger.info(f"Aguardando input do usuário no nó: {current_node.id}")
 
                     return {
                         "success": True,
@@ -431,7 +431,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                             "timestamp": datetime.now(BRASIL_TZ).isoformat()
                         })
 
-                    logger.info(f"🏁 Fluxo finalizado no nó: {current_node.id}")
+                    logger.info(f"Fluxo finalizado no nó: {current_node.id}")
                     reset_conversation(user_id, workflow_id)
 
                     return {
@@ -444,11 +444,11 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                 else:
                     # Outros tipos de nó - avançar automaticamente
-                    logger.info(f"⏭️ Pulando nó do tipo: {current_node.type}")
+                    logger.info(f"Pulando nó do tipo: {current_node.type}")
                     current_node = find_next_node(workflow_id, current_node.id)
 
             # Se chegou aqui, não há mais nós - finalizar
-            logger.info(f"🏁 Fim do fluxo - sem mais nós")
+            logger.info(f"Fim do fluxo - sem mais nós")
             reset_conversation(user_id, workflow_id)
 
             return {
@@ -466,7 +466,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 return {
                     "success": False,
                     "messages": [{
-                        "text": "❌ Nó atual não encontrado",
+                        "text": "Nó atual não encontrado",
                         "options": []
                     }],
                     "requires_input": False,
@@ -481,12 +481,12 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                     if 0 <= option_index < len(options):
                         # Opção válida - avançar para próximo nó
-                        logger.info(f"✅ Opção válida selecionada: {option_index + 1}. {options[option_index].get('text', '')}")
+                        logger.info(f"Opção válida selecionada: {option_index + 1}. {options[option_index].get('text', '')}")
                         next_node = find_next_node(workflow_id, current_node.id, option_index)
 
                         if not next_node:
                             # Fim do fluxo
-                            logger.info(f"🏁 Fim do fluxo após opção {option_index + 1}")
+                            logger.info(f"Fim do fluxo após opção {option_index + 1}")
                             reset_conversation(user_id, workflow_id)
                             return {
                                 "success": True,
@@ -502,7 +502,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         # Processar todos os nós até encontrar um que requer input ou é final
                         current_node = next_node
                         while current_node:
-                            logger.info(f"🔄 Processando nó: {current_node.id} ({current_node.type})")
+                            logger.info(f"Processando nó: {current_node.id} ({current_node.type})")
 
                             if current_node.type == "sendMessage":
                                 msg_text = current_node.data.message or "Mensagem não configurada"
@@ -525,7 +525,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                 options = current_node.data.options or []
 
                                 if options:
-                                    options_text = "\n\n" + "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)])
+                                    options_text = "\n\n" + "\n".join([f"{i+1}. {opt.get('text', '')}"for i, opt in enumerate(options)])
                                     full_message = msg_text + options_text
                                 else:
                                     full_message = msg_text
@@ -590,8 +590,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                             "archive_conversation": True
                         }
                     else:
-                        options_list = "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)])
-                        error_msg = f"❌ Opção inválida! Por favor, digite apenas o número da opção:\n\n{options_list}"
+                        options_list = "\n".join([f"{i+1}. {opt.get('text', '')}"for i, opt in enumerate(options)])
+                        error_msg = f"Opção inválida! Por favor, digite apenas o número da opção:\n\n{options_list}"
 
                         return {
                             "success": True,
@@ -604,8 +604,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         }
                 except ValueError:
                     options = current_node.data.options
-                    options_list = "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)])
-                    error_msg = f"❌ Por favor, digite apenas o número da opção!\n\n{options_list}"
+                    options_list = "\n".join([f"{i+1}. {opt.get('text', '')}"for i, opt in enumerate(options)])
+                    error_msg = f"Por favor, digite apenas o número da opção!\n\n{options_list}"
 
                     return {
                         "success": True,
@@ -618,7 +618,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     }
 
         # Caso padrão - não deveria chegar aqui
-        logger.warning(f"⚠️ Estado inesperado no processamento da mensagem")
+        logger.warning(f"Estado inesperado no processamento da mensagem")
         return {
             "success": True,
             "messages": [],
@@ -627,12 +627,12 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
         }
 
     except Exception as e:
-        logger.error(f"❌ Erro ao processar mensagem: {e}")
+        logger.error(f"Erro ao processar mensagem: {e}")
         logger.exception("Stack trace:")
         return {
             "success": False,
             "messages": [{
-                "text": f"❌ Erro: {str(e)}",
+                "text": f"Erro: {str(e)}",
                 "options": []
             }],
             "requires_input": False,
@@ -659,11 +659,11 @@ def reset_conversation(user_id: str, workflow_id: str) -> bool:
         execution_key = f"{user_id}:{workflow_id}"
         if execution_key in _active_executions:
             del _active_executions[execution_key]
-            logger.info(f"🔄 Conversa resetada: {execution_key}")
+            logger.info(f"Conversa resetada: {execution_key}")
             return True
         return False
     except Exception as e:
-        logger.error(f"❌ Erro ao resetar conversa: {e}")
+        logger.error(f"Erro ao resetar conversa: {e}")
         return False
 
-logger.info("✅ Bot Components API inicializado - Aguardando workflows REAIS do frontend")
+logger.info("Bot Components API inicializado - Aguardando workflows REAIS do frontend")

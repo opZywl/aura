@@ -87,7 +87,7 @@ const createDefaultWorkflow = () => {
             position: { x: 250, y: 200 },
             data: {
                 label: "Mensagem de Boas-vindas",
-                message: "Olá! Bem-vindo ao AURA! 🤖\n\nSou seu assistente virtual e estou aqui para ajudar você.",
+                message: "Olá! Bem-vindo ao AURA! Bot\n\nSou seu assistente virtual e estou aqui para ajudar você.",
                 customId: "#1",
             },
             draggable: true,
@@ -115,7 +115,7 @@ const createDefaultWorkflow = () => {
             data: {
                 label: "Informações Produtos",
                 message:
-                    "📦 Nossos produtos incluem:\n\n• Soluções de IA\n• Chatbots inteligentes\n• Automação de processos\n• Integração com sistemas",
+                    "Nossos produtos incluem:\n\n• Soluções de IA\n• Chatbots inteligentes\n• Automação de processos\n• Integração com sistemas",
                 customId: "#3",
             },
             draggable: true,
@@ -127,7 +127,7 @@ const createDefaultWorkflow = () => {
             data: {
                 label: "Suporte Técnico",
                 message:
-                    "🔧 Para suporte técnico:\n\n• Acesse nossa documentação\n• Envie um email para suporte@aura.com\n• Ou continue conversando comigo!",
+                    "Ferramenta Para suporte técnico:\n\n• Acesse nossa documentação\n• Envie um email para suporte@aura.com\n• Ou continue conversando comigo!",
                 customId: "#4",
             },
             draggable: true,
@@ -139,7 +139,7 @@ const createDefaultWorkflow = () => {
             data: {
                 label: "Transferir Atendente",
                 message:
-                    "👨‍💼 Transferindo você para um atendente humano...\n\nAguarde um momento que alguém da nossa equipe entrará em contato!",
+                    "Equipe‍Negócios Transferindo você para um atendente humano...\n\nAguarde um momento que alguém da nossa equipe entrará em contato!",
                 customId: "#5",
             },
             draggable: true,
@@ -359,7 +359,7 @@ function WorkflowBuilderInner({
                     setNodeCounters(workflow.nodeCounters || {})
 
                     toast({
-                        title: "✅ Fluxo carregado",
+                        title: "[OK] Fluxo carregado",
                         description: "Fluxo salvo anteriormente foi restaurado",
                     })
                     return
@@ -379,7 +379,7 @@ function WorkflowBuilderInner({
             localStorage.setItem(EXECUTED_KEY, "true")
 
             toast({
-                title: "🚀 Fluxo padrão carregado",
+                title: "Iniciar Fluxo padrão carregado",
                 description: "Um fluxo de demonstração foi criado e está pronto para uso!",
             })
         }
@@ -477,7 +477,7 @@ function WorkflowBuilderInner({
         (params: Edge | Connection) => {
             if (params.source === params.target) {
                 toast({
-                    title: "❌ Auto-conexão não permitida",
+                    title: "ERRO: Auto-conexão não permitida",
                     description: "Um nó não pode se conectar consigo mesmo",
                     variant: "destructive",
                 })
@@ -495,7 +495,7 @@ function WorkflowBuilderInner({
 
                 if (targetOccupied) {
                     toast({
-                        title: "❌ Entrada já ocupada",
+                        title: "ERRO: Entrada já ocupada",
                         description: "Esta entrada amarela já possui uma conexão. Remova a conexão existente primeiro.",
                         variant: "destructive",
                     })
@@ -510,12 +510,12 @@ function WorkflowBuilderInner({
 
                 if (sourceOccupied) {
                     toast({
-                        title: "🔄 Saída substituída",
+                        title: "Atualizando Saída substituída",
                         description: "A conexão anterior da saída verde foi removida e uma nova foi criada",
                     })
                 } else {
                     toast({
-                        title: "✅ Conexão criada",
+                        title: "[OK] Conexão criada",
                         description: "Nova conexão estabelecida com sucesso",
                     })
                 }
@@ -697,15 +697,15 @@ function WorkflowBuilderInner({
 
             if (response.ok) {
                 const result = await response.json()
-                console.log("✅ Workflow salvo no backend Python:", result)
+                console.log("[OK] Workflow salvo no backend Python:", result)
                 return true
             } else {
                 const error = await response.json()
-                console.error("❌ Erro ao salvar workflow no backend:", error)
+                console.error("ERRO: Erro ao salvar workflow no backend:", error)
                 return false
             }
         } catch (error) {
-            console.error("❌ Erro na requisição de salvamento:", error)
+            console.error("ERRO: Erro na requisição de salvamento:", error)
             return false
         }
     }, [])
@@ -728,7 +728,7 @@ function WorkflowBuilderInner({
         }
 
         toast({
-            title: "⏳ Executando workflow...",
+            title: "Executando workflow...",
             description: "Salvando e ativando o fluxo no backend",
         })
 
@@ -767,9 +767,9 @@ function WorkflowBuilderInner({
 
             if (!response.ok) {
                 const errorText = await response.text()
-                console.error("❌ Erro ao salvar workflow:", errorText)
+                console.error("ERRO: Erro ao salvar workflow:", errorText)
                 toast({
-                    title: "❌ Erro ao salvar",
+                    title: "ERRO: Erro ao salvar",
                     description: "Não foi possível salvar o workflow no backend",
                     variant: "destructive",
                 })
@@ -779,7 +779,7 @@ function WorkflowBuilderInner({
             const result = await response.json()
 
             toast({
-                title: "✅ Fluxo executado com sucesso!",
+                title: "[OK] Fluxo executado com sucesso!",
                 description: "Workflow salvo e ativado - bot Aura está pronto para receber mensagens!",
             })
 
@@ -787,9 +787,9 @@ function WorkflowBuilderInner({
 
             return true
         } catch (error) {
-            console.error("❌ Erro ao executar workflow:", error)
+            console.error("ERRO: Erro ao executar workflow:", error)
             toast({
-                title: "❌ Erro na execução",
+                title: "ERRO: Erro na execução",
                 description: "Ocorreu um erro ao executar o workflow",
                 variant: "destructive",
             })
@@ -812,15 +812,15 @@ function WorkflowBuilderInner({
 
             if (response.ok) {
                 const result = await response.json()
-                console.log("✅ Workflow ativado no backend Python:", result)
+                console.log("[OK] Workflow ativado no backend Python:", result)
                 return true
             } else {
                 const error = await response.json()
-                console.error("❌ Erro ao ativar workflow no backend:", error)
+                console.error("ERRO: Erro ao ativar workflow no backend:", error)
                 return false
             }
         } catch (error) {
-            console.error("❌ Erro na requisição de ativação:", error)
+            console.error("ERRO: Erro na requisição de ativação:", error)
             return false
         }
     }, [])
@@ -828,7 +828,7 @@ function WorkflowBuilderInner({
     const saveWorkflow = useCallback(() => {
         if (nodes.length <= 1) {
             toast({
-                title: "❌ Fluxo vazio",
+                title: "ERRO: Fluxo vazio",
                 description: "Adicione pelo menos um componente ao seu fluxo antes de salvar",
                 variant: "destructive",
             })
@@ -869,7 +869,7 @@ function WorkflowBuilderInner({
         setShowSuccessDialog(true)
 
         toast({
-            title: "✅ Fluxo salvo com sucesso!",
+            title: "[OK] Fluxo salvo com sucesso!",
             description: `${nodes.length} componentes salvos e prontos para execução`,
         })
     }, [nodes, edges, nodeCounters, validateConnectivity, user, saveWorkflowToBackend])
@@ -951,7 +951,7 @@ function WorkflowBuilderInner({
                     window.dispatchEvent(new Event("storage"))
 
                     toast({
-                        title: "✅ Fluxo carregado com sucesso!",
+                        title: "[OK] Fluxo carregado com sucesso!",
                         description: `${loadedNodes.length} componentes carregados - clique em Salvar e depois Executar`,
                     })
 
@@ -988,7 +988,7 @@ function WorkflowBuilderInner({
         window.dispatchEvent(new Event("storage"))
 
         toast({
-            title: "🧹 Fluxo resetado",
+            title: "Limpar Fluxo resetado",
             description: "Todos os componentes foram removidos. Apenas o nó INÍCIO permanece.",
         })
     }, [setNodes, setEdges])
@@ -996,7 +996,7 @@ function WorkflowBuilderInner({
     const downloadWorkflow = useCallback(() => {
         if (nodes.length <= 1) {
             toast({
-                title: "❌ Fluxo vazio",
+                title: "ERRO: Fluxo vazio",
                 description: "Adicione pelo menos um componente antes de fazer download",
                 variant: "destructive",
             })
@@ -1068,12 +1068,12 @@ function WorkflowBuilderInner({
             URL.revokeObjectURL(url)
 
             toast({
-                title: "✅ Download concluído!",
+                title: "[OK] Download concluído!",
                 description: `Arquivo JSON gerado com ${nodes.length} componentes`,
             })
         } catch (error) {
             toast({
-                title: "❌ Erro no download",
+                title: "ERRO: Erro no download",
                 description: "Não foi possível gerar o arquivo JSON",
                 variant: "destructive",
             })
@@ -1238,7 +1238,7 @@ function WorkflowBuilderInner({
                                 isDark ? "text-white" : "text-gray-900"
                             } flex items-center justify-center gap-2`}
                         >
-                            ❌ Arquivo JSON Inválido
+                            ERRO: Arquivo JSON Inválido
                         </DialogTitle>
                         <DialogDescription className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-2 text-center`}>
                             <span className="text-red-500 font-bold text-lg">Não foi possível importar o arquivo!</span>
@@ -1253,7 +1253,7 @@ function WorkflowBuilderInner({
                             }`}
                         >
                             <div className="flex items-start gap-2">
-                                <span className="text-red-500 font-bold text-lg">⚠️</span>
+                                <span className="text-red-500 font-bold text-lg">AVISO:</span>
                                 <div>
                                     <span className="font-medium block">Erro encontrado:</span>
                                     <span className="text-sm">{errorMessage}</span>
@@ -1287,7 +1287,7 @@ function WorkflowBuilderInner({
                                 isDark ? "text-white" : "text-gray-900"
                             } flex items-center justify-center gap-2`}
                         >
-                            ⚠️ Componentes Desconectados
+                            AVISO: Componentes Desconectados
                         </DialogTitle>
                         <DialogDescription className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-2 text-center`}>
                             <span className="text-red-500 font-bold text-lg">NADA pode ficar vazio ou desconectado!</span>
@@ -1304,7 +1304,7 @@ function WorkflowBuilderInner({
                                 }`}
                             >
                                 <div className="flex items-center gap-2">
-                                    <span className="text-red-500 font-bold">🔗</span>
+                                    <span className="text-red-500 font-bold">Link</span>
                                     <span className="font-medium">{issue}</span>
                                 </div>
                             </div>
@@ -1336,13 +1336,13 @@ function WorkflowBuilderInner({
                                 isDark ? "text-white" : "text-gray-900"
                             } flex items-center justify-center gap-3`}
                         >
-                            ✅ Fluxo Salvo!
+                            [OK] Fluxo Salvo!
                         </DialogTitle>
                         <DialogDescription className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-3 text-center text-lg`}>
-                            🎉 <strong>Parabéns!</strong> Seu fluxo foi salvo com sucesso!
+                            Sucesso: <strong>Parabéns!</strong> Seu fluxo foi salvo com sucesso!
                             <br />
                             <span className="text-sm mt-2 block">
-                📊 <strong>{nodes.length} componentes</strong> salvos no navegador
+                Relatório <strong>{nodes.length} componentes</strong> salvos no navegador
               </span>
                         </DialogDescription>
                     </DialogHeader>
@@ -1351,7 +1351,7 @@ function WorkflowBuilderInner({
                             onClick={() => setShowSuccessDialog(false)}
                             className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-2"
                         >
-                            🚀 Perfeito!
+                            Iniciar Perfeito!
                         </Button>
                     </div>
                 </DialogContent>

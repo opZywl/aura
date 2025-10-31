@@ -333,7 +333,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                         handleChange("options", newOptions)
                       }}
                     >
-                      ✕
+                      X
                     </Button>
                   )}
                 </div>

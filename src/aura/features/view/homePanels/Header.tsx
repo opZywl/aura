@@ -252,7 +252,7 @@ const Header: React.FC = () => {
                                                 : "text-gray-700 hover:bg-gray-100"
                                     }`}
                                 >
-                                    <span className="mr-2">🇧🇷</span>
+                                    <span className="mr-2">PT</span>
                                     <span>Português</span>
                                 </button>
                                 <button
@@ -267,7 +267,7 @@ const Header: React.FC = () => {
                                                 : "text-gray-700 hover:bg-gray-100"
                                     }`}
                                 >
-                                    <span className="mr-2">🇺🇸</span>
+                                    <span className="mr-2">EN</span>
                                     <span>English</span>
                                 </button>
                             </div>

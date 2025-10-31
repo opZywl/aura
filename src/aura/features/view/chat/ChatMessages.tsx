@@ -105,7 +105,7 @@ export default function ChatMessages({ messages, agent, theme, themeSettings }: 
                 textShadow: themeSettings.glowEffects ? `0 0 20px var(--chat-glow-color)` : "none",
               }}
             >
-              💬
+              Mensagem
             </div>
             <h3
               className={`text-xl font-semibold mb-2 ${themeSettings.fadeEnabled ? "chat-fade-text" : ""} ${themeSettings.glowEffects ? "chat-glow-title" : ""}`}

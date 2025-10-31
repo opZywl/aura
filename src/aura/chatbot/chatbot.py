@@ -47,7 +47,7 @@ class WorkflowStorage:
         with self._lock:
             try:
                 if not self._file_path.exists():
-                    logger.info("📄 Workflow file not found. Creating default workflow store at %s", self._file_path)
+                    logger.info("Workflow file not found. Creating default workflow store at %s", self._file_path)
                     self._write_file(_default_workflow())
 
                 mtime = self._file_path.stat().st_mtime
@@ -65,7 +65,7 @@ class WorkflowStorage:
                 self._last_mtime = mtime
                 return validated
             except Exception as exc:  # pragma: no cover - logged and bubbled up
-                logger.error("❌ Erro ao carregar workflow: %s", exc)
+                logger.error("Erro ao carregar workflow: %s", exc)
                 raise
 
     def save(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
@@ -150,7 +150,7 @@ class WorkflowManager:
         saved = self._storage.save(workflow)
         with self._lock:
             self._chat_states.clear()
-        logger.info("🔄 Workflow atualizado - estados de chat resetados")
+        logger.info("Workflow atualizado - estados de chat resetados")
         return saved
 
     # ------------------------------------------------------------------
@@ -163,17 +163,17 @@ class WorkflowManager:
             workflow = self.get_workflow()
         except Exception:
             logger.exception("Falha ao carregar workflow durante processamento de mensagem")
-            return [{"text": "⚠️ Erro ao carregar fluxo de atendimento. Tente novamente mais tarde."}]
+            return [{"text": "Erro ao carregar fluxo de atendimento. Tente novamente mais tarde."}]
 
         if not workflow["nodes"] or len(workflow["nodes"]) <= 1:
-            return [{"text": "⚠️ Nenhum fluxo configurado. Configure o fluxo no construtor para iniciar o atendimento."}]
+            return [{"text": "Nenhum fluxo configurado. Configure o fluxo no construtor para iniciar o atendimento."}]
 
         nodes_by_id = {node.get("id"): node for node in workflow["nodes"] if isinstance(node, dict)}
         edges = [edge for edge in workflow["edges"] if isinstance(edge, dict)]
 
         start_node = next((node for node in workflow["nodes"] if node.get("type") == "start"), None)
         if not start_node:
-            return [{"text": "⚠️ Fluxo sem nó INÍCIO configurado."}]
+            return [{"text": "Fluxo sem nó INÍCIO configurado."}]
 
         with self._lock:
             state = self._chat_states.setdefault(chat_id, ChatState())
@@ -186,7 +186,7 @@ class WorkflowManager:
                 options_preview = " / ".join(state.waiting_options.keys())
                 return [
                     {
-                        "text": f"❌ Opção inválida. Escolha uma das opções disponíveis: {options_preview}.",
+                        "text": f"Opção inválida. Escolha uma das opções disponíveis: {options_preview}.",
                         "reply_markup": self._build_keyboard(state.waiting_options.keys()),
                     }
                 ]
@@ -194,13 +194,13 @@ class WorkflowManager:
             state.waiting_options = {}
             next_node = nodes_by_id.get(selection)
             if not next_node:
-                return [{"text": "⚠️ O fluxo está incompleto para esta opção."}]
+                return [{"text": "O fluxo está incompleto para esta opção."}]
             return self._process_from_node(state, next_node, nodes_by_id, edges)
 
         # Start a new traversal from the node connected to the start
         first_node = self._next_node(start_node.get("id"), nodes_by_id, edges)
         if not first_node:
-            return [{"text": "⚠️ Fluxo sem conexões a partir do nó INÍCIO."}]
+            return [{"text": "Fluxo sem conexões a partir do nó INÍCIO."}]
 
         state.reset()
         return self._process_from_node(state, first_node, nodes_by_id, edges)
@@ -222,7 +222,7 @@ class WorkflowManager:
             node_type = current.get("type")
             node_data = current.get("data", {}) or {}
 
-            logger.info("🤖 Executando nó %s (%s)", current.get("id"), node_type)
+            logger.info("Executando nó %s (%s)", current.get("id"), node_type)
 
             if node_type == "sendMessage":
                 message = node_data.get("message") or ""
@@ -234,12 +234,12 @@ class WorkflowManager:
             if node_type == "options":
                 options = node_data.get("options", []) or []
                 if not options:
-                    responses.append({"text": "⚠️ Nó de opções sem opções configuradas."})
+                    responses.append({"text": "Nó de opções sem opções configuradas."})
                     return responses
 
                 options_map = self._map_options(current.get("id"), options, edges, nodes_by_id)
                 if not options_map:
-                    responses.append({"text": "⚠️ Nenhuma conexão encontrada para as opções deste passo."})
+                    responses.append({"text": "Nenhuma conexão encontrada para as opções deste passo."})
                     return responses
 
                 keyboard = self._build_keyboard(options_map.keys())
@@ -257,12 +257,12 @@ class WorkflowManager:
                 state.reset()
                 return responses
 
-            responses.append({"text": f"⚠️ Tipo de nó não suportado: {node_type}."})
+            responses.append({"text": f"Tipo de nó não suportado: {node_type}."})
             state.reset()
             return responses
 
         # If loop exits without returning, ensure keyboard is cleared
-        responses.append({"text": "⚠️ Fluxo terminou sem mensagem final."})
+        responses.append({"text": "Fluxo terminou sem mensagem final."})
         state.reset()
         return responses
 

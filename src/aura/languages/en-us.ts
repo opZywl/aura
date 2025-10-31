@@ -143,7 +143,7 @@ export const enUS = {
   // Home Page
   home: {
     hero: {
-      badge: "✨ 100% experimental – valid until end of semester!",
+      badge: "100% experimental – valid until end of semester!",
       title: "Conversation Skills Today!",
       subtitle: "Join the best chatbot on planet 1% AI!",
       description: "The success of engineers and designers was thanks to passing through places like",
@@ -549,10 +549,10 @@ export const enUS = {
     primaryColorFade: "Primary Color",
     secondaryColorFade: "Secondary Color",
     movementSpeed: "Movement Speed",
-    saveSettings: "💾 Save",
-    resetSettings: "🔄 Reset",
+    saveSettings: "Save",
+    resetSettings: "Reset",
     chooseColorTheme: "Choose a color theme to customize your panel",
-    unsavedChanges: "⚠️ You have unsaved changes",
+    unsavedChanges: "You have unsaved changes",
     saving: "Saving...",
     resetting: "Resetting...",
   },

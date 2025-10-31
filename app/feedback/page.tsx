@@ -125,7 +125,7 @@ export default function FeedbackPage() {
                   >
                     <CheckCircle className={`w-16 h-16 mx-auto mb-4 ${isDark ? "text-green-400" : "text-green-600"}`} />
                     <h3 className={`text-2xl font-bold mb-2 ${isDark ? "text-green-400" : "text-green-600"}`}>
-                      Feedback Enviado! ✓
+                      Feedback Enviado!
                     </h3>
                     <p className={`${isDark ? "text-gray-300" : "text-gray-600"}`}>Obrigado por sua contribuição!</p>
                   </motion.div>

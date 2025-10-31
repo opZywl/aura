@@ -247,7 +247,7 @@ export default function ChatInput({ onSendMessage, theme, themeSettings, disable
       const reader = new FileReader()
       reader.onload = () => {
         const audioData = reader.result as string
-        onSendMessage(`🎵 Áudio gravado (${formatTime(recordingTime)})`)
+        onSendMessage(`Audio gravado (${formatTime(recordingTime)})`)
         // TODO: Implement actual audio upload to server
         console.log("Audio data:", audioData.substring(0, 100) + "...")
       }
@@ -265,7 +265,7 @@ export default function ChatInput({ onSendMessage, theme, themeSettings, disable
       const reader = new FileReader()
       reader.onload = () => {
         const fileData = reader.result as string
-        const fileType = file.type.startsWith("image/") ? "🖼️" : "📎"
+        const fileType = file.type.startsWith("image/") ? "[imagem]" : "[arquivo]"
         onSendMessage(`${fileType} ${file.name} (${(file.size / 1024).toFixed(1)}KB)`)
         // TODO: Implement actual file upload to server
         console.log("File data:", fileData.substring(0, 100) + "...")
@@ -318,7 +318,7 @@ export default function ChatInput({ onSendMessage, theme, themeSettings, disable
       {disabled && (
         <div className="mb-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
           <p className="text-red-400 text-sm text-center">
-            ⚠️ Chat indisponível - Execute o backend para enviar mensagens
+            Chat indisponível - execute o backend para enviar mensagens
           </p>
         </div>
       )}

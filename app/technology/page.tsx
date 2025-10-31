@@ -25,7 +25,6 @@ export default function TechnologyPage() {
     {
       name: "Next.js",
       category: "Frontend",
-      icon: "⚛️",
       description: "Framework React com App Router, Server Components e otimizações automáticas para performance.",
       color: isDark ? "from-blue-900/50 to-cyan-900/50" : "from-blue-100 to-cyan-100",
       borderColor: isDark ? "border-blue-500/30" : "border-blue-400/30",
@@ -33,7 +32,6 @@ export default function TechnologyPage() {
     {
       name: "TypeScript",
       category: "Linguagem",
-      icon: "📘",
       description: "Linguagem tipada que garante maior segurança e produtividade no desenvolvimento.",
       color: isDark ? "from-indigo-900/50 to-purple-900/50" : "from-indigo-100 to-purple-100",
       borderColor: isDark ? "border-indigo-500/30" : "border-indigo-400/30",
@@ -41,7 +39,6 @@ export default function TechnologyPage() {
     {
       name: "Tailwind CSS",
       category: "Estilização",
-      icon: "🎨",
       description: "Framework CSS utility-first para estilização rápida e responsiva.",
       color: isDark ? "from-teal-900/50 to-green-900/50" : "from-teal-100 to-green-100",
       borderColor: isDark ? "border-teal-500/30" : "border-teal-400/30",
@@ -49,7 +46,6 @@ export default function TechnologyPage() {
     {
       name: "Framer Motion",
       category: "Animações",
-      icon: "✨",
       description: "Biblioteca de animações declarativas para React com performance otimizada.",
       color: isDark ? "from-pink-900/50 to-rose-900/50" : "from-pink-100 to-rose-100",
       borderColor: isDark ? "border-pink-500/30" : "border-pink-400/30",
@@ -57,7 +53,6 @@ export default function TechnologyPage() {
     {
       name: "Python",
       category: "Backend",
-      icon: "🐍",
       description: "Backend em Python para processamento de dados e integração com APIs de IA.",
       color: isDark ? "from-yellow-900/50 to-orange-900/50" : "from-yellow-100 to-orange-100",
       borderColor: isDark ? "border-yellow-500/30" : "border-yellow-400/30",
@@ -65,7 +60,6 @@ export default function TechnologyPage() {
     {
       name: "WhatsApp API",
       category: "Integração",
-      icon: "💬",
       description: "Integração oficial com WhatsApp Business API para automação de mensagens.",
       color: isDark ? "from-green-900/50 to-emerald-900/50" : "from-green-100 to-emerald-100",
       borderColor: isDark ? "border-green-500/30" : "border-green-400/30",
@@ -73,7 +67,6 @@ export default function TechnologyPage() {
     {
       name: "shadcn/ui",
       category: "Componentes",
-      icon: "🧩",
       description: "Componentes UI acessíveis e customizáveis baseados em Radix UI.",
       color: isDark ? "from-gray-800/50 to-slate-800/50" : "from-gray-100 to-slate-100",
       borderColor: isDark ? "border-gray-500/30" : "border-gray-400/30",
@@ -81,7 +74,6 @@ export default function TechnologyPage() {
     {
       name: "Vercel",
       category: "Deploy",
-      icon: "🚀",
       description: "Plataforma de deploy otimizada para aplicações Next.js com CDN global.",
       color: isDark ? "from-violet-900/50 to-purple-900/50" : "from-violet-100 to-purple-100",
       borderColor: isDark ? "border-violet-500/30" : "border-violet-400/30",
@@ -118,8 +110,8 @@ export default function TechnologyPage() {
   const metrics = [
     { label: "Open Source", value: "100%" },
     { label: "Type Safety", value: "100%" },
-    { label: "Server Rendering", value: "✓" },
-    { label: "Progressive Web App", value: "✓" },
+    { label: "Server Rendering", value: "Sim" },
+    { label: "Progressive Web App", value: "Sim" },
   ]
 
   return (
@@ -223,7 +215,6 @@ export default function TechnologyPage() {
                       transition={{ duration: 0.5, delay: 0.1 * index }}
                       className={`p-6 rounded-2xl bg-gradient-to-br ${tech.color} border ${tech.borderColor} backdrop-blur-sm hover:scale-105 transition-all duration-300`}
                   >
-                    <div className="text-3xl mb-3">{tech.icon}</div>
                     <h3 className={`text-xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>{tech.name}</h3>
                     <p className={`text-sm mb-3 ${isDark ? "text-gray-300" : "text-gray-600"}`}>{tech.category}</p>
                     <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-700"}`}>{tech.description}</p>
