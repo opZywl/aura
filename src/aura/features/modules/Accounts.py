@@ -295,7 +295,7 @@ def connectInstagram(login: str, password: str, display_name: str = "", descript
     logger.info("VERIFICAÇÃO FINAL:")
     logger.info(f"  -- Total de contas Instagram: {len(_instagram_accounts)}")
     for i, acc in enumerate(_instagram_accounts):
-    status = "NOVA" if acc.id == account_id else "EXISTENTE"
+        status = "NOVA" if acc.id == account_id else "EXISTENTE"
         logger.info(f"  -- Conta {i+1}: {status} - '{acc.displayName}' ({acc.login})")
 
     logger.info("=" * 80)
