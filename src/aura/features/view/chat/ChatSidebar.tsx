@@ -130,8 +130,6 @@ export default function ChatSidebar({
         switch (platform?.toLowerCase()) {
             case "telegram":
                 return "/redesociais/telegram.svg"
-            case "instagram":
-                return "/redesociais/instagram.svg"
             case "whatsapp":
                 return "/redesociais/whatsapp.svg"
             case "messenger":

@@ -561,7 +561,6 @@ export const ptBR = {
     whatsapp: "WhatsApp",
     telegram: "Telegram",
     messenger: "Messenger",
-    instagram: "Instagram",
     email: "Email",
     webchat: "WebChat",
   },

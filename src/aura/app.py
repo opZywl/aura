@@ -20,26 +20,6 @@ from .features.modules.Accounts import (
     listTelegramAccounts,
     connectTelegram,
     removeTelegram,
-    InstagramAccount,
-    listInstagramAccounts,
-    connectInstagram,
-    removeInstagram
-)
-
-# Import do módulo Instagram API
-from .instagram_api import (
-    get_instagram_conversations,
-    get_instagram_conversation,
-    get_instagram_messages,
-    send_instagram_message,
-    create_instagram_conversation,
-    archive_instagram_conversation,
-    delete_instagram_conversation,
-    mark_instagram_messages_as_read,
-    simulate_instagram_message,
-    convert_instagram_conversation_to_api_format,
-    convert_instagram_message_to_api_format,
-    initialize_sample_instagram_conversations
 )
 
 from . import bot_components_api
@@ -285,7 +265,6 @@ def health_check():
         "timezone": "America/Sao_Paulo",
         "conversations_count": len(_conversations),
         "active_accounts": len(listTelegramAccounts()),
-        "instagram_accounts": len(listInstagramAccounts()),
         "ngrok_url": os.environ.get('NGROK_URL'),
         "workflows_count": len(bot_components_api.get_all_workflows()),
         "uptime": "OK"
@@ -551,316 +530,6 @@ def deletar_account(account_id):
         logger.error(f"Erro ao remover conta Telegram: {e}")
         return jsonify({"erro": str(e)}), 400
 
-# --- ROTAS INSTAGRAM ---
-
-@app.route('/api/instagram/accounts', methods=['GET'])
-def get_instagram_accounts():
-    """Lista todas as contas Instagram conectadas"""
-    try:
-        logger.info("GET /api/instagram/accounts - Listando contas Instagram")
-
-        accounts = listInstagramAccounts()
-
-        accounts_data = []
-        for acc in accounts:
-            accounts_data.append({
-                "id": acc.id,
-                "login": acc.login,
-                "displayName": acc.displayName,
-                "description": acc.description,
-                "isActive": acc.isActive,
-                "platform": "instagram"
-            })
-
-        logger.info(f"GET /api/instagram/accounts - Retornando {len(accounts_data)} contas")
-
-        return jsonify(accounts_data), 200
-
-    except Exception as e:
-        logger.error(f"GET /api/instagram/accounts - Erro: {str(e)}")
-        return jsonify({"erro": f"Erro ao listar contas Instagram: {str(e)}"}), 500
-
-@app.route('/api/instagram/accounts', methods=['POST'])
-def create_instagram_account():
-    """Conecta uma nova conta Instagram"""
-    logger.info("=" * 80)
-    logger.info("POST /api/instagram/accounts - REQUISIÇÃO RECEBIDA")
-    logger.info("=" * 80)
-
-    try:
-        logger.info("Processando dados da requisição...")
-
-        if not request.is_json:
-            logger.error("Requisição não é JSON")
-            return jsonify({"erro": "Content-Type deve ser application/json"}), 415
-
-        data = request.get_json()
-        logger.info(f"Dados recebidos: {data}")
-
-        if not data:
-            logger.error("Dados JSON estão vazios")
-            return jsonify({"erro": "Dados JSON são obrigatórios"}), 400
-
-        login = data.get('login', '').strip()
-        password = data.get('password', '').strip()
-        display_name = data.get('displayName', '').strip()
-        description = data.get('description', '').strip()
-
-        logger.info(f"Dados extraídos:")
-        logger.info(f"  - Login: '{login}'")
-        logger.info(f"  - Password: {'*' * len(password)} ({len(password)} chars)")
-        logger.info(f"  - Display Name: '{display_name}'")
-        logger.info(f"  - Description: '{description}'")
-
-        if not login or not password:
-            logger.error("Login ou senha estão vazios")
-            return jsonify({"erro": "Login e senha são obrigatórios"}), 400
-
-        logger.info("Chamando connectInstagram...")
-
-        account = connectInstagram(login, password, display_name, description)
-
-        logger.info("connectInstagram retornou com sucesso!")
-
-        initialize_sample_instagram_conversations(account.id, 3)
-        logger.info(f"Conversas de exemplo inicializadas para a conta {account.id}")
-
-        account_data = {
-            "id": account.id,
-            "login": account.login,
-            "displayName": account.displayName,
-            "description": account.description,
-            "isActive": account.isActive,
-            "platform": "instagram"
-        }
-
-        logger.info(f"Retornando dados da conta:")
-        logger.info(f"  - ID: {account_data['id']}")
-        logger.info(f"  - Login: {account_data['login']}")
-        logger.info(f"  - Display Name: {account_data['displayName']}")
-        logger.info(f"  - Is Active: {account_data['isActive']}")
-
-        logger.info("=" * 80)
-        logger.info("POST /api/instagram/accounts - SUCESSO!")
-        logger.info("=" * 80)
-
-        return jsonify(account_data), 201
-
-    except ValueError as e:
-        logger.error("=" * 80)
-        logger.error(f"POST /api/instagram/accounts - ERRO DE VALIDAÇÃO")
-        logger.error(f"Erro: {str(e)}")
-        logger.error("=" * 80)
-        return jsonify({"erro": str(e)}), 400
-    except Exception as e:
-        logger.error("=" * 80)
-        logger.error(f"POST /api/instagram/accounts - ERRO INTERNO")
-        logger.error(f"Erro: {str(e)}")
-        logger.error("=" * 80)
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
-
-@app.route('/api/instagram/accounts/<account_id>', methods=['DELETE'])
-def delete_instagram_account(account_id):
-    """Remove uma conta Instagram"""
-    try:
-        logger.info(f"DELETE /api/instagram/accounts/{account_id} - Removendo conta")
-
-        if not account_id:
-            return jsonify({"erro": "ID da conta é obrigatório"}), 400
-
-        removeInstagram(account_id)
-
-        logger.info(f"DELETE /api/instagram/accounts/{account_id} - Conta removida")
-
-        return jsonify({"mensagem": "Conta Instagram removida com sucesso"}), 200
-
-    except ValueError as e:
-        logger.warning(f"DELETE /api/instagram/accounts/{account_id} - Erro: {str(e)}")
-        return jsonify({"erro": str(e)}), 404
-    except Exception as e:
-        logger.error(f"DELETE /api/instagram/accounts/{account_id} - Erro: {str(e)}")
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
-
-@app.route('/api/instagram/accounts/<account_id>/status', methods=['GET'])
-def get_instagram_account_status(account_id):
-    """Verifica o status de uma conta Instagram"""
-    try:
-        logger.info(f"GET /api/instagram/accounts/{account_id}/status - Verificando status")
-
-        accounts = listInstagramAccounts()
-        account = next((acc for acc in accounts if acc.id == account_id), None)
-
-        if not account:
-            return jsonify({"erro": "Conta não encontrada"}), 404
-
-        status_data = {
-            "id": account.id,
-            "login": account.login,
-            "isActive": account.isActive,
-            "hasSession": account.sessionId is not None,
-            "platform": "instagram"
-        }
-
-        logger.info(f"GET /api/instagram/accounts/{account_id}/status - Status retornado")
-
-        return jsonify(status_data), 200
-
-    except Exception as e:
-        logger.error(f"GET /api/instagram/accounts/{account_id}/status - Erro: {str(e)}")
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
-
-# --- ROTAS DE CHAT INSTAGRAM ---
-
-@app.route('/api/instagram/conversations', methods=['GET'])
-def list_instagram_conversations():
-    """Lista todas as conversas Instagram de uma conta"""
-    try:
-        account_id = request.args.get('account_id')
-        if not account_id:
-            return jsonify({"erro": "account_id é obrigatório"}), 400
-
-        logger.info(f"GET /api/instagram/conversations - Listando conversas da conta {account_id}")
-
-        accounts = listInstagramAccounts()
-        account = next((acc for acc in accounts if acc.id == account_id), None)
-
-        if not account:
-            return jsonify({"erro": "Conta Instagram não encontrada"}), 404
-
-        conversations = get_instagram_conversations(account_id)
-
-        api_conversations = [convert_instagram_conversation_to_api_format(conv) for conv in conversations]
-
-        logger.info(f"GET /api/instagram/conversations - Retornando {len(api_conversations)} conversas")
-
-        return jsonify(api_conversations), 200
-
-    except Exception as e:
-        logger.error(f"GET /api/instagram/conversations - Erro: {str(e)}")
-        return jsonify({"erro": f"Erro ao listar conversas Instagram: {str(e)}"}), 500
-
-@app.route('/api/instagram/conversations/<conversation_id>/messages', methods=['GET'])
-def get_instagram_conversation_messages(conversation_id):
-    """Obtém mensagens de uma conversa Instagram"""
-    try:
-        limit = request.args.get('limit', type=int)
-        offset = request.args.get('offset', type=int, default=0)
-
-        logger.info(f"GET /api/instagram/conversations/{conversation_id}/messages - Buscando mensagens")
-
-        messages = get_instagram_messages(conversation_id, limit, offset)
-
-        api_messages = [convert_instagram_message_to_api_format(msg) for msg in messages]
-
-        logger.info(f"GET /api/instagram/conversations/{conversation_id}/messages - Retornando {len(api_messages)} mensagens")
-
-        return jsonify(api_messages), 200
-
-    except Exception as e:
-        logger.error(f"GET /api/instagram/conversations/{conversation_id}/messages - Erro: {str(e)}")
-        return jsonify({"erro": f"Erro ao buscar mensagens: {str(e)}"}), 500
-
-@app.route('/api/instagram/conversations/<conversation_id>/messages', methods=['POST'])
-def send_instagram_conversation_message(conversation_id):
-    """Envia uma mensagem para uma conversa Instagram"""
-    try:
-        if not request.is_json:
-            return jsonify({"erro": "Content-Type deve ser application/json"}), 415
-
-        data = request.get_json()
-        if not data:
-            return jsonify({"erro": "Dados JSON são obrigatórios"}), 400
-
-        account_id = data.get('account_id')
-        text = data.get('text')
-
-        if not account_id or not text:
-            return jsonify({"erro": "account_id e text são obrigatórios"}), 400
-
-        logger.info(f"POST /api/instagram/conversations/{conversation_id}/messages - Enviando mensagem")
-
-        message = send_instagram_message(account_id, conversation_id, text)
-
-        if not message:
-            return jsonify({"erro": "Falha ao enviar mensagem"}), 400
-
-        api_message = convert_instagram_message_to_api_format(message)
-
-        logger.info(f"POST /api/instagram/conversations/{conversation_id}/messages - Mensagem enviada: {message.id}")
-
-        return jsonify(api_message), 201
-
-    except Exception as e:
-        logger.error(f"POST /api/instagram/conversations/{conversation_id}/messages - Erro: {str(e)}")
-        return jsonify({"erro": f"Erro ao enviar mensagem: {str(e)}"}), 500
-
-@app.route('/api/instagram/conversations/<conversation_id>/mark-read', methods=['POST'])
-def mark_instagram_conversation_read(conversation_id):
-    """Marca todas as mensagens de uma conversa Instagram como lidas"""
-    try:
-        logger.info(f"POST /api/instagram/conversations/{conversation_id}/mark-read - Marcando como lidas")
-
-        count = mark_instagram_messages_as_read(conversation_id)
-
-        logger.info(f"POST /api/instagram/conversations/{conversation_id}/mark-read - {count} mensagens marcadas como lidas")
-
-        return jsonify({"mensagens_marcadas": count}), 200
-
-    except Exception as e:
-        logger.error(f"POST /api/instagram/conversations/{conversation_id}/mark-read - Erro: {str(e)}")
-        return jsonify({"erro": f"Erro ao marcar mensagens como lidas: {str(e)}"}), 500
-
-@app.route('/api/instagram/conversations/<conversation_id>/archive', methods=['POST'])
-def archive_instagram_conversation_route(conversation_id):
-    """Arquiva ou desarquiva uma conversa Instagram"""
-    try:
-        data = request.get_json() or {}
-        is_archived = data.get('is_archived', True)
-
-        logger.info(f"POST /api/instagram/conversations/{conversation_id}/archive - {'Arquivando' if is_archived else 'Desarquivando'}")
-
-        success = archive_instagram_conversation(conversation_id, is_archived)
-
-        if not success:
-            return jsonify({"erro": "Conversa não encontrada"}), 404
-
-        logger.info(f"POST /api/instagram/conversations/{conversation_id}/archive - {'Arquivada' if is_archived else 'Desarquivada'}")
-
-        return jsonify({"mensagem": f"Conversa {'arquivada' if is_archived else 'desarquivada'} com sucesso"}), 200
-
-    except Exception as e:
-        logger.error(f"POST /api/instagram/conversations/{conversation_id}/archive - Erro: {str(e)}")
-        return jsonify({"erro": f"Erro ao arquivar conversa: {str(e)}"}), 500
-
-@app.route('/api/instagram/simulate-message', methods=['POST'])
-def simulate_instagram_message_route():
-    """Simula o recebimento de uma mensagem Instagram (para testes)"""
-    try:
-        data = request.get_json() or {}
-        account_id = data.get('account_id')
-        conversation_id = data.get('conversation_id')
-        user_data = data.get('user_data')
-
-        if not account_id:
-            return jsonify({"erro": "account_id é obrigatório"}), 400
-
-        logger.info(f"POST /api/instagram/simulate-message - Simulando mensagem para conta {account_id}")
-
-        message = simulate_instagram_message(account_id, conversation_id, user_data)
-
-        if not message:
-            return jsonify({"erro": "Falha ao simular mensagem"}), 400
-
-        api_message = convert_instagram_message_to_api_format(message)
-
-        logger.info(f"POST /api/instagram/simulate-message - Mensagem simulada: {message.id}")
-
-        return jsonify(api_message), 201
-
-    except Exception as e:
-        logger.error(f"POST /api/instagram/simulate-message - Erro: {str(e)}")
-        return jsonify({"erro": f"Erro ao simular mensagem: {str(e)}"}), 500
-
 # --- Listar conversas otimizado ---
 @app.route('/api/conversations', methods=['GET'])
 def listar_conversas():
@@ -876,30 +545,24 @@ def listar_conversas():
         with _conversation_lock:
             logger.info(f"Verificando {len(_conversations)} conversas no armazenamento")
             for conv_id, conv in _conversations.items():
-                logger.info(f"   Conversa {conv_id}: {conv.title} - Arquivada: {conv.isArchived}, Bot: {conv.is_bot_conversation}")
+                logger.info(
+                    f"   Conversa {conv_id}: {conv.title} - Arquivada: {conv.isArchived}, Bot: {conv.is_bot_conversation}"
+                )
                 if not conv.isArchived and not conv.is_bot_conversation:
                     telegram_conversations.append(conv.to_dict())
-                    logger.info(f"     Incluída na lista")
+                    logger.info("     Incluída na lista")
                 else:
-                    logger.info(f"     Filtrada (arquivada ou bot)")
+                    logger.info("     Filtrada (arquivada ou bot)")
 
-        instagram_conversations = []
-        instagram_accounts = listInstagramAccounts()
-        for account in instagram_accounts:
-            account_conversations = get_instagram_conversations(account.id)
-            for conv in account_conversations:
-                if not conv.is_archived:
-                    instagram_conversations.append(convert_instagram_conversation_to_api_format(conv))
+        telegram_conversations.sort(key=lambda x: x.get('lastAt', ''), reverse=True)
 
-        all_conversations = telegram_conversations + instagram_conversations
-
-        all_conversations.sort(key=lambda x: x.get('lastAt', ''), reverse=True)
-
-        _cache['conversations_cache'] = all_conversations
+        _cache['conversations_cache'] = telegram_conversations
         _cache['conversations_last_update'] = current_time
 
-        logger.info(f"Retornando {len(all_conversations)} conversas ({len(telegram_conversations)} Telegram + {len(instagram_conversations)} Instagram)")
-        return jsonify(all_conversations), 200
+        logger.info(
+            "Retornando %s conversas Telegram", len(telegram_conversations)
+        )
+        return jsonify(telegram_conversations), 200
 
     except Exception as e:
         logger.error(f"Erro ao listar conversas: {e}")
@@ -908,7 +571,7 @@ def listar_conversas():
 # --- Obter conversa específica ---
 @app.route('/api/conversations/<conversation_id>', methods=['GET'])
 def obter_conversa(conversation_id):
-    """Obtém uma conversa específica (Telegram ou Instagram)"""
+    """Obtém uma conversa específica do Telegram"""
     try:
         logger.info(f"Buscando conversa: {conversation_id}")
 
@@ -917,11 +580,6 @@ def obter_conversa(conversation_id):
                 conv = _conversations[conversation_id]
                 logger.info(f"Conversa Telegram encontrada: {conv.title}")
                 return jsonify(conv.to_dict()), 200
-
-        instagram_conv = get_instagram_conversation(conversation_id)
-        if instagram_conv:
-            logger.info(f"Conversa Instagram encontrada: {instagram_conv.username}")
-            return jsonify(convert_instagram_conversation_to_api_format(instagram_conv)), 200
 
         logger.warning(f"Conversa não encontrada: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
@@ -933,7 +591,7 @@ def obter_conversa(conversation_id):
 # --- Obter mensagens de uma conversa ---
 @app.route('/api/conversations/<conversation_id>/messages', methods=['GET'])
 def obter_mensagens(conversation_id):
-    """Obtém mensagens de uma conversa (Telegram ou Instagram)"""
+    """Obtém mensagens de uma conversa do Telegram"""
     try:
         limit = request.args.get('limit', type=int)
         offset = request.args.get('offset', type=int, default=0)
@@ -946,19 +604,13 @@ def obter_mensagens(conversation_id):
                 messages = conv.messages
 
                 if limit is not None:
-                    messages = messages[offset:offset + limit]
+                    messages = messages[offset : offset + limit]
                 else:
                     messages = messages[offset:]
 
                 messages_data = [msg.to_dict() for msg in messages]
-                logger.info(f"Retornando {len(messages_data)} mensagens Telegram")
+                logger.info("Retornando %s mensagens Telegram", len(messages_data))
                 return jsonify(messages_data), 200
-
-        instagram_messages = get_instagram_messages(conversation_id, limit, offset)
-        if instagram_messages:
-            messages_data = [convert_instagram_message_to_api_format(msg) for msg in instagram_messages]
-            logger.info(f"Retornando {len(messages_data)} mensagens Instagram")
-            return jsonify(messages_data), 200
 
         logger.warning(f"Conversa não encontrada: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
@@ -970,7 +622,7 @@ def obter_mensagens(conversation_id):
 # --- Enviar mensagem ---
 @app.route('/api/conversations/<conversation_id>/messages', methods=['POST'])
 def enviar_mensagem(conversation_id):
-    """Envia mensagem para uma conversa (Telegram ou Instagram)"""
+    """Envia mensagem para uma conversa do Telegram"""
     try:
         if not request.is_json:
             return jsonify({"erro": "Content-Type deve ser application/json"}), 415
@@ -1020,14 +672,6 @@ def enviar_mensagem(conversation_id):
                         return jsonify({"erro": "Falha ao enviar mensagem via Telegram"}), 500
                 else:
                     return jsonify({"erro": "Conta Telegram não encontrada para esta conversa"}), 404
-
-        account_id = data.get('account_id')
-        if account_id:
-            instagram_message = send_instagram_message(account_id, conversation_id, text)
-            if instagram_message:
-                message_data = convert_instagram_message_to_api_format(instagram_message)
-                logger.info(f"Mensagem Instagram enviada: {instagram_message.id}")
-                return jsonify(message_data), 201
 
         logger.warning(f"Conversa não encontrada: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
@@ -1089,20 +733,16 @@ def arquivar_conversa(conversation_id):
 
                 _cache['conversations_last_update'] = 0
 
-                logger.info(f"Conversa Telegram {'arquivada' if is_archived else 'desarquivada'}: {conversation_id}")
+                logger.info(
+                    "Conversa Telegram %s: %s",
+                    'arquivada' if is_archived else 'desarquivada',
+                    conversation_id,
+                )
                 return jsonify({
                     "success": True,
                     "message": f"Conversa {'arquivada' if is_archived else 'desarquivada'} com sucesso",
-                    "conversation": conv.to_dict()
+                    "conversation": conv.to_dict(),
                 }), 200
-
-        success = archive_instagram_conversation(conversation_id, is_archived)
-        if success:
-            logger.info(f"Conversa Instagram {'arquivada' if is_archived else 'desarquivada'}: {conversation_id}")
-            return jsonify({
-                "success": True,
-                "message": f"Conversa {'arquivada' if is_archived else 'desarquivada'} com sucesso"
-            }), 200
 
         logger.warning(f"Conversa não encontrada para arquivamento: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
@@ -1129,11 +769,6 @@ def deletar_conversa(conversation_id):
 
                 logger.info(f"Conversa Telegram deletada: {conversation_id}")
                 return '', 204
-
-        success = delete_instagram_conversation(conversation_id)
-        if success:
-            logger.info(f"Conversa Instagram deletada: {conversation_id}")
-            return '', 204
 
         logger.warning(f"Conversa não encontrada para deleção: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
@@ -1312,7 +947,6 @@ def debug_status():
     """Endpoint de debug com informações detalhadas"""
     try:
         telegram_accounts = listTelegramAccounts()
-        instagram_accounts = listInstagramAccounts()
 
         conversations_info = []
         with _conversation_lock:
@@ -1335,11 +969,7 @@ def debug_status():
                 "accounts": [{"id": acc.id, "botName": acc.botName} for acc in telegram_accounts],
                 "conversations_count": len(_conversations),
                 "chat_mappings": len(chat_to_account),
-                "chat_mappings_detail": chat_to_account
-            },
-            "instagram": {
-                "accounts_count": len(instagram_accounts),
-                "accounts": [{"id": acc.id, "login": acc.login, "displayName": acc.displayName} for acc in instagram_accounts],
+                "chat_mappings_detail": chat_to_account,
             },
             "bot": {
                 "workflows_count": len(bot_components_api.get_all_workflows()),
