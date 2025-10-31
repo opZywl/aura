@@ -42,6 +42,8 @@ from .instagram_api import (
     initialize_sample_instagram_conversations
 )
 
+from . import bot_components_api
+
 # --- Configurações Iniciais ---
 logging.getLogger('werkzeug').setLevel(logging.WARNING)
 load_dotenv()
@@ -136,7 +138,7 @@ sse_subscribers: Dict[str, List[queue.Queue]] = {}
 _cache = {
     'conversations_last_update': 0,
     'conversations_cache': [],
-    'cache_duration': 5  # Reduzido para 5 segundos para debug
+    'cache_duration': 5
 }
 
 # --- Funções utilitárias ---
@@ -169,28 +171,47 @@ def broadcast_to_subscribers(conv_id: str, message_data: dict):
             except Exception:
                 dead_queues.append(q)
 
-        # Remove queues mortas
         for q in dead_queues:
             sse_subscribers[conv_id].remove(q)
 
-def send_telegram_message(chat_id: str, text: str, account_id: str) -> bool:
-    """Envia mensagem via Telegram API"""
+def send_telegram_message(chat_id: str, text: str, account_id: str, options: List[Dict] = None) -> bool:
+    """Envia mensagem via Telegram API com suporte a botões de opções"""
     try:
-        # Buscar a conta do Telegram
         accounts = listTelegramAccounts()
         account = next((acc for acc in accounts if acc.id == account_id), None)
 
-        if not account:
-            logger.error(f"❌ Conta Telegram não encontrada: {account_id}")
-            return False
+        bot_token = None
+        if account:
+            bot_token = account.apiKey
+            logger.info(f"✅ Conta Telegram encontrada: {account_id} - {account.botName}")
+        else:
+            # Fallback: usar token da variável de ambiente
+            bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+            if bot_token:
+                logger.warning(f"⚠️ Conta {account_id} não encontrada em listTelegramAccounts, usando TELEGRAM_BOT_TOKEN da variável de ambiente")
+            else:
+                logger.error(f"❌ Conta Telegram não encontrada: {account_id} e TELEGRAM_BOT_TOKEN não configurado")
+                logger.error(f"📋 Contas disponíveis: {[acc.id for acc in accounts]}")
+                return False
 
-        # Enviar mensagem via API do Telegram
-        url = f"https://api.telegram.org/bot{account.apiKey}/sendMessage"
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
         payload = {
             'chat_id': chat_id,
             'text': text,
             'parse_mode': 'HTML'
         }
+
+        if options:
+            keyboard = []
+            for opt in options:
+                button_text = opt.get('text', '') if isinstance(opt, dict) else str(opt)
+                keyboard.append([{'text': button_text}])
+
+            payload['reply_markup'] = {
+                'keyboard': keyboard,
+                'resize_keyboard': True,
+                'one_time_keyboard': True
+            }
 
         logger.info(f"📤 Enviando mensagem Telegram para chat {chat_id}: {text[:50]}...")
 
@@ -212,7 +233,6 @@ def send_telegram_message(chat_id: str, text: str, account_id: str) -> bool:
         logger.error(f"❌ Erro ao enviar mensagem Telegram: {e}")
         return False
 
-# Função para criar conversa de teste
 def create_test_conversation():
     """Cria uma conversa de teste para debug"""
     logger.info("🧪 Criando conversa de teste...")
@@ -229,7 +249,6 @@ def create_test_conversation():
                 is_bot_conversation=False
             )
 
-            # Adicionar mensagem de teste
             test_message = Message(
                 id=uuid.uuid4().hex,
                 sender='user',
@@ -243,8 +262,6 @@ def create_test_conversation():
             test_conv.lastAt = test_message.timestamp
 
             _conversations[test_conv_id] = test_conv
-
-            # Limpar cache
             _cache['conversations_last_update'] = 0
 
             logger.info(f"✅ Conversa de teste criada: {test_conv_id}")
@@ -279,8 +296,133 @@ def health_check():
         "active_accounts": len(listTelegramAccounts()),
         "instagram_accounts": len(listInstagramAccounts()),
         "ngrok_url": os.environ.get('NGROK_URL'),
+        "workflows_count": len(bot_components_api.get_all_workflows()),
         "uptime": "OK"
     }), 200
+
+# --- ENDPOINTS DO BOT DE WORKFLOWS ---
+
+@app.route('/api/bot/workflows', methods=['POST'])
+def save_workflow():
+    """Salva um workflow REAL vindo do frontend"""
+    try:
+        if not request.is_json:
+            return jsonify({"erro": "Content-Type deve ser application/json"}), 415
+
+        workflow_data = request.get_json()
+        if not workflow_data:
+            return jsonify({"erro": "Dados do workflow são obrigatórios"}), 400
+
+        workflow_id = workflow_data.get('_id', '')
+        enabled = workflow_data.get('_enabled', True)
+
+        logger.info(f"💾 Salvando workflow REAL: {workflow_id} (enabled: {enabled})")
+        logger.info(f"📦 Workflow data: {json.dumps(workflow_data, indent=2)}")
+
+        success = bot_components_api.register_workflow(workflow_data)
+
+        if success:
+            logger.info(f"✅ Workflow salvo e {'ATIVADO' if enabled else 'DESATIVADO'}: {workflow_id}")
+            return jsonify({
+                "success": True,
+                "message": f"Workflow salvo com sucesso e {'ativado' if enabled else 'desativado'}",
+                "workflow_id": workflow_id,
+                "enabled": enabled
+            }), 201
+        else:
+            logger.error(f"❌ Erro ao salvar workflow: {workflow_id}")
+            return jsonify({"erro": "Erro ao salvar workflow"}), 500
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao salvar workflow: {e}")
+        logger.exception("Stack trace:")
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/bot/workflow/save', methods=['POST'])
+def save_workflow_alias():
+    """Alias para salvar workflow (compatibilidade com frontend)"""
+    return save_workflow()
+
+@app.route('/api/bot/workflow/activate', methods=['POST'])
+def activate_workflow():
+    """Ativa ou desativa um workflow"""
+    try:
+        if not request.is_json:
+            return jsonify({"erro": "Content-Type deve ser application/json"}), 415
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"erro": "Dados são obrigatórios"}), 400
+
+        workflow_id = data.get('workflow_id')
+        enabled = data.get('enabled', True)
+
+        if not workflow_id:
+            return jsonify({"erro": "workflow_id é obrigatório"}), 400
+
+        logger.info(f"🔄 {'Ativando' if enabled else 'Desativando'} workflow: {workflow_id}")
+
+        success = bot_components_api.set_workflow_status(workflow_id, enabled)
+
+        if success:
+            return jsonify({
+                "success": True,
+                "message": f"Workflow {'ativado' if enabled else 'desativado'} com sucesso",
+                "workflow_id": workflow_id,
+                "enabled": enabled
+            }), 200
+        else:
+            return jsonify({"erro": "Workflow não encontrado"}), 404
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao ativar/desativar workflow: {e}")
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/bot/workflows', methods=['GET'])
+def list_workflows():
+    """Lista todos os workflows REAIS publicados"""
+    try:
+        workflows = bot_components_api.get_all_workflows()
+        logger.info(f"📋 Retornando {len(workflows)} workflows REAIS")
+        return jsonify({"workflows": workflows}), 200
+    except Exception as e:
+        logger.error(f"❌ Erro ao listar workflows: {e}")
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/bot/workflows/<workflow_id>', methods=['GET'])
+def get_workflow(workflow_id):
+    """Obtém um workflow específico"""
+    try:
+        workflow = bot_components_api.get_workflow_by_id(workflow_id)
+        if workflow:
+            return jsonify(workflow), 200
+        return jsonify({"erro": "Workflow não encontrado"}), 404
+    except Exception as e:
+        logger.error(f"❌ Erro ao obter workflow: {e}")
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/bot/conversations/<user_id>/reset', methods=['POST'])
+def reset_user_conversation(user_id):
+    """Reseta a conversa de um usuário com o bot"""
+    try:
+        data = request.get_json() or {}
+        workflow_id = data.get('workflow_id', 'aura_flow_001')
+
+        success = bot_components_api.reset_conversation(user_id, workflow_id)
+
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Conversa resetada com sucesso"
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Nenhuma conversa ativa para resetar"
+            }), 404
+    except Exception as e:
+        logger.error(f"❌ Erro ao resetar conversa: {e}")
+        return jsonify({"erro": str(e)}), 500
 
 # --- Endpoint para criar conversa de teste ---
 @app.route('/api/test/create-conversation', methods=['POST'])
@@ -334,18 +476,15 @@ def criar_account():
         nova_acc = connectTelegram(api_key.strip(), bot_name.strip())
         logger.info(f"✅ Conta Telegram conectada: {nova_acc.id} - {nova_acc.botName}")
 
-        # Configura webhook IMEDIATAMENTE
         ngrok_url = os.environ.get('NGROK_URL')
         if ngrok_url:
             webhook_url = f"{ngrok_url}/api/telegram/webhook/{nova_acc.id}"
             try:
-                # Primeiro, remover webhook existente
                 requests.post(
                     f"https://api.telegram.org/bot{nova_acc.apiKey}/deleteWebhook",
                     timeout=10
                 )
 
-                # Configurar novo webhook
                 resp = requests.post(
                     f"https://api.telegram.org/bot{nova_acc.apiKey}/setWebhook",
                     data={'url': webhook_url},
@@ -366,7 +505,6 @@ def criar_account():
         else:
             logger.warning("⚠️ NGROK_URL não configurado - webhook não será configurado")
 
-        # Limpa cache
         _cache['conversations_last_update'] = 0
 
         return jsonify(nova_acc.__dict__), 201
@@ -393,19 +531,15 @@ def deletar_account(account_id):
             except Exception as e:
                 logger.warning(f"⚠️ Erro ao remover webhook: {e}")
 
-        # Remove mapeamentos
         for chat_id, acc_id in list(chat_to_account.items()):
             if acc_id == account_id:
                 del chat_to_account[chat_id]
 
-        # Remove conta
         removeTelegram(account_id)
 
-        # Remove conversa da conta
         with _conversation_lock:
             _conversations.pop(account_id, None)
 
-        # Limpa cache
         _cache['conversations_last_update'] = 0
 
         logger.info(f"✅ Conta Telegram {account_id} removida completamente")
@@ -425,7 +559,6 @@ def get_instagram_accounts():
 
         accounts = listInstagramAccounts()
 
-        # Converter para formato JSON (sem senha por segurança)
         accounts_data = []
         for acc in accounts:
             accounts_data.append({
@@ -455,7 +588,6 @@ def create_instagram_account():
     try:
         logger.info("📥 Processando dados da requisição...")
 
-        # Verificar se é JSON
         if not request.is_json:
             logger.error("❌ Requisição não é JSON")
             return jsonify({"erro": "Content-Type deve ser application/json"}), 415
@@ -484,16 +616,13 @@ def create_instagram_account():
 
         logger.info("🚀 Chamando connectInstagram...")
 
-        # Conectar conta
         account = connectInstagram(login, password, display_name, description)
 
         logger.info("✅ connectInstagram retornou com sucesso!")
 
-        # Inicializar conversas de exemplo para testes
         initialize_sample_instagram_conversations(account.id, 3)
         logger.info(f"✅ Conversas de exemplo inicializadas para a conta {account.id}")
 
-        # Retornar dados da conta (sem senha)
         account_data = {
             "id": account.id,
             "login": account.login,
@@ -590,17 +719,14 @@ def list_instagram_conversations():
 
         logger.info(f"📸 GET /api/instagram/conversations - Listando conversas da conta {account_id}")
 
-        # Buscar contas Instagram
         accounts = listInstagramAccounts()
         account = next((acc for acc in accounts if acc.id == account_id), None)
 
         if not account:
             return jsonify({"erro": "Conta Instagram não encontrada"}), 404
 
-        # Buscar conversas
         conversations = get_instagram_conversations(account_id)
 
-        # Converter para formato da API
         api_conversations = [convert_instagram_conversation_to_api_format(conv) for conv in conversations]
 
         logger.info(f"📸 GET /api/instagram/conversations - Retornando {len(api_conversations)} conversas")
@@ -620,10 +746,8 @@ def get_instagram_conversation_messages(conversation_id):
 
         logger.info(f"📸 GET /api/instagram/conversations/{conversation_id}/messages - Buscando mensagens")
 
-        # Buscar mensagens
         messages = get_instagram_messages(conversation_id, limit, offset)
 
-        # Converter para formato da API
         api_messages = [convert_instagram_message_to_api_format(msg) for msg in messages]
 
         logger.info(f"📸 GET /api/instagram/conversations/{conversation_id}/messages - Retornando {len(api_messages)} mensagens")
@@ -653,13 +777,11 @@ def send_instagram_conversation_message(conversation_id):
 
         logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/messages - Enviando mensagem")
 
-        # Enviar mensagem
         message = send_instagram_message(account_id, conversation_id, text)
 
         if not message:
             return jsonify({"erro": "Falha ao enviar mensagem"}), 400
 
-        # Converter para formato da API
         api_message = convert_instagram_message_to_api_format(message)
 
         logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/messages - Mensagem enviada: {message.id}")
@@ -676,7 +798,6 @@ def mark_instagram_conversation_read(conversation_id):
     try:
         logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/mark-read - Marcando como lidas")
 
-        # Marcar como lidas
         count = mark_instagram_messages_as_read(conversation_id)
 
         logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/mark-read - {count} mensagens marcadas como lidas")
@@ -696,7 +817,6 @@ def archive_instagram_conversation_route(conversation_id):
 
         logger.info(f"📸 POST /api/instagram/conversations/{conversation_id}/archive - {'Arquivando' if is_archived else 'Desarquivando'}")
 
-        # Arquivar/desarquivar
         success = archive_instagram_conversation(conversation_id, is_archived)
 
         if not success:
@@ -724,13 +844,11 @@ def simulate_instagram_message_route():
 
         logger.info(f"📸 POST /api/instagram/simulate-message - Simulando mensagem para conta {account_id}")
 
-        # Simular mensagem
         message = simulate_instagram_message(account_id, conversation_id, user_data)
 
         if not message:
             return jsonify({"erro": "Falha ao simular mensagem"}), 400
 
-        # Converter para formato da API
         api_message = convert_instagram_message_to_api_format(message)
 
         logger.info(f"📸 POST /api/instagram/simulate-message - Mensagem simulada: {message.id}")
@@ -748,25 +866,21 @@ def listar_conversas():
     try:
         current_time = time.time()
 
-        # Verifica cache - REDUZIDO PARA DEBUG
         if (current_time - _cache['conversations_last_update']) < _cache['cache_duration']:
             logger.info(f"📋 Cache hit - Retornando {len(_cache['conversations_cache'])} conversas")
             return jsonify(_cache['conversations_cache']), 200
 
-        # Buscar conversas do Telegram - FILTRAR CONVERSAS DO BOT
         telegram_conversations = []
         with _conversation_lock:
             logger.info(f"🔍 Verificando {len(_conversations)} conversas no armazenamento")
             for conv_id, conv in _conversations.items():
                 logger.info(f"  📋 Conversa {conv_id}: {conv.title} - Arquivada: {conv.isArchived}, Bot: {conv.is_bot_conversation}")
-                # FILTRO: Não incluir conversas do próprio bot ou conversas arquivadas
                 if not conv.isArchived and not conv.is_bot_conversation:
                     telegram_conversations.append(conv.to_dict())
                     logger.info(f"    ✅ Incluída na lista")
                 else:
                     logger.info(f"    ❌ Filtrada (arquivada ou bot)")
 
-        # Buscar conversas do Instagram
         instagram_conversations = []
         instagram_accounts = listInstagramAccounts()
         for account in instagram_accounts:
@@ -775,13 +889,10 @@ def listar_conversas():
                 if not conv.is_archived:
                     instagram_conversations.append(convert_instagram_conversation_to_api_format(conv))
 
-        # Combinar todas as conversas
         all_conversations = telegram_conversations + instagram_conversations
 
-        # Ordenar por última atividade
         all_conversations.sort(key=lambda x: x.get('lastAt', ''), reverse=True)
 
-        # Atualizar cache
         _cache['conversations_cache'] = all_conversations
         _cache['conversations_last_update'] = current_time
 
@@ -799,14 +910,12 @@ def obter_conversa(conversation_id):
     try:
         logger.info(f"📋 Buscando conversa: {conversation_id}")
 
-        # Primeiro, tentar buscar no Telegram
         with _conversation_lock:
             if conversation_id in _conversations:
                 conv = _conversations[conversation_id]
                 logger.info(f"📋 Conversa Telegram encontrada: {conv.title}")
                 return jsonify(conv.to_dict()), 200
 
-        # Se não encontrou no Telegram, buscar no Instagram
         instagram_conv = get_instagram_conversation(conversation_id)
         if instagram_conv:
             logger.info(f"📸 Conversa Instagram encontrada: {instagram_conv.username}")
@@ -829,13 +938,11 @@ def obter_mensagens(conversation_id):
 
         logger.info(f"📋 Buscando mensagens da conversa: {conversation_id}")
 
-        # Primeiro, tentar buscar no Telegram
         with _conversation_lock:
             if conversation_id in _conversations:
                 conv = _conversations[conversation_id]
                 messages = conv.messages
 
-                # Aplicar paginação
                 if limit is not None:
                     messages = messages[offset:offset + limit]
                 else:
@@ -845,7 +952,6 @@ def obter_mensagens(conversation_id):
                 logger.info(f"📋 Retornando {len(messages_data)} mensagens Telegram")
                 return jsonify(messages_data), 200
 
-        # Se não encontrou no Telegram, buscar no Instagram
         instagram_messages = get_instagram_messages(conversation_id, limit, offset)
         if instagram_messages:
             messages_data = [convert_instagram_message_to_api_format(msg) for msg in instagram_messages]
@@ -879,20 +985,16 @@ def enviar_mensagem(conversation_id):
 
         logger.info(f"📤 Enviando mensagem para conversa: {conversation_id}")
 
-        # Primeiro, tentar enviar via Telegram
         with _conversation_lock:
             if conversation_id in _conversations:
                 conv = _conversations[conversation_id]
 
-                # Buscar a conta associada a esta conversa
                 account_id = chat_to_account.get(conversation_id)
 
                 if account_id:
-                    # Enviar mensagem via Telegram API
                     success = send_telegram_message(conversation_id, text, account_id)
 
                     if success:
-                        # Criar nova mensagem local
                         nova_mensagem = Message(
                             id=uuid.uuid4().hex,
                             sender=sender,
@@ -906,10 +1008,8 @@ def enviar_mensagem(conversation_id):
                         conv.lastMessage = text
                         conv.lastAt = nova_mensagem.timestamp
 
-                        # Broadcast para subscribers
                         broadcast_to_subscribers(conversation_id, nova_mensagem.to_dict())
 
-                        # Limpar cache
                         _cache['conversations_last_update'] = 0
 
                         logger.info(f"✅ Mensagem Telegram enviada: {nova_mensagem.id}")
@@ -919,8 +1019,6 @@ def enviar_mensagem(conversation_id):
                 else:
                     return jsonify({"erro": "Conta Telegram não encontrada para esta conversa"}), 404
 
-        # Se não encontrou no Telegram, tentar Instagram
-        # Precisamos do account_id para Instagram
         account_id = data.get('account_id')
         if account_id:
             instagram_message = send_instagram_message(account_id, conversation_id, text)
@@ -954,21 +1052,16 @@ def renomear_conversa(conversation_id):
 
         logger.info(f"📝 Renomeando conversa {conversation_id} para: {new_title}")
 
-        # Tentar renomear no Telegram
         with _conversation_lock:
             if conversation_id in _conversations:
                 conv = _conversations[conversation_id]
                 old_title = conv.title
                 conv.title = new_title
 
-                # Limpar cache
                 _cache['conversations_last_update'] = 0
 
                 logger.info(f"✅ Conversa Telegram renomeada: '{old_title}' -> '{new_title}'")
                 return jsonify(conv.to_dict()), 200
-
-        # Se não encontrou no Telegram, tentar Instagram
-        # (Instagram pode não suportar renomeação, mas vamos tentar)
 
         logger.warning(f"⚠️ Conversa não encontrada para renomeação: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
@@ -983,18 +1076,15 @@ def arquivar_conversa(conversation_id):
     """Arquiva ou desarquiva uma conversa"""
     try:
         data = request.get_json() or {}
-        # Aceitar tanto 'isArchived' quanto 'is_archived'
         is_archived = data.get('isArchived', data.get('is_archived', True))
 
         logger.info(f"📁 {'Arquivando' if is_archived else 'Desarquivando'} conversa: {conversation_id}")
 
-        # Tentar arquivar no Telegram
         with _conversation_lock:
             if conversation_id in _conversations:
                 conv = _conversations[conversation_id]
                 conv.isArchived = is_archived
 
-                # Limpar cache
                 _cache['conversations_last_update'] = 0
 
                 logger.info(f"✅ Conversa Telegram {'arquivada' if is_archived else 'desarquivada'}: {conversation_id}")
@@ -1004,7 +1094,6 @@ def arquivar_conversa(conversation_id):
                     "conversation": conv.to_dict()
                 }), 200
 
-        # Se não encontrou no Telegram, tentar Instagram
         success = archive_instagram_conversation(conversation_id, is_archived)
         if success:
             logger.info(f"✅ Conversa Instagram {'arquivada' if is_archived else 'desarquivada'}: {conversation_id}")
@@ -1027,22 +1116,18 @@ def deletar_conversa(conversation_id):
     try:
         logger.info(f"🗑️ Deletando conversa: {conversation_id}")
 
-        # Tentar deletar no Telegram
         with _conversation_lock:
             if conversation_id in _conversations:
                 del _conversations[conversation_id]
 
-                # Remover mapeamento
                 if conversation_id in chat_to_account:
                     del chat_to_account[conversation_id]
 
-                # Limpar cache
                 _cache['conversations_last_update'] = 0
 
                 logger.info(f"✅ Conversa Telegram deletada: {conversation_id}")
                 return '', 204
 
-        # Se não encontrou no Telegram, tentar Instagram
         success = delete_instagram_conversation(conversation_id)
         if success:
             logger.info(f"✅ Conversa Instagram deletada: {conversation_id}")
@@ -1055,10 +1140,13 @@ def deletar_conversa(conversation_id):
         logger.error(f"❌ Erro ao deletar conversa: {e}")
         return jsonify({"erro": str(e)}), 500
 
-# --- Webhook Telegram - CORRIGIDO ---
+# --- Webhook Telegram - INTEGRADO COM BOT DE WORKFLOWS REAIS ---
 @app.route('/api/telegram/webhook/<account_id>', methods=['POST'])
 def webhook_telegram(account_id):
-    """Webhook para receber mensagens do Telegram"""
+    """
+    Webhook para receber mensagens do Telegram
+    PROCESSA MENSAGENS USANDO O BOT DE WORKFLOWS REAIS - SEM MOCK!
+    """
     try:
         logger.info(f"📨 Webhook recebido para conta: {account_id}")
 
@@ -1086,7 +1174,7 @@ def webhook_telegram(account_id):
         logger.info(f"  ├─ É bot: {is_bot}")
         logger.info(f"  └─ Texto: {text}")
 
-        # FILTRO: Ignorar mensagens de bots (incluindo o próprio bot)
+        # FILTRO: Ignorar mensagens de bots
         if is_bot:
             logger.info(f"🤖 Ignorando mensagem de bot: {user_name}")
             return '', 200
@@ -1104,14 +1192,14 @@ def webhook_telegram(account_id):
                     title=user_name,
                     platform='telegram',
                     chat_type='private',
-                    is_bot_conversation=False  # Esta é uma conversa de usuário real
+                    is_bot_conversation=False
                 )
             else:
                 logger.info(f"📋 Conversa existente encontrada para chat {chat_id}")
 
             conv = _conversations[chat_id]
 
-            # Criar mensagem
+            # Criar mensagem do usuário
             nova_mensagem = Message(
                 id=uuid.uuid4().hex,
                 sender='user',
@@ -1124,12 +1212,68 @@ def webhook_telegram(account_id):
             conv.lastMessage = text
             conv.lastAt = nova_mensagem.timestamp
 
-            logger.info(f"✅ Mensagem adicionada à conversa {chat_id}: {nova_mensagem.id}")
+            logger.info(f"✅ Mensagem do usuário adicionada à conversa {chat_id}: {nova_mensagem.id}")
 
             # Broadcast para subscribers
             broadcast_to_subscribers(chat_id, nova_mensagem.to_dict())
 
-        # Limpar cache IMEDIATAMENTE
+        workflows = bot_components_api.get_all_workflows()
+        active_workflows = [w for w in workflows if w.get('enabled', True)]
+
+        logger.info(f"📋 Total de workflows: {len(workflows)}")
+        logger.info(f"✅ Workflows ATIVOS: {len(active_workflows)}")
+
+        if not active_workflows:
+            logger.warning("⚠️ INTERNO: Nenhum workflow ATIVO configurado - mensagem ignorada silenciosamente")
+            return '', 200
+
+        # Usar o primeiro workflow ativo
+        active_workflow = active_workflows[0]
+        workflow_id = active_workflow['id']
+
+        logger.info(f"🤖 Processando mensagem com workflow ATIVO: {workflow_id}")
+        logger.info(f"   Tag: {active_workflow.get('tag', 'Sem tag')}")
+        logger.info(f"   Enabled: {active_workflow.get('enabled', False)}")
+
+        bot_response = bot_components_api.process_user_message(chat_id, workflow_id, text)
+
+        logger.info(f"🤖 Resposta do bot: {json.dumps(bot_response, indent=2)}")
+
+        if bot_response.get('success'):
+            response_text = bot_response.get('message', '')
+            response_options = bot_response.get('options', [])
+
+            logger.info(f"🤖 Resposta do bot REAL gerada: {response_text[:100]}...")
+            logger.info(f"🤖 Opções disponíveis: {len(response_options)}")
+
+            success = send_telegram_message(chat_id, response_text, account_id, response_options)
+
+            if success:
+                # Adicionar resposta do bot à conversa
+                with _conversation_lock:
+                    bot_message = Message(
+                        id=uuid.uuid4().hex,
+                        sender='bot',
+                        text=response_text,
+                        timestamp=get_brasil_time(),
+                        platform='telegram',
+                        read=True
+                    )
+
+                    conv.messages.append(bot_message)
+                    conv.lastMessage = response_text
+                    conv.lastAt = bot_message.timestamp
+
+                    broadcast_to_subscribers(chat_id, bot_message.to_dict())
+
+                logger.info(f"✅ Resposta do bot REAL enviada via Telegram API e salva na conversa")
+            else:
+                logger.error("❌ Falha ao enviar resposta do bot via Telegram API")
+        else:
+            error_message = bot_response.get('message', 'Erro ao processar mensagem')
+            logger.error(f"❌ INTERNO: Erro no processamento do bot: {error_message}")
+
+        # Limpar cache
         _cache['conversations_last_update'] = 0
         logger.info("🔄 Cache limpo - conversas serão recarregadas")
 
@@ -1149,7 +1293,6 @@ def debug_status():
         telegram_accounts = listTelegramAccounts()
         instagram_accounts = listInstagramAccounts()
 
-        # Informações detalhadas das conversas
         conversations_info = []
         with _conversation_lock:
             for conv_id, conv in _conversations.items():
@@ -1177,6 +1320,11 @@ def debug_status():
                 "accounts_count": len(instagram_accounts),
                 "accounts": [{"id": acc.id, "login": acc.login, "displayName": acc.displayName} for acc in instagram_accounts],
             },
+            "bot": {
+                "workflows_count": len(bot_components_api.get_all_workflows()),
+                "workflows": [{"id": w['id'], "tag": w['tag'], "enabled": w['enabled']} for w in bot_components_api.get_all_workflows()],
+                "active_executions": len(bot_components_api._active_executions)
+            },
             "conversations_detail": conversations_info,
             "cache": {
                 "last_update": _cache['conversations_last_update'],
@@ -1185,7 +1333,7 @@ def debug_status():
             },
             "system": {
                 "ngrok_url": os.environ.get('NGROK_URL'),
-                "flask_env": os.environ.get('FLASK_ENV', 'production')
+                "flask_env": os.environ.get('FLASK_ENV')
             }
         }), 200
     except Exception as e:
@@ -1231,7 +1379,7 @@ if __name__ == '__main__':
     # Thread de limpeza
     def cleanup_thread():
         while True:
-            time.sleep(3600)  # 1 hora
+            time.sleep(3600)
             cleanup_old_conversations()
 
     cleanup_worker = threading.Thread(target=cleanup_thread, daemon=True)

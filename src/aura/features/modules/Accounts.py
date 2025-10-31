@@ -6,11 +6,14 @@ from dataclasses import dataclass
 import time
 import requests
 import json
+import os
 
 logger = logging.getLogger(__name__)
 
-LOG_INTERVAL_SECONDS_LIST_ACCOUNTS = 10  # Reduzido para debug
+LOG_INTERVAL_SECONDS_LIST_ACCOUNTS = 10
 _last_log_time_list_accounts = 0
+
+TELEGRAM_ACCOUNTS_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'telegram_accounts.json')
 
 # --- TELEGRAM ACCOUNTS ---
 
@@ -22,6 +25,53 @@ class TelegramAccount:
 
 # Armazenamento em memória para contas Telegram
 _telegram_accounts: List[TelegramAccount] = []
+
+def _ensure_data_directory():
+    """Garante que o diretório de dados existe"""
+    data_dir = os.path.dirname(TELEGRAM_ACCOUNTS_FILE)
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+        logger.info(f"📁 Diretório de dados criado: {data_dir}")
+
+def _save_telegram_accounts():
+    """Salva contas Telegram em arquivo JSON"""
+    try:
+        _ensure_data_directory()
+        accounts_data = [
+            {
+                "id": acc.id,
+                "apiKey": acc.apiKey,
+                "botName": acc.botName
+            }
+            for acc in _telegram_accounts
+        ]
+        with open(TELEGRAM_ACCOUNTS_FILE, 'w') as f:
+            json.dump(accounts_data, f, indent=2)
+        logger.info(f"💾 {len(accounts_data)} contas Telegram salvas em arquivo")
+    except Exception as e:
+        logger.error(f"❌ Erro ao salvar contas Telegram: {e}")
+
+def _load_telegram_accounts():
+    """Carrega contas Telegram do arquivo JSON"""
+    global _telegram_accounts
+    try:
+        if os.path.exists(TELEGRAM_ACCOUNTS_FILE):
+            with open(TELEGRAM_ACCOUNTS_FILE, 'r') as f:
+                accounts_data = json.load(f)
+            _telegram_accounts = [
+                TelegramAccount(
+                    id=acc["id"],
+                    apiKey=acc["apiKey"],
+                    botName=acc["botName"]
+                )
+                for acc in accounts_data
+            ]
+            logger.info(f"📂 {len(_telegram_accounts)} contas Telegram carregadas do arquivo")
+        else:
+            logger.info("📂 Nenhum arquivo de contas encontrado - iniciando com lista vazia")
+    except Exception as e:
+        logger.error(f"❌ Erro ao carregar contas Telegram: {e}")
+        _telegram_accounts = []
 
 def connectTelegram(api_key: str, bot_name: str) -> TelegramAccount:
     """Conecta uma nova conta Telegram"""
@@ -59,6 +109,8 @@ def connectTelegram(api_key: str, bot_name: str) -> TelegramAccount:
 
     _telegram_accounts.append(new_account)
 
+    _save_telegram_accounts()
+
     logger.info(f"✅ connectTelegram - Conta conectada com sucesso!")
     logger.info(f"  ├─ ID: {new_account.id}")
     logger.info(f"  ├─ Bot Name: {new_account.botName}")
@@ -74,6 +126,9 @@ def removeTelegram(account_id: str) -> bool:
     for i, acc in enumerate(_telegram_accounts):
         if acc.id == account_id:
             removed_account = _telegram_accounts.pop(i)
+
+            _save_telegram_accounts()
+
             logger.info(f"✅ removeTelegram - Conta removida com sucesso!")
             logger.info(f"  ├─ Conta removida: {removed_account.botName}")
             logger.info(f"  └─ Total restante: {len(_telegram_accounts)}")
@@ -443,9 +498,11 @@ def getAccountByPlatform(platform: str) -> List:
 def initializeAccounts():
     """Inicializa o sistema de contas"""
     global _telegram_accounts, _instagram_accounts
-    _telegram_accounts = []
+
+    _load_telegram_accounts()
     _instagram_accounts = []
-    print("✅ Sistema de contas inicializado")
+
+    logger.info(f"✅ Sistema de contas inicializado - {len(_telegram_accounts)} contas Telegram carregadas")
 
 # Inicializa automaticamente
 if not _telegram_accounts and not _instagram_accounts:
