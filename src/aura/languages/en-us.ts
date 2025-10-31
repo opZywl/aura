@@ -562,7 +562,6 @@ export const enUS = {
     whatsapp: "WhatsApp",
     telegram: "Telegram",
     messenger: "Messenger",
-    instagram: "Instagram",
     email: "Email",
     webchat: "WebChat",
   },

@@ -66,8 +66,6 @@ export default function ChatInfo({
         switch (platform?.toLowerCase()) {
             case "telegram":
                 return "/redesociais/telegram.svg"
-            case "instagram":
-                return "/redesociais/instagram.svg"
             case "whatsapp":
                 return "/redesociais/whatsapp.svg"
             case "messenger":
@@ -220,12 +218,6 @@ export default function ChatInfo({
                                     <div className="flex items-center space-x-2">
                                         <img src="/redesociais/telegram.svg" alt="Telegram" className="w-4 h-4" />
                                         <span>Telegram</span>
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="instagram">
-                                    <div className="flex items-center space-x-2">
-                                        <img src="/redesociais/instagram.svg" alt="Instagram" className="w-4 h-4" />
-                                        <span>Instagram</span>
                                     </div>
                                 </SelectItem>
                                 <SelectItem value="whatsapp">
