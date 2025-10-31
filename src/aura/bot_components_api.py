@@ -21,6 +21,7 @@ class NodeData:
     label: str
     description: str = ""
     message: Optional[str] = None
+    finalMessage: Optional[str] = None
     options: List[Dict[str, Any]] = field(default_factory=list)
     code: Optional[str] = None
     customId: Optional[str] = None
@@ -82,6 +83,7 @@ def parse_workflow_data(workflow_data: Dict) -> Tuple[List[FlowNode], List[FlowE
                 label=node_raw.get("data", {}).get("label", ""),
                 description=node_raw.get("data", {}).get("description", ""),
                 message=node_raw.get("data", {}).get("message"),
+                finalMessage=node_raw.get("data", {}).get("finalMessage"),  # Add finalMessage field
                 options=node_raw.get("data", {}).get("options", []),
                 code=node_raw.get("data", {}).get("code"),
                 customId=node_raw.get("data", {}).get("customId")
@@ -129,16 +131,52 @@ def register_workflow(workflow_data: Dict) -> bool:
             logger.error("❌ Workflow sem nós")
             return False
 
+        is_update = workflow_id in _published_workflows
+        if is_update:
+            logger.info(f"🔄 Workflow {workflow_id} JÁ EXISTE - Atualizando com novo JSON")
+
+            executions_to_clear = []
+            for execution_key, execution in _active_executions.items():
+                if execution.workflow_id == workflow_id:
+                    executions_to_clear.append(execution_key)
+
+            for execution_key in executions_to_clear:
+                del _active_executions[execution_key]
+                logger.info(f"🗑️ Execução ativa removida: {execution_key}")
+
+            if executions_to_clear:
+                logger.info(f"✅ {len(executions_to_clear)} execuções ativas resetadas para o workflow {workflow_id}")
+        else:
+            logger.info(f"🆕 Registrando NOVO workflow: {workflow_id}")
+
+            for other_id in list(_published_workflows.keys()):
+                if other_id != workflow_id:
+                    _published_workflows[other_id]["enabled"] = False
+                    logger.info(f"🔕 Workflow antigo desativado: {other_id}")
+
         _published_workflows[workflow_id] = {
             "id": workflow_id,
             "tag": workflow_data.get("_tag", ""),
             "enabled": workflow_data.get("_enabled", True),
             "nodes": nodes,
             "edges": edges,
-            "created_at": workflow_data.get("_insertedAt", datetime.now(BRASIL_TZ).isoformat())
+            "created_at": workflow_data.get("_insertedAt", datetime.now(BRASIL_TZ).isoformat()),
+            "updated_at": datetime.now(BRASIL_TZ).isoformat()  # Add updated_at timestamp
         }
 
-        logger.info(f"✅ Workflow REAL registrado: {workflow_id}")
+        logger.info(f"✅ Workflow REAL {'ATUALIZADO' if is_update else 'REGISTRADO'}: {workflow_id}")
+        logger.info(f"   📊 Nós: {len(nodes)}")
+        logger.info(f"   🔗 Conexões: {len(edges)}")
+        logger.info(f"   🏷️ Tag: {workflow_data.get('_tag', 'Sem tag')}")
+        logger.info(f"   ✅ Enabled: {workflow_data.get('_enabled', True)}")
+
+        # Log node details for debugging
+        for node in nodes:
+            logger.info(f"   📍 Nó: {node.id} ({node.type}) - {node.data.label}")
+            if node.type == "options" and node.data.options:
+                for i, opt in enumerate(node.data.options):
+                    logger.info(f"      {i+1}. {opt.get('text', '')}")
+
         return True
 
     except Exception as e:
@@ -198,7 +236,7 @@ def find_next_node(workflow_id: str, current_node_id: str, option_index: Optiona
         next_node = next((n for n in nodes if n.id == target_edge.target), None)
 
         if next_node:
-            logger.info(f"➡️ Próximo nó REAL: {next_node.id} ({next_node.type})")
+            logger.info(f"➡️ Próximo nó: {next_node.id} ({next_node.type})")
         else:
             logger.warning(f"⚠️ Nó de destino não encontrado: {target_edge.target}")
 
@@ -250,89 +288,12 @@ def get_execution(user_id: str, workflow_id: str) -> Optional[WorkflowExecution]
     execution_key = f"{user_id}:{workflow_id}"
     return _active_executions.get(execution_key)
 
-def process_node_response(workflow_id: str, node: FlowNode) -> Dict[str, Any]:
-    """
-    Processa um nó REAL e retorna a resposta apropriada
-    USA 100% OS DADOS DO JSON - SEM MOCK!
-    """
-    try:
-        response = {
-            "node_id": node.id,
-            "node_type": node.type,
-            "message": "",
-            "options": [],
-            "requires_input": False,
-            "is_final": False
-        }
-
-        if node.type == "start":
-            # Nó de início - avançar automaticamente
-            next_node = find_next_node(workflow_id, node.id)
-            if next_node:
-                return process_node_response(workflow_id, next_node)
-            else:
-                response["message"] = "⚠️ Fluxo não configurado corretamente"
-                response["is_final"] = True
-
-        elif node.type == "sendMessage":
-            # Nó de enviar mensagem - USA A MENSAGEM REAL DO JSON
-            response["message"] = node.data.message or "Mensagem não configurada"
-
-            # Verificar se há próximo nó
-            next_node = find_next_node(workflow_id, node.id)
-            if not next_node:
-                response["is_final"] = True
-
-        elif node.type == "options":
-            # Nó de opções - USA AS OPÇÕES REAIS DO JSON
-            response["message"] = node.data.message or "Escolha uma opção:"
-            response["options"] = node.data.options or []
-            response["requires_input"] = True
-
-        elif node.type == "finalizar":
-            # Nó de finalização - USA A MENSAGEM REAL DO JSON
-            response["message"] = node.data.message or "Conversa finalizada. Obrigado!"
-            response["is_final"] = True
-
-        elif node.type == "code":
-            # Nó de código (executar código customizado)
-            response["message"] = "⚙️ Processando código customizado..."
-            # TODO: Implementar execução de código
-            next_node = find_next_node(workflow_id, node.id)
-            if not next_node:
-                response["is_final"] = True
-
-        elif node.type == "conditional":
-            # Nó condicional (avaliar condição)
-            response["message"] = "🔀 Avaliando condição..."
-            # TODO: Implementar avaliação de condição
-            next_node = find_next_node(workflow_id, node.id)
-            if not next_node:
-                response["is_final"] = True
-
-        else:
-            response["message"] = f"⚠️ Tipo de nó não suportado: {node.type}"
-            response["is_final"] = True
-
-        return response
-
-    except Exception as e:
-        logger.error(f"❌ Erro ao processar nó: {e}")
-        return {
-            "node_id": node.id,
-            "node_type": node.type,
-            "message": f"❌ Erro ao processar nó: {str(e)}",
-            "options": [],
-            "requires_input": False,
-            "is_final": True
-        }
-
 def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[str, Any]:
     """
     Processa mensagem do usuário e retorna resposta do bot
     EXECUTA O FLUXO REAL BASEADO NO JSON - SEM MOCK!
 
-    Esta é a função principal que o webhook do Telegram deve chamar
+    Retorna uma lista de mensagens para enviar sequencialmente
     """
     try:
         logger.info(f"💬 Processando mensagem de {user_id}: '{message}'")
@@ -347,7 +308,10 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
             if not execution:
                 return {
                     "success": False,
-                    "message": "❌ Erro ao iniciar fluxo",
+                    "messages": [{
+                        "text": "❌ Erro ao iniciar fluxo",
+                        "options": []
+                    }],
                     "requires_input": False,
                     "is_final": True
                 }
@@ -363,12 +327,16 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
         if not workflow:
             return {
                 "success": False,
-                "message": "❌ Workflow não encontrado",
+                "messages": [{
+                    "text": "❌ Workflow não encontrado",
+                    "options": []
+                }],
                 "requires_input": False,
                 "is_final": True
             }
 
         nodes: List[FlowNode] = workflow["nodes"]
+        messages_to_send = []
 
         # Se não há nó atual, começar pelo START
         if not execution.current_node_id:
@@ -376,35 +344,119 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
             if not start_node:
                 return {
                     "success": False,
-                    "message": "❌ Nó de início não encontrado",
+                    "messages": [{
+                        "text": "❌ Nó de início não encontrado",
+                        "options": []
+                    }],
                     "requires_input": False,
                     "is_final": True
                 }
 
-            # Processar nó de início
             execution.current_node_id = start_node.id
-            response = process_node_response(workflow_id, start_node)
+            logger.info(f"🎬 Iniciando do nó START: {start_node.id}")
 
-            # Se não requer input, avançar automaticamente
-            while not response["requires_input"] and not response["is_final"]:
-                next_node = find_next_node(workflow_id, execution.current_node_id)
-                if not next_node:
-                    break
-                execution.current_node_id = next_node.id
-                response = process_node_response(workflow_id, next_node)
+            # Avançar automaticamente do START
+            current_node = find_next_node(workflow_id, start_node.id)
 
-            # Adicionar resposta ao histórico
-            execution.conversation_history.append({
-                "role": "assistant",
-                "content": response["message"],
-                "timestamp": datetime.now(BRASIL_TZ).isoformat()
-            })
+            # Processar todos os nós até encontrar um que requer input ou é final
+            while current_node:
+                execution.current_node_id = current_node.id
+                logger.info(f"🔄 Processando nó: {current_node.id} ({current_node.type})")
 
-            execution.waiting_for_input = response["requires_input"]
+                if current_node.type == "sendMessage":
+                    # Coletar mensagem para enviar
+                    msg_text = current_node.data.message or "Mensagem não configurada"
+                    messages_to_send.append({
+                        "text": msg_text,
+                        "options": []
+                    })
+                    logger.info(f"📝 Mensagem coletada: {msg_text[:50]}...")
+
+                    # Adicionar ao histórico
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": msg_text,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                    })
+
+                    # Avançar para próximo nó
+                    current_node = find_next_node(workflow_id, current_node.id)
+
+                elif current_node.type == "options":
+                    # Nó de opções - requer input do usuário
+                    msg_text = current_node.data.message or "Escolha uma opção:"
+                    options = current_node.data.options or []
+
+                    # Build the full message with numbered options
+                    if options:
+                        options_text = "\n\n" + "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)])
+                        full_message = msg_text + options_text
+                    else:
+                        full_message = msg_text
+
+                    messages_to_send.append({
+                        "text": full_message,
+                        "options": []  # Don't send options as buttons
+                    })
+
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": full_message,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                    })
+
+                    execution.waiting_for_input = True
+                    logger.info(f"⏸️ Aguardando input do usuário no nó: {current_node.id}")
+
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": True,
+                        "is_final": False
+                    }
+
+                elif current_node.type == "finalizar":
+                    msg_text = current_node.data.finalMessage or current_node.data.message or ""
+
+                    # Só adicionar mensagem se houver texto
+                    if msg_text.strip():
+                        messages_to_send.append({
+                            "text": msg_text,
+                            "options": []
+                        })
+
+                        execution.conversation_history.append({
+                            "role": "assistant",
+                            "content": msg_text,
+                            "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                        })
+
+                    logger.info(f"🏁 Fluxo finalizado no nó: {current_node.id}")
+                    reset_conversation(user_id, workflow_id)
+
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": False,
+                        "is_final": True,
+                        "archive_conversation": True
+                    }
+
+                else:
+                    # Outros tipos de nó - avançar automaticamente
+                    logger.info(f"⏭️ Pulando nó do tipo: {current_node.type}")
+                    current_node = find_next_node(workflow_id, current_node.id)
+
+            # Se chegou aqui, não há mais nós - finalizar
+            logger.info(f"🏁 Fim do fluxo - sem mais nós")
+            reset_conversation(user_id, workflow_id)
 
             return {
                 "success": True,
-                **response
+                "messages": messages_to_send,
+                "requires_input": False,
+                "is_final": True,
+                "archive_conversation": True
             }
 
         # Se estamos aguardando input do usuário
@@ -413,7 +465,10 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
             if not current_node:
                 return {
                     "success": False,
-                    "message": "❌ Nó atual não encontrado",
+                    "messages": [{
+                        "text": "❌ Nó atual não encontrado",
+                        "options": []
+                    }],
                     "requires_input": False,
                     "is_final": True
                 }
@@ -426,96 +481,160 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                     if 0 <= option_index < len(options):
                         # Opção válida - avançar para próximo nó
+                        logger.info(f"✅ Opção válida selecionada: {option_index + 1}. {options[option_index].get('text', '')}")
                         next_node = find_next_node(workflow_id, current_node.id, option_index)
+
                         if not next_node:
+                            # Fim do fluxo
+                            logger.info(f"🏁 Fim do fluxo após opção {option_index + 1}")
+                            reset_conversation(user_id, workflow_id)
                             return {
                                 "success": True,
-                                "message": "🏁 Fim do fluxo",
+                                "messages": [],
                                 "requires_input": False,
-                                "is_final": True
+                                "is_final": True,
+                                "archive_conversation": True
                             }
 
                         execution.current_node_id = next_node.id
                         execution.waiting_for_input = False
 
-                        response = process_node_response(workflow_id, next_node)
+                        # Processar todos os nós até encontrar um que requer input ou é final
+                        current_node = next_node
+                        while current_node:
+                            logger.info(f"🔄 Processando nó: {current_node.id} ({current_node.type})")
 
-                        # Se não requer input, continuar avançando
-                        while not response["requires_input"] and not response["is_final"]:
-                            next_node = find_next_node(workflow_id, execution.current_node_id)
-                            if not next_node:
-                                break
-                            execution.current_node_id = next_node.id
-                            response = process_node_response(workflow_id, next_node)
+                            if current_node.type == "sendMessage":
+                                msg_text = current_node.data.message or "Mensagem não configurada"
+                                messages_to_send.append({
+                                    "text": msg_text,
+                                    "options": []
+                                })
 
-                        # Adicionar resposta ao histórico
-                        execution.conversation_history.append({
-                            "role": "assistant",
-                            "content": response["message"],
-                            "timestamp": datetime.now(BRASIL_TZ).isoformat()
-                        })
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": msg_text,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
 
-                        execution.waiting_for_input = response["requires_input"]
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
 
+                            elif current_node.type == "options":
+                                msg_text = current_node.data.message or "Escolha uma opção:"
+                                options = current_node.data.options or []
+
+                                if options:
+                                    options_text = "\n\n" + "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)])
+                                    full_message = msg_text + options_text
+                                else:
+                                    full_message = msg_text
+
+                                messages_to_send.append({
+                                    "text": full_message,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": full_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                execution.current_node_id = current_node.id
+                                execution.waiting_for_input = True
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False
+                                }
+
+                            elif current_node.type == "finalizar":
+                                msg_text = current_node.data.finalMessage or current_node.data.message or ""
+
+                                if msg_text.strip():
+                                    messages_to_send.append({
+                                        "text": msg_text,
+                                        "options": []
+                                    })
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": msg_text,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                    })
+
+                                reset_conversation(user_id, workflow_id)
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": False,
+                                    "is_final": True,
+                                    "archive_conversation": True
+                                }
+
+                            else:
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
+
+                        # Fim do fluxo
+                        reset_conversation(user_id, workflow_id)
                         return {
                             "success": True,
-                            **response
+                            "messages": messages_to_send,
+                            "requires_input": False,
+                            "is_final": True,
+                            "archive_conversation": True
                         }
                     else:
-                        # Opção inválida - repetir opções
+                        options_list = "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)])
+                        error_msg = f"❌ Opção inválida! Por favor, digite apenas o número da opção:\n\n{options_list}"
+
                         return {
                             "success": True,
-                            "message": f"❌ Opção inválida! {current_node.data.message or 'Escolha uma opção:'}\n\n" +
-                                       "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)]) +
-                                       "\n\n💡 Digite apenas o número da opção",
-                            "options": options,
+                            "messages": [{
+                                "text": error_msg,
+                                "options": []
+                            }],
                             "requires_input": True,
                             "is_final": False
                         }
                 except ValueError:
-                    # Input não é um número
                     options = current_node.data.options
+                    options_list = "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)])
+                    error_msg = f"❌ Por favor, digite apenas o número da opção!\n\n{options_list}"
+
                     return {
                         "success": True,
-                        "message": f"❌ Por favor, digite apenas o número da opção!\n\n" +
-                                   "\n".join([f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)]),
-                        "options": options,
+                        "messages": [{
+                            "text": error_msg,
+                            "options": []
+                        }],
                         "requires_input": True,
                         "is_final": False
                     }
 
-        # Caso padrão - continuar fluxo
-        next_node = find_next_node(workflow_id, execution.current_node_id)
-        if not next_node:
-            return {
-                "success": True,
-                "message": "🏁 Fim do fluxo",
-                "requires_input": False,
-                "is_final": True
-            }
-
-        execution.current_node_id = next_node.id
-        response = process_node_response(workflow_id, next_node)
-
-        # Adicionar resposta ao histórico
-        execution.conversation_history.append({
-            "role": "assistant",
-            "content": response["message"],
-            "timestamp": datetime.now(BRASIL_TZ).isoformat()
-        })
-
-        execution.waiting_for_input = response["requires_input"]
-
+        # Caso padrão - não deveria chegar aqui
+        logger.warning(f"⚠️ Estado inesperado no processamento da mensagem")
         return {
             "success": True,
-            **response
+            "messages": [],
+            "requires_input": False,
+            "is_final": False
         }
 
     except Exception as e:
         logger.error(f"❌ Erro ao processar mensagem: {e}")
+        logger.exception("Stack trace:")
         return {
             "success": False,
-            "message": f"❌ Erro: {str(e)}",
+            "messages": [{
+                "text": f"❌ Erro: {str(e)}",
+                "options": []
+            }],
             "requires_input": False,
             "is_final": True
         }
@@ -547,6 +666,4 @@ def reset_conversation(user_id: str, workflow_id: str) -> bool:
         logger.error(f"❌ Erro ao resetar conversa: {e}")
         return False
 
-# O sistema não inicializa mais com workflow de exemplo
-# Todos os workflows devem ser publicados via frontend usando /api/bot/workflows
 logger.info("✅ Bot Components API inicializado - Aguardando workflows REAIS do frontend")

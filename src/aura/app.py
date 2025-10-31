@@ -175,7 +175,7 @@ def broadcast_to_subscribers(conv_id: str, message_data: dict):
             sse_subscribers[conv_id].remove(q)
 
 def send_telegram_message(chat_id: str, text: str, account_id: str, options: List[Dict] = None) -> bool:
-    """Envia mensagem via Telegram API com suporte a botões de opções"""
+    """Envia mensagem via Telegram API - SEM botões, apenas texto"""
     try:
         accounts = listTelegramAccounts()
         account = next((acc for acc in accounts if acc.id == account_id), None)
@@ -195,23 +195,14 @@ def send_telegram_message(chat_id: str, text: str, account_id: str, options: Lis
                 return False
 
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+
         payload = {
             'chat_id': chat_id,
             'text': text,
             'parse_mode': 'HTML'
         }
 
-        if options:
-            keyboard = []
-            for opt in options:
-                button_text = opt.get('text', '') if isinstance(opt, dict) else str(opt)
-                keyboard.append([{'text': button_text}])
-
-            payload['reply_markup'] = {
-                'keyboard': keyboard,
-                'resize_keyboard': True,
-                'one_time_keyboard': True
-            }
+        # Don't add reply_markup - we want plain text messages only
 
         logger.info(f"📤 Enviando mensagem Telegram para chat {chat_id}: {text[:50]}...")
 
@@ -316,16 +307,27 @@ def save_workflow():
         workflow_id = workflow_data.get('_id', '')
         enabled = workflow_data.get('_enabled', True)
 
-        logger.info(f"💾 Salvando workflow REAL: {workflow_id} (enabled: {enabled})")
-        logger.info(f"📦 Workflow data: {json.dumps(workflow_data, indent=2)}")
+        logger.info("=" * 80)
+        logger.info(f"📥 RECEBENDO WORKFLOW PARA SALVAR")
+        logger.info(f"   ID: {workflow_id}")
+        logger.info(f"   Enabled: {enabled}")
+        logger.info(f"   Tag: {workflow_data.get('_tag', 'Sem tag')}")
+        logger.info("=" * 80)
 
         success = bot_components_api.register_workflow(workflow_data)
 
         if success:
-            logger.info(f"✅ Workflow salvo e {'ATIVADO' if enabled else 'DESATIVADO'}: {workflow_id}")
+            logger.info("=" * 80)
+            logger.info(f"✅ WORKFLOW SALVO COM SUCESSO!")
+            logger.info(f"   ID: {workflow_id}")
+            logger.info(f"   Status: {'ATIVADO' if enabled else 'DESATIVADO'}")
+            logger.info(f"   Todas as conversas ativas foram resetadas")
+            logger.info(f"   Próximas mensagens usarão o NOVO fluxo")
+            logger.info("=" * 80)
+
             return jsonify({
                 "success": True,
-                "message": f"Workflow salvo com sucesso e {'ativado' if enabled else 'desativado'}",
+                "message": f"Workflow salvo com sucesso e {'ativado' if enabled else 'desativado'}. Todas as conversas foram resetadas.",
                 "workflow_id": workflow_id,
                 "enabled": enabled
             }), 201
@@ -1227,50 +1229,69 @@ def webhook_telegram(account_id):
             logger.warning("⚠️ INTERNO: Nenhum workflow ATIVO configurado - mensagem ignorada silenciosamente")
             return '', 200
 
-        # Usar o primeiro workflow ativo
+        active_workflows.sort(key=lambda w: w.get('updated_at', w.get('created_at', '')), reverse=True)
         active_workflow = active_workflows[0]
         workflow_id = active_workflow['id']
 
-        logger.info(f"🤖 Processando mensagem com workflow ATIVO: {workflow_id}")
+        logger.info(f"🤖 Processando mensagem com workflow ATIVO MAIS RECENTE: {workflow_id}")
         logger.info(f"   Tag: {active_workflow.get('tag', 'Sem tag')}")
         logger.info(f"   Enabled: {active_workflow.get('enabled', False)}")
+        logger.info(f"   Atualizado em: {active_workflow.get('updated_at', 'N/A')}")
 
         bot_response = bot_components_api.process_user_message(chat_id, workflow_id, text)
 
         logger.info(f"🤖 Resposta do bot: {json.dumps(bot_response, indent=2)}")
 
         if bot_response.get('success'):
-            response_text = bot_response.get('message', '')
-            response_options = bot_response.get('options', [])
+            messages_to_send = bot_response.get('messages', [])
 
-            logger.info(f"🤖 Resposta do bot REAL gerada: {response_text[:100]}...")
-            logger.info(f"🤖 Opções disponíveis: {len(response_options)}")
+            logger.info(f"📨 Total de mensagens para enviar: {len(messages_to_send)}")
 
-            success = send_telegram_message(chat_id, response_text, account_id, response_options)
+            for idx, msg_data in enumerate(messages_to_send):
+                response_text = msg_data.get('text', '')
+                response_options = msg_data.get('options', [])
 
-            if success:
-                # Adicionar resposta do bot à conversa
+                if not response_text.strip():
+                    logger.info(f"⏭️ Pulando mensagem vazia #{idx + 1}")
+                    continue
+
+                logger.info(f"📤 Enviando mensagem #{idx + 1}/{len(messages_to_send)}: {response_text[:50]}...")
+
+                success = send_telegram_message(chat_id, response_text, account_id, response_options)
+
+                if success:
+                    # Adicionar resposta do bot à conversa
+                    with _conversation_lock:
+                        bot_message = Message(
+                            id=uuid.uuid4().hex,
+                            sender='bot',
+                            text=response_text,
+                            timestamp=get_brasil_time(),
+                            platform='telegram',
+                            read=True
+                        )
+
+                        conv.messages.append(bot_message)
+                        conv.lastMessage = response_text
+                        conv.lastAt = bot_message.timestamp
+
+                        broadcast_to_subscribers(chat_id, bot_message.to_dict())
+
+                    logger.info(f"✅ Mensagem #{idx + 1} enviada e salva na conversa")
+
+                    if idx < len(messages_to_send) - 1:
+                        import time
+                        time.sleep(0.5)
+                else:
+                    logger.error(f"❌ Falha ao enviar mensagem #{idx + 1} via Telegram API")
+
+            if bot_response.get('archive_conversation'):
+                logger.info(f"📁 Arquivando conversa {chat_id} após finalização do fluxo")
                 with _conversation_lock:
-                    bot_message = Message(
-                        id=uuid.uuid4().hex,
-                        sender='bot',
-                        text=response_text,
-                        timestamp=get_brasil_time(),
-                        platform='telegram',
-                        read=True
-                    )
-
-                    conv.messages.append(bot_message)
-                    conv.lastMessage = response_text
-                    conv.lastAt = bot_message.timestamp
-
-                    broadcast_to_subscribers(chat_id, bot_message.to_dict())
-
-                logger.info(f"✅ Resposta do bot REAL enviada via Telegram API e salva na conversa")
-            else:
-                logger.error("❌ Falha ao enviar resposta do bot via Telegram API")
+                    if chat_id in _conversations:
+                        _conversations[chat_id].isArchived = True
         else:
-            error_message = bot_response.get('message', 'Erro ao processar mensagem')
+            error_message = bot_response.get('messages', [{}])[0].get('text', 'Erro ao processar mensagem')
             logger.error(f"❌ INTERNO: Erro no processamento do bot: {error_message}")
 
         # Limpar cache

@@ -26,6 +26,10 @@ import {
     FiMapPin,
     FiLayers,
     FiSidebar,
+    FiX,
+    FiMinimize2,
+    FiMaximize2,
+    FiSend,
     FiCheckCircle,
     FiXCircle,
 } from "react-icons/fi"
@@ -33,8 +37,10 @@ import { BotIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import AuraFlowBot from "./flow/aura-flow-bot"
+import { Avatar } from "@/components/ui/avatar"
+import { motion, AnimatePresence } from "framer-motion"
 
+// Componente da barra lateral elegante para o flow
 const FlowElegantSidebar = ({ currentGradient, theme }: { currentGradient: any; theme: string }) => {
     return (
         <div className="fixed left-0 top-0 h-full z-50 flex items-center pointer-events-none">
@@ -124,6 +130,7 @@ const FlowStatusIndicator = ({ startPosition, mousePosition, componentCount, the
                 filter: isDark ? "drop-shadow(0 0 5px rgba(255, 255, 255, 0.1))" : "drop-shadow(0 0 3px rgba(0, 0, 0, 0.1))",
             }}
         >
+            {/* Status de Execução */}
             <div className="flex items-center gap-1">
                 {isExecuted ? (
                     <FiCheckCircle
@@ -201,6 +208,449 @@ const FlowStatusIndicator = ({ startPosition, mousePosition, componentCount, the
         </span>
             </div>
         </div>
+    )
+}
+
+// Componente do Bot Aura usando o mesmo layout do TarsChat
+const AuraFlowBot = ({
+                         isOpen,
+                         onClose,
+                     }: {
+    isOpen: boolean
+    onClose: () => void
+}) => {
+    const [messages, setMessages] = useState<Array<{ id: string; role: "user" | "assistant"; content: string }>>([])
+    const [input, setInput] = useState("")
+    const [currentNodeId, setCurrentNodeId] = useState<string | null>(null)
+    const [isMinimized, setIsMinimized] = useState(false)
+    const [position, setPosition] = useState({ x: 0, y: 0 })
+    const [isDragging, setIsDragging] = useState(false)
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+    const [savedFlow, setSavedFlow] = useState<{ nodes: any[]; edges: any[] } | null>(null)
+    const [isFlowExecuted, setIsFlowExecuted] = useState(false)
+    const [waitingForUserInput, setWaitingForUserInput] = useState(false)
+    const [currentOptions, setCurrentOptions] = useState<any[]>([])
+    const [currentOptionsMessage, setCurrentOptionsMessage] = useState("")
+
+    // Carregar fluxo salvo quando o bot abrir
+    useEffect(() => {
+        if (isOpen) {
+            const savedWorkflow = localStorage.getItem("workflow")
+            const executedFlow = localStorage.getItem("executedFlow")
+
+            if (savedWorkflow && executedFlow === "true") {
+                try {
+                    const workflow = JSON.parse(savedWorkflow)
+                    setSavedFlow(workflow)
+                    setIsFlowExecuted(true)
+
+                    // Limpar mensagens anteriores e mostrar mensagem de boas-vindas
+                    setMessages([
+                        {
+                            id: "welcome",
+                            role: "assistant",
+                            content: "Olá! Fluxo carregado e pronto para uso. Digite qualquer coisa para começar!",
+                        },
+                    ])
+                } catch (error) {
+                    console.error("Erro ao carregar fluxo:", error)
+                    setMessages([
+                        {
+                            id: "error",
+                            role: "assistant",
+                            content: "Erro ao carregar o fluxo. Por favor, execute o fluxo novamente.",
+                        },
+                    ])
+                }
+            } else {
+                // Se não há fluxo executado, mostrar mensagem
+                setMessages([
+                    {
+                        id: "no-flow",
+                        role: "assistant",
+                        content:
+                            "Nenhum fluxo foi executado ainda. Por favor, crie um fluxo, salve e execute para que eu possa funcionar.",
+                    },
+                ])
+            }
+        }
+    }, [isOpen])
+
+    // Adicionar listener para mudanças no localStorage
+    useEffect(() => {
+        const handleStorageChange = () => {
+            if (isOpen) {
+                const savedWorkflow = localStorage.getItem("workflow")
+                const executedFlow = localStorage.getItem("executedFlow")
+
+                if (savedWorkflow && executedFlow === "true") {
+                    try {
+                        const workflow = JSON.parse(savedWorkflow)
+                        setSavedFlow(workflow)
+                        setIsFlowExecuted(true)
+                    } catch (error) {
+                        console.error("Erro ao recarregar fluxo:", error)
+                    }
+                } else {
+                    setSavedFlow(null)
+                    setIsFlowExecuted(false)
+                }
+            }
+        }
+
+        window.addEventListener("storage", handleStorageChange)
+        return () => window.removeEventListener("storage", handleStorageChange)
+    }, [isOpen])
+
+    const findNextNode = (currentNodeId: string, optionIndex?: number) => {
+        if (!savedFlow) return null
+
+        const edges = savedFlow.edges
+        let targetEdge
+
+        if (optionIndex !== undefined) {
+            // Para nós de opções, encontrar a edge específica baseada no índice
+            const nodeEdges = edges.filter((edge: any) => edge.source === currentNodeId)
+            targetEdge = nodeEdges[optionIndex]
+        } else {
+            // Para outros nós, encontrar a primeira edge
+            targetEdge = edges.find((edge: any) => edge.source === currentNodeId)
+        }
+
+        if (targetEdge) {
+            return savedFlow.nodes.find((node: any) => node.id === targetEdge.target)
+        }
+
+        return null
+    }
+
+    const processNode = (node: any) => {
+        setCurrentNodeId(node.id)
+
+        if (node.type === "sendMessage") {
+            const message = node.data.message || "Mensagem não configurada"
+            setMessages((prev) => [
+                ...prev,
+                {
+                    id: Date.now().toString(),
+                    role: "assistant",
+                    content: message,
+                },
+            ])
+
+            // Continuar automaticamente para o próximo nó após 1 segundo
+            setTimeout(() => {
+                const nextNode = findNextNode(node.id)
+                if (nextNode) {
+                    processNode(nextNode)
+                } else {
+                    setWaitingForUserInput(false)
+                    setCurrentNodeId(null)
+                }
+            }, 1000)
+        } else if (node.type === "options") {
+            const message = node.data.message || "Escolha uma opção:"
+            const options = node.data.options || []
+
+            // Salvar opções atuais para repetir se necessário
+            setCurrentOptions(options)
+            setCurrentOptionsMessage(message)
+
+            let optionsText = message + "\n\n"
+            options.forEach((option: any, index: number) => {
+                optionsText += `${index + 1}. ${option.text}\n`
+            })
+
+            setMessages((prev) => [
+                ...prev,
+                {
+                    id: Date.now().toString(),
+                    role: "assistant",
+                    content: optionsText,
+                },
+            ])
+
+            // Aguardar input do usuário
+            setWaitingForUserInput(true)
+        } else if (node.type === "finalizar") {
+            const message = node.data.message || "Conversa finalizada. Obrigado!"
+            setMessages((prev) => [
+                ...prev,
+                {
+                    id: Date.now().toString(),
+                    role: "assistant",
+                    content: message,
+                },
+            ])
+            setTimeout(() => {
+                setCurrentNodeId(null)
+                setWaitingForUserInput(false)
+            }, 2000)
+        }
+    }
+
+    const startFlow = () => {
+        if (!savedFlow) return
+
+        // Encontrar o nó START
+        const startNode = savedFlow.nodes.find((node: any) => node.id === "start-node")
+        if (startNode) {
+            // Encontrar o primeiro nó conectado ao START
+            const firstNode = findNextNode("start-node")
+            if (firstNode) {
+                processNode(firstNode)
+            }
+        }
+    }
+
+    const repeatOptions = () => {
+        if (currentOptions.length > 0) {
+            let optionsText = currentOptionsMessage + "\n\n"
+            currentOptions.forEach((option: any, index: number) => {
+                optionsText += `${index + 1}. ${option.text}\n`
+            })
+
+            setMessages((prev) => [
+                ...prev,
+                {
+                    id: Date.now().toString(),
+                    role: "assistant",
+                    content: "Não consegui identificar essa opção. Por favor, tente novamente.\n\n" + optionsText,
+                },
+            ])
+        }
+    }
+
+    const handleSendMessage = () => {
+        if (!input.trim()) return
+
+        // Adicionar mensagem do usuário
+        setMessages((prev) => [
+            ...prev,
+            {
+                id: Date.now().toString(),
+                role: "user",
+                content: input,
+            },
+        ])
+
+        const userInput = input.trim()
+        setInput("")
+
+        // Se não há fluxo executado, não processar
+        if (!isFlowExecuted || !savedFlow) {
+            setTimeout(() => {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: Date.now().toString(),
+                        role: "assistant",
+                        content: "Por favor, execute um fluxo primeiro para que eu possa funcionar.",
+                    },
+                ])
+            }, 500)
+            return
+        }
+
+        if (!currentNodeId && !waitingForUserInput) {
+            setTimeout(() => {
+                startFlow()
+            }, 500)
+            return
+        }
+
+        // Se estamos aguardando input do usuário (nó de opções)
+        if (waitingForUserInput && currentNodeId) {
+            const currentNode = savedFlow.nodes.find((node: any) => node.id === currentNodeId)
+
+            if (currentNode && currentNode.type === "options") {
+                const options = currentNode.data.options || []
+                const optionIndex = Number.parseInt(userInput) - 1
+
+                if (optionIndex >= 0 && optionIndex < options.length) {
+                    // Opção válida - continuar para o próximo nó
+                    setWaitingForUserInput(false)
+                    setTimeout(() => {
+                        const nextNode = findNextNode(currentNodeId, optionIndex)
+                        if (nextNode) {
+                            processNode(nextNode)
+                        } else {
+                            setCurrentNodeId(null)
+                        }
+                    }, 500)
+                } else {
+                    // Opção inválida - repetir as opções
+                    setTimeout(() => {
+                        repeatOptions()
+                    }, 500)
+                }
+            }
+        }
+    }
+
+    // Resto do código do componente permanece igual (drag, mouse events, etc.)
+    const handleMouseDown = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement
+        if (target.closest("button") && !target.closest(".drag-handle")) {
+            return
+        }
+
+        setIsDragging(true)
+        setDragStart({
+            x: e.clientX - position.x,
+            y: e.clientY - position.y,
+        })
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+        if (!isDragging) return
+
+        const newX = e.clientX - dragStart.x
+        const newY = e.clientY - dragStart.y
+
+        const maxX = window.innerWidth - 384
+        const maxY = window.innerHeight - 500
+
+        setPosition({
+            x: Math.max(0, Math.min(newX, maxX)),
+            y: Math.max(0, Math.min(newY, maxY)),
+        })
+    }
+
+    const handleMouseUp = () => {
+        setIsDragging(false)
+    }
+
+    useEffect(() => {
+        if (isDragging) {
+            document.addEventListener("mousemove", handleMouseMove)
+            document.addEventListener("mouseup", handleMouseUp)
+            document.body.style.userSelect = "none"
+        } else {
+            document.body.style.userSelect = ""
+        }
+
+        return () => {
+            document.removeEventListener("mousemove", handleMouseMove)
+            document.removeEventListener("mouseup", handleMouseUp)
+            document.body.style.userSelect = ""
+        }
+    }, [isDragging, dragStart])
+
+    if (!isOpen) return null
+
+    const chatStyle = {
+        right: `${24 + position.x}px`,
+        bottom: `${24 + position.y}px`,
+        cursor: isDragging ? "grabbing" : "grab",
+    }
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0, y: 20, height: "auto" }}
+                animate={{
+                    opacity: 1,
+                    y: 0,
+                    height: isMinimized ? "60px" : "500px",
+                }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3 }}
+                className="fixed w-full max-w-sm bg-gray-900 rounded-xl shadow-2xl overflow-hidden z-50 border border-gray-800"
+                style={chatStyle}
+                onMouseDown={handleMouseDown}
+            >
+                {/* Header do chat - igual ao TarsChat */}
+                <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-3 flex items-center justify-between border-b border-gray-800 drag-handle">
+                    <div className="flex items-center space-x-3">
+                        <Avatar className="h-8 w-8 bg-gray-700">
+                            <div className="flex items-center justify-center h-full w-full">
+                                <BotIcon className="h-5 w-5 text-gray-200" />
+                            </div>
+                        </Avatar>
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-200">AURA</h3>
+                            <p className="text-xs text-gray-400">Assistente de IA</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                        {isMinimized ? (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsMinimized(false)}
+                                className="h-7 w-7 text-gray-400 hover:text-gray-200"
+                            >
+                                <FiMaximize2 className="h-4 w-4" />
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsMinimized(true)}
+                                className="h-7 w-7 text-gray-400 hover:text-gray-200"
+                            >
+                                <FiMinimize2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7 text-gray-400 hover:text-gray-200">
+                            <FiX className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Conteúdo do chat */}
+                {!isMinimized && (
+                    <>
+                        {/* Mensagens */}
+                        <div className="p-4 h-[360px] overflow-y-auto bg-gray-950">
+                            {messages.map((message) => (
+                                <div
+                                    key={message.id}
+                                    className={`mb-4 ${message.role === "user" ? "flex justify-end" : "flex justify-start"}`}
+                                >
+                                    <div
+                                        className={`max-w-[80%] p-3 rounded-lg whitespace-pre-line ${
+                                            message.role === "user"
+                                                ? "bg-blue-600 text-white"
+                                                : "bg-gray-700 text-gray-100 border border-gray-600/30"
+                                        }`}
+                                    >
+                                        <p className="text-sm">{message.content}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Input para enviar mensagens */}
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault()
+                                handleSendMessage()
+                            }}
+                            className="p-3 border-t border-gray-800 bg-gray-900"
+                        >
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="text"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    placeholder="Digite sua mensagem..."
+                                    className="flex-1 bg-gray-800 border border-gray-700 rounded-full px-4 py-2 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-600"
+                                />
+                                <Button
+                                    type="submit"
+                                    disabled={!input.trim()}
+                                    className="rounded-full w-10 h-10 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 flex items-center justify-center"
+                                >
+                                    <FiSend className="h-4 w-4 text-white" />
+                                </Button>
+                            </div>
+                        </form>
+                    </>
+                )}
+            </motion.div>
+        </AnimatePresence>
     )
 }
 
@@ -437,100 +887,58 @@ const FlowHeader = ({
 
                     <button
                         onClick={onOpenBot}
-                        className={`p-2 rounded-md transition-colors ${
-                            isDark ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-600"
+                        className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                            isDark
+                                ? "hover:bg-gray-800 text-gray-300 border border-gray-700"
+                                : "hover:bg-gray-50 text-gray-700 border border-gray-300"
                         }`}
-                        title="Aura Assistente de IA"
+                        title="Abrir ChatBot"
                         style={getButtonStyle()}
                     >
-                        <BotIcon className="h-5 w-5" />
+                        <BotIcon className="inline mr-1 h-4 w-4" />
+                        Aura Bot
                     </button>
                 </div>
             </header>
 
-            {/* Dialog de Reset */}
+            {/* Reset Confirmation Dialog */}
             <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-                <DialogContent
-                    className={`${isDark ? "bg-black border-gray-700" : "bg-white border-gray-200"} max-w-md mx-auto rounded-xl`}
-                >
-                    <DialogHeader className="text-center">
-                        <DialogTitle
-                            className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-900"} flex items-center justify-center gap-2`}
-                        >
-                            <FiRefreshCw className="h-6 w-6 text-red-500" />
-                            Resetar Fluxo
-                        </DialogTitle>
-                        <DialogDescription className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-2`}>
-                            ⚠️ Esta ação irá remover <strong>todos os componentes</strong>.
-                            <br />
-                            <span className="text-red-500 font-semibold">Esta ação não pode ser desfeita!</span>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Confirmar Reset</DialogTitle>
+                        <DialogDescription>
+                            Tem certeza de que deseja resetar o fluxo? Todas as alterações não salvas serão perdidas.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowResetDialog(false)}
-                            className={`${
-                                isDark ? "border-gray-600 text-gray-300 hover:bg-gray-800" : "border-gray-300 hover:bg-gray-50"
-                            }`}
-                        >
+                    <div className="grid gap-4 py-4">
+                        <p>Esta ação é irreversível.</p>
+                    </div>
+                    <div className="flex justify-end">
+                        <Button type="button" variant="secondary" onClick={() => setShowResetDialog(false)}>
                             Cancelar
                         </Button>
-                        <Button onClick={confirmReset} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
-                            <FiRefreshCw className="inline mr-1" />
+                        <Button type="button" variant="destructive" onClick={confirmReset}>
                             Resetar
                         </Button>
                     </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog de Fluxo Executado */}
+            {/* Execute Confirmation Dialog */}
             <Dialog open={showExecuteDialog} onOpenChange={setShowExecuteDialog}>
-                <DialogContent
-                    className={`${isDark ? "bg-black border-gray-700" : "bg-white border-gray-200"} max-w-md mx-auto rounded-xl`}
-                    style={{
-                        filter: isDark
-                            ? "drop-shadow(0 0 25px rgba(34, 197, 94, 0.2))"
-                            : "drop-shadow(0 0 20px rgba(34, 197, 94, 0.1))",
-                    }}
-                >
-                    <DialogHeader className="text-center">
-                        <DialogTitle
-                            className={`text-2xl font-bold ${
-                                isDark ? "text-white" : "text-gray-900"
-                            } flex items-center justify-center gap-3`}
-                            style={{
-                                filter: isDark
-                                    ? "drop-shadow(0 0 8px rgba(34, 197, 94, 0.4))"
-                                    : "drop-shadow(0 0 4px rgba(34, 197, 94, 0.3))",
-                            }}
-                        >
-                            🚀 Fluxo Executado!
-                        </DialogTitle>
-                        <DialogDescription
-                            className={`${isDark ? "text-gray-300" : "text-gray-600"} mt-3 text-center text-lg`}
-                            style={{
-                                filter: isDark
-                                    ? "drop-shadow(0 0 4px rgba(255, 255, 255, 0.2))"
-                                    : "drop-shadow(0 0 2px rgba(0, 0, 0, 0.1))",
-                            }}
-                        >
-                            ✅ <strong>Sucesso!</strong> Seu fluxo foi executado e está ativo!
-                            <br />
-                            <span className="text-sm mt-2 block">
-                🤖 Agora o <strong>bot Aura</strong> pode usar este fluxo para conversar
-              </span>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Fluxo em Execução</DialogTitle>
+                        <DialogDescription>
+                            O fluxo está sendo executado. Você pode interagir com o bot para testar o fluxo.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="flex justify-center mt-6">
-                        <Button
-                            onClick={() => setShowExecuteDialog(false)}
-                            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-2"
-                            style={{
-                                filter: "drop-shadow(0 0 8px rgba(34, 197, 94, 0.4))",
-                            }}
-                        >
-                            🎉 Perfeito!
+                    <div className="grid gap-4 py-4">
+                        <p>Abra o bot para interagir com o fluxo.</p>
+                    </div>
+                    <div className="flex justify-end">
+                        <Button type="button" onClick={() => setShowExecuteDialog(false)}>
+                            Fechar
                         </Button>
                     </div>
                 </DialogContent>
@@ -568,6 +976,11 @@ const FlowLayout = () => {
         setShowBot(false)
     }, [])
 
+    // Função para receber as ações do WorkflowBuilder
+    const handleActionsReady = useCallback((actions: any) => {
+        setWorkflowActions(actions)
+    }, [])
+
     if (!mounted) {
         return (
             <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
@@ -599,7 +1012,7 @@ const FlowLayout = () => {
 
             <main className="flex-1 overflow-hidden">
                 <WorkflowBuilder
-                    onActionsReady={setWorkflowActions}
+                    onActionsReady={handleActionsReady}
                     onStartPositionChange={setStartPosition}
                     onMousePositionChange={setMousePosition}
                     onComponentCountChange={setComponentCount}
@@ -626,15 +1039,11 @@ const Flow = () => {
         <AuthProvider>
             <LanguageProvider>
                 <ThemeProvider>
-                    <FlowContent />
+                    <FlowLayout />
                 </ThemeProvider>
             </LanguageProvider>
         </AuthProvider>
     )
-}
-
-const FlowContent = () => {
-    return <FlowLayout />
 }
 
 export default Flow

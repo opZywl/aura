@@ -469,7 +469,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                     } else {
                         setWaitingForUserInput(false)
                         setCurrentNodeId(null)
-                        console.log("✅ [AuraBot] Fluxo finalizado - nenhum próximo nó")
+                        clearChatState()
+                        console.log("✅ [AuraBot] Fluxo finalizado - conversa resetada")
                     }
                 }, 1500)
             } else if (node.type === "options") {
@@ -509,7 +510,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 const newMessage = {
                     id: Date.now().toString(),
                     role: "assistant" as const,
-                    content: message + "\n\n✅ Conversa finalizada!",
+                    content: message,
                 }
 
                 setMessages((prev) => {
@@ -518,12 +519,15 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                     return updated
                 })
 
-                setCurrentNodeId(null)
-                setWaitingForUserInput(false)
-                console.log("🏁 [AuraBot] Conversa finalizada")
+                setTimeout(() => {
+                    setCurrentNodeId(null)
+                    setWaitingForUserInput(false)
+                    clearChatState()
+                    console.log("🏁 [AuraBot] Conversa finalizada e resetada")
+                }, 2000)
             }
         },
-        [findNextNode, saveMessages],
+        [findNextNode, saveMessages, clearChatState],
     )
 
     const startFlow = useCallback(() => {
@@ -651,9 +655,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 return
             }
 
-            // Se é a primeira mensagem e não há nó atual, iniciar o fluxo
             if (!currentNodeId && !waitingForUserInput) {
-                console.log("🚀 [AuraBot] Primeira mensagem - iniciando fluxo")
+                console.log("🚀 [AuraBot] Primeira mensagem - iniciando fluxo do zero")
                 setTimeout(() => {
                     startFlow()
                 }, 800)
@@ -687,7 +690,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                                 processNode(nextNode)
                             } else {
                                 setCurrentNodeId(null)
-                                console.log("🏁 [AuraBot] Fim do fluxo - nenhum próximo nó para a opção selecionada")
+                                clearChatState()
+                                console.log("✅ [AuraBot] Fim do fluxo - conversa resetada")
                             }
                         }, 800)
                     } else {
@@ -711,6 +715,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             processNode,
             repeatOptions,
             saveMessages,
+            clearChatState,
         ],
     )
 
