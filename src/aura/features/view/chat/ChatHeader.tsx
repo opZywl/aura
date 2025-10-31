@@ -159,12 +159,6 @@ export default function ChatHeader({
                         <Image src="/redesociais/telegram.svg" alt="Telegram" width={20} height={20} className="object-contain" />
                     </div>
                 )
-            case "instagram":
-                return (
-                    <div className="w-5 h-5 mr-1">
-                        <Image src="/redesociais/instagram.svg" alt="Instagram" width={20} height={20} className="object-contain" />
-                    </div>
-                )
             case "whatsapp":
                 return (
                     <div className="w-5 h-5 mr-1">
