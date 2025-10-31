@@ -37,6 +37,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useAuth } from "@/src/aura/contexts/AuthContext"
 import { BotIcon } from "lucide-react"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+
 const nodeTypes: NodeTypes = {
   sendMessage: (props) => (
     <SendMessageNode
@@ -349,32 +351,64 @@ function WorkflowBuilderInner({
 
   // Carregar fluxo salvo ou criar padrão
   useEffect(() => {
-    const loadSavedWorkflow = () => {
+    const loadSavedWorkflow = async () => {
+      let workflowLoaded = false
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/workflow`)
+        if (response.ok) {
+          const workflow = await response.json()
+          if (workflow && Array.isArray(workflow.nodes) && Array.isArray(workflow.edges) && workflow.nodes.length > 0) {
+            setNodes(workflow.nodes)
+            setEdges(workflow.edges)
+            setNodeCounters(workflow.nodeCounters || {})
+
+            localStorage.setItem(WORKFLOW_KEY, JSON.stringify(workflow))
+            localStorage.setItem(EXECUTED_KEY, "true")
+
+            toast({
+              title: "✅ Fluxo sincronizado",
+              description: "Fluxo carregado do backend com sucesso",
+            })
+
+            workflowLoaded = true
+          }
+        } else {
+          console.warn(`Falha ao carregar workflow do backend: ${response.status}`)
+        }
+      } catch (error) {
+        console.error("Erro ao buscar workflow do backend:", error)
+      }
+
+      if (workflowLoaded) {
+        return
+      }
+
       try {
         const savedWorkflow = localStorage.getItem(WORKFLOW_KEY)
         if (savedWorkflow) {
           const workflow = JSON.parse(savedWorkflow)
-          setNodes(workflow.nodes || [])
-          setEdges(workflow.edges || [])
-          setNodeCounters(workflow.nodeCounters || {})
+          if (workflow.nodes) {
+            setNodes(workflow.nodes || [])
+            setEdges(workflow.edges || [])
+            setNodeCounters(workflow.nodeCounters || {})
 
-          toast({
-            title: "✅ Fluxo carregado",
-            description: "Fluxo salvo anteriormente foi restaurado",
-          })
-          return
+            toast({
+              title: "✅ Fluxo carregado",
+              description: "Fluxo salvo anteriormente foi restaurado",
+            })
+            return
+          }
         }
       } catch (error) {
-        console.error("Erro ao carregar fluxo salvo:", error)
+        console.error("Erro ao carregar fluxo salvo localmente:", error)
       }
 
-      // Se não há fluxo salvo, criar o padrão
       const defaultWorkflow = createDefaultWorkflow()
       setNodes(defaultWorkflow.nodes)
       setEdges(defaultWorkflow.edges)
       setNodeCounters(defaultWorkflow.nodeCounters)
 
-      // Salvar o fluxo padrão
       localStorage.setItem(WORKFLOW_KEY, JSON.stringify(defaultWorkflow))
       localStorage.setItem(EXECUTED_KEY, "true")
 
@@ -683,7 +717,7 @@ function WorkflowBuilderInner({
     }
   }, [nodes, edges])
 
-  const saveWorkflow = useCallback(() => {
+  const saveWorkflow = useCallback(async () => {
     if (nodes.length <= 1) {
       toast({
         title: "❌ Fluxo vazio",
@@ -710,12 +744,34 @@ function WorkflowBuilderInner({
     localStorage.removeItem(EXECUTED_KEY)
     window.dispatchEvent(new Event("storage"))
 
-    setShowSuccessDialog(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/workflow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: workflowString,
+      })
 
-    toast({
-      title: "✅ Fluxo salvo com sucesso!",
-      description: `${nodes.length} componentes salvos e prontos para execução`,
-    })
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || "Falha ao salvar workflow no backend")
+      }
+
+      setShowSuccessDialog(true)
+
+      toast({
+        title: "✅ Fluxo salvo com sucesso!",
+        description: `${nodes.length} componentes sincronizados com o backend`,
+      })
+    } catch (error) {
+      console.error("Erro ao salvar workflow no backend:", error)
+      toast({
+        title: "⚠️ Fluxo salvo apenas localmente",
+        description: "Não foi possível sincronizar com o backend. Tente novamente.",
+        variant: "destructive",
+      })
+    }
   }, [nodes, edges, nodeCounters, validateConnectivity])
 
   const loadWorkflow = useCallback(() => {

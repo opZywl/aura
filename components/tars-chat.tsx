@@ -2,13 +2,15 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useChat } from "ai/react"
 import { Button } from "@/components/ui/button"
 import { SendIcon, XIcon, MinimizeIcon, MaximizeIcon, BotIcon } from "lucide-react"
 import { Avatar } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
 export default function AuraChat() {
   const [isOpen, setIsOpen] = useState(false)
@@ -34,7 +36,7 @@ export default function AuraChat() {
   const EXECUTED_KEY = "executedFlow"
 
   // Carregar fluxo do localStorage
-  const loadWorkflow = () => {
+  const loadWorkflow = useCallback(() => {
     try {
       console.log("🔍 Tentando carregar fluxo...")
 
@@ -65,10 +67,10 @@ export default function AuraChat() {
       console.error("❌ Erro ao carregar workflow:", error)
       return null
     }
-  }
+  }, [])
 
   // Inicializar mensagens baseado no fluxo
-  const getInitialMessages = () => {
+  const getInitialMessages = useCallback(() => {
     const workflow = loadWorkflow()
 
     if (workflow && workflow.nodes && workflow.nodes.length > 1) {
@@ -90,7 +92,7 @@ export default function AuraChat() {
         },
       ]
     }
-  }
+  }, [loadWorkflow, setFlowLoaded])
 
   // Inicializar chat
   const { messages, input, handleInputChange, setMessages } = useChat({
@@ -98,10 +100,44 @@ export default function AuraChat() {
     initialMessages: getInitialMessages(),
   })
 
+  const synchronizeWorkflowWithBackend = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/workflow`)
+      if (!response.ok) {
+        console.warn(`⚠️ Falha ao buscar workflow do backend: ${response.status}`)
+        return null
+      }
+
+      const workflow = await response.json()
+      if (workflow && Array.isArray(workflow.nodes) && workflow.nodes.length > 0) {
+        localStorage.setItem(WORKFLOW_KEY, JSON.stringify(workflow))
+        localStorage.setItem(EXECUTED_KEY, "true")
+
+        const newWorkflow = loadWorkflow()
+        setSavedFlow(newWorkflow)
+        setIsFlowExecuted(true)
+
+        const newMessages = getInitialMessages()
+        setMessages(newMessages)
+
+        return newWorkflow
+      }
+    } catch (error) {
+      console.error("❌ Erro ao sincronizar workflow com backend:", error)
+    }
+
+    return null
+  }, [getInitialMessages, loadWorkflow, setIsFlowExecuted, setMessages, setSavedFlow])
+
+  useEffect(() => {
+    synchronizeWorkflowWithBackend()
+  }, [synchronizeWorkflowWithBackend])
+
   // Carregar fluxo quando abrir o chat
   useEffect(() => {
     if (isOpen) {
       console.log("🚀 Chat aberto, carregando fluxo...")
+      synchronizeWorkflowWithBackend()
       const workflow = loadWorkflow()
       setSavedFlow(workflow)
       setIsFlowExecuted(localStorage.getItem(EXECUTED_KEY) === "true")
@@ -110,7 +146,7 @@ export default function AuraChat() {
       const newMessages = getInitialMessages()
       setMessages(newMessages)
     }
-  }, [isOpen])
+  }, [getInitialMessages, isOpen, loadWorkflow, setMessages, synchronizeWorkflowWithBackend])
 
   // Listener para mudanças no localStorage
   useEffect(() => {
@@ -134,7 +170,7 @@ export default function AuraChat() {
       window.removeEventListener("storage", handleStorageChange)
       clearInterval(interval)
     }
-  }, [isOpen])
+  }, [getInitialMessages, isOpen, loadWorkflow, setMessages])
 
   // Scroll ao final dos mensagens quando se añade uno nuevo
   useEffect(() => {

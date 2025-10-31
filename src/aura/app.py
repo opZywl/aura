@@ -10,7 +10,7 @@ from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 import uuid
 import requests
 
@@ -41,6 +41,8 @@ from .instagram_api import (
     convert_instagram_message_to_api_format,
     initialize_sample_instagram_conversations
 )
+
+from .chatbot import workflow_manager
 
 # --- Configurações Iniciais ---
 logging.getLogger('werkzeug').setLevel(logging.WARNING)
@@ -173,7 +175,46 @@ def broadcast_to_subscribers(conv_id: str, message_data: dict):
         for q in dead_queues:
             sse_subscribers[conv_id].remove(q)
 
-def send_telegram_message(chat_id: str, text: str, account_id: str) -> bool:
+def append_message_to_conversation(
+    conv_id: str,
+    sender: str,
+    text: str,
+    *,
+    platform: str = "telegram",
+    read: bool = True,
+) -> Optional[Message]:
+    """Adiciona uma mensagem à conversa e notifica assinantes."""
+
+    with _conversation_lock:
+        conv = _conversations.get(conv_id)
+        if not conv:
+            logger.warning(f"⚠️ Conversa não encontrada ao registrar mensagem: {conv_id}")
+            return None
+
+        nova_mensagem = Message(
+            id=uuid.uuid4().hex,
+            sender=sender,
+            text=text,
+            timestamp=get_brasil_time(),
+            read=read,
+            platform=platform,
+        )
+
+        conv.messages.append(nova_mensagem)
+        conv.lastMessage = text
+        conv.lastAt = nova_mensagem.timestamp
+
+    broadcast_to_subscribers(conv_id, nova_mensagem.to_dict())
+    _cache['conversations_last_update'] = 0
+    return nova_mensagem
+
+
+def send_telegram_message(
+    chat_id: str,
+    text: str,
+    account_id: str,
+    reply_markup: Optional[Dict[str, Any]] = None,
+) -> bool:
     """Envia mensagem via Telegram API"""
     try:
         # Buscar a conta do Telegram
@@ -191,6 +232,9 @@ def send_telegram_message(chat_id: str, text: str, account_id: str) -> bool:
             'text': text,
             'parse_mode': 'HTML'
         }
+
+        if reply_markup:
+            payload['reply_markup'] = reply_markup
 
         logger.info(f"📤 Enviando mensagem Telegram para chat {chat_id}: {text[:50]}...")
 
@@ -251,6 +295,41 @@ def create_test_conversation():
             return test_conv
 
     return None
+
+
+# --- Workflow API ---
+@app.route('/api/workflow', methods=['GET'])
+def get_workflow():
+    """Retorna o workflow atualmente configurado."""
+    try:
+        workflow = workflow_manager.get_workflow()
+        return jsonify(workflow), 200
+    except Exception as e:
+        logger.error(f"❌ Erro ao carregar workflow: {e}")
+        return jsonify({"erro": "Falha ao carregar workflow"}), 500
+
+
+@app.route('/api/workflow', methods=['POST'])
+def save_workflow():
+    """Atualiza o workflow utilizado pelo bot."""
+    if not request.is_json:
+        return jsonify({"erro": "Content-Type deve ser application/json"}), 415
+
+    data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({"erro": "Payload inválido"}), 400
+
+    try:
+        saved = workflow_manager.save_workflow(data)
+        logger.info("✅ Workflow atualizado com sucesso")
+        return jsonify(saved), 200
+    except ValueError as e:
+        logger.error(f"⚠️ Falha de validação ao salvar workflow: {e}")
+        return jsonify({"erro": str(e)}), 400
+    except Exception as e:
+        logger.error(f"❌ Erro ao salvar workflow: {e}")
+        return jsonify({"erro": "Falha ao salvar workflow"}), 500
+
 
 # --- Tratamento de erros otimizado ---
 @app.errorhandler(404)
@@ -880,44 +959,35 @@ def enviar_mensagem(conversation_id):
         logger.info(f"📤 Enviando mensagem para conversa: {conversation_id}")
 
         # Primeiro, tentar enviar via Telegram
+        conversation_exists = False
         with _conversation_lock:
             if conversation_id in _conversations:
-                conv = _conversations[conversation_id]
+                conversation_exists = True
 
-                # Buscar a conta associada a esta conversa
-                account_id = chat_to_account.get(conversation_id)
+        if conversation_exists:
+            account_id = chat_to_account.get(conversation_id)
 
-                if account_id:
-                    # Enviar mensagem via Telegram API
-                    success = send_telegram_message(conversation_id, text, account_id)
+            if account_id:
+                success = send_telegram_message(conversation_id, text, account_id)
 
-                    if success:
-                        # Criar nova mensagem local
-                        nova_mensagem = Message(
-                            id=uuid.uuid4().hex,
-                            sender=sender,
-                            text=text,
-                            timestamp=get_brasil_time(),
-                            read=True,
-                            platform='telegram'
-                        )
+                if success:
+                    nova_mensagem = append_message_to_conversation(
+                        conversation_id,
+                        sender,
+                        text,
+                        platform='telegram',
+                        read=True,
+                    )
 
-                        conv.messages.append(nova_mensagem)
-                        conv.lastMessage = text
-                        conv.lastAt = nova_mensagem.timestamp
-
-                        # Broadcast para subscribers
-                        broadcast_to_subscribers(conversation_id, nova_mensagem.to_dict())
-
-                        # Limpar cache
-                        _cache['conversations_last_update'] = 0
-
+                    if nova_mensagem:
                         logger.info(f"✅ Mensagem Telegram enviada: {nova_mensagem.id}")
                         return jsonify(nova_mensagem.to_dict()), 201
                     else:
-                        return jsonify({"erro": "Falha ao enviar mensagem via Telegram"}), 500
+                        return jsonify({"erro": "Conversa não encontrada"}), 404
                 else:
-                    return jsonify({"erro": "Conta Telegram não encontrada para esta conversa"}), 404
+                    return jsonify({"erro": "Falha ao enviar mensagem via Telegram"}), 500
+            else:
+                return jsonify({"erro": "Conta Telegram não encontrada para esta conversa"}), 404
 
         # Se não encontrou no Telegram, tentar Instagram
         # Precisamos do account_id para Instagram
@@ -1132,6 +1202,41 @@ def webhook_telegram(account_id):
         # Limpar cache IMEDIATAMENTE
         _cache['conversations_last_update'] = 0
         logger.info("🔄 Cache limpo - conversas serão recarregadas")
+
+        # Executar fluxo do chatbot baseado no workflow configurado
+        try:
+            responses = workflow_manager.handle_message(chat_id, text)
+        except Exception as flow_error:  # Salvaguarda extra
+            logger.error(f"❌ Erro ao processar workflow: {flow_error}")
+            responses = [{"text": "⚠️ Não foi possível processar sua mensagem no momento."}]
+
+        for response in responses:
+            bot_text = (response.get('text') or '').strip()
+            reply_markup = response.get('reply_markup') if isinstance(response, dict) else None
+
+            if not bot_text:
+                logger.debug("⚠️ Resposta do workflow sem texto, ignorando")
+                continue
+
+            success = send_telegram_message(
+                chat_id,
+                bot_text,
+                account_id,
+                reply_markup=reply_markup,
+            )
+
+            if success:
+                appended = append_message_to_conversation(
+                    chat_id,
+                    'bot',
+                    bot_text,
+                    platform='telegram',
+                    read=True,
+                )
+                if appended:
+                    logger.info(f"🤖 Resposta do bot registrada: {appended.id}")
+            else:
+                logger.error(f"❌ Falha ao enviar mensagem do bot para chat {chat_id}")
 
         logger.info(f"✅ Webhook processado com sucesso para {chat_id}")
         return '', 200
