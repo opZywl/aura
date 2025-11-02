@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
+import LoadingScreen from "@/components/ui/loading-screen"
 import ChatSidebar from "./ChatSidebar"
 import ChatHeader from "./ChatHeader"
 import ChatMessages from "./ChatMessages"
@@ -1216,11 +1217,7 @@ O sistema funciona localmente sem ele.
     }
 
     if (!mounted || loading) {
-        return (
-            <div className="h-screen bg-black flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-        )
+        return <LoadingScreen />
     }
 
     // Atualizar a contagem de conversas
