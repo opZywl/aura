@@ -573,7 +573,7 @@ const ChatTemplateContent = () => {
                 updatedAt: conv.lastAt ? new Date(conv.lastAt) : new Date(),
                 isPinned: false,
                 situacao: "Em Atendimento",
-                isArchived: false,
+                isArchived: Boolean(conv.isArchived),
                 platform: conv.platform || "telegram",
             }))
 
@@ -808,37 +808,6 @@ const ChatTemplateContent = () => {
         }
     }
 
-    // Archive/Unarchive conversation
-    const toggleArchiveConversation = async (conversationId: string) => {
-        if (!apiAvailable) return
-
-        try {
-            const conversation = conversations.find((c) => c.id === conversationId)
-            if (!conversation) return
-
-            const newArchivedState = !conversation.isArchived
-
-            // Update via API
-            await chatAPI.archiveConversation(conversationId, newArchivedState)
-
-            // Update locally
-            setConversations((prev) =>
-                prev.map((conv) => (conv.id === conversationId ? { ...conv, isArchived: newArchivedState } : conv)),
-            )
-
-            console.log(`[OK] Conversa ${newArchivedState ? "arquivada" : "desarquivada"}: ${conversationId}`)
-        } catch (error) {
-            console.error("ERRO: Erro ao arquivar conversa:", error)
-        }
-    }
-
-    // SSE connection for real-time updates - DESABILITADO por enquanto
-    const setupSSE = (conversationId: string) => {
-        // SSE desabilitado por enquanto - usando polling
-        console.log(`AVISO: SSE desabilitado - usando polling para conversa: ${conversationId}`)
-        return
-    }
-
     // Polling for new conversations and messages - MELHORADO
     useEffect(() => {
         if (!apiAvailable) return
@@ -866,7 +835,7 @@ const ChatTemplateContent = () => {
                         updatedAt: conv.lastAt ? new Date(conv.lastAt) : new Date(),
                         isPinned: false,
                         situacao: "Em Atendimento",
-                        isArchived: false,
+                        isArchived: Boolean(conv.isArchived),
                         platform: conv.platform || "telegram",
                     }))
 
@@ -893,6 +862,7 @@ const ChatTemplateContent = () => {
                                     ...conv,
                                     lastMessage: updated.lastMessage || conv.lastMessage,
                                     updatedAt: updated.lastAt ? new Date(updated.lastAt) : conv.updatedAt,
+                                    isArchived: Boolean(updated.isArchived),
                                     unreadCount: conv.id === currentConversation?.id ? 0 : conv.unreadCount + 1,
                                 }
                             }
