@@ -1,58 +1,68 @@
-"use client"
+"use client";
 
-import { ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import LoadingScreen from "@/components/ui/loading-screen"
+import { ArrowRight } from "lucide-react";
+import { useState } from "react";
+import LoadingScreen from "@/components/ui/loading-screen";
 
 interface LandingProps {
-    onContinue: () => void
+    onContinue: () => void;
 }
 
 export default ({onContinue}: LandingProps) => {
-    const [isLoading, setIsLoading] = useState(false)
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleContinue = async () => {
-        setIsLoading(true)
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        setIsLoading(false)
-        onContinue()
-    }
+        setIsLoading(true);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        setIsLoading(false);
+        onContinue();
+    };
 
     if (isLoading) {
-        return <LoadingScreen />
+        return <LoadingScreen />;
     }
 
     return (
         <div className="relative min-h-screen w-full overflow-hidden">
-            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/grad1.svg')" }} />
+            <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: "url('/grad1.svg')" }}
+            />
             <div className="absolute inset-0 bg-black/60" />
 
             <a
                 href="https://github.com/"
                 target="_blank"
                 rel="noreferrer"
-                className="absolute left-6 top-6 z-20 text-xs font-semibold uppercase tracking-[0.6em] text-white/80 transition hover:text-white"
+                className="absolute top-5 left-5 z-50 flex items-center justify-start gap-2 font-modernmono text-zinc-400 hover:text-white/80 transition-colors"
             >
-                Chatbot com sistema integrado ♾
+                Chatbot com Sistema Integrado
             </a>
 
-            <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4">
-                <div className="flex flex-col items-center justify-center gap-6 rounded-3xl border border-white/10 bg-white/5 p-12 text-center shadow-2xl backdrop-blur-md">
-                    <span className="text-[0.65rem] uppercase tracking-[0.65em] text-white/60">Produzido por autodidatas.</span>
-
-                    <Button
-                        size="lg"
-                        className="group flex items-center gap-3 rounded-full border border-white/20 bg-white/20 px-10 py-6 text-lg font-semibold uppercase tracking-[0.6em] text-white shadow-lg backdrop-blur-lg transition hover:scale-105 hover:border-white/40 hover:bg-white/30"
+            <div className="relative z-40 flex min-h-screen flex-col items-center justify-center px-4 gap-3">
+                <div className="flex items-center gap-1 w-full max-w-[220px] sm:max-w-[210px]">
+                    <input
+                        type="text"
+                        placeholder="Vamos Lá!"
+                        className="flex h-7 w-full rounded-md border border-zinc-200/20 px-2 py-0.5 text-xs shadow-sm transition-colors
+               placeholder:text-white/60 bg-zinc-800/20 backdrop-blur-xl backdrop-saturate-200 text-white
+               outline-none disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={handleContinue}
+                        readOnly
+                    />
+                    <button
+                        onClick={handleContinue}
+                        className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200/20 bg-zinc-800/20
+               backdrop-blur-xl backdrop-saturate-200 text-white hover:bg-zinc-800/30 transition-colors"
                     >
-                        Vamos lá!
-                        <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                    </Button>
-
-                    <span className="text-xs uppercase tracking-[0.5em] text-white/50">Pronto para automatizar.</span>
+                        <ArrowRight className="h-3 w-3" />
+                    </button>
                 </div>
+
+                <span className="text-[0.6rem] text-white/90 font-['modernmono']">
+          Feito por estudantes
+        </span>
             </div>
         </div>
-    )
+    );
 }

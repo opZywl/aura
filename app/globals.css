@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+    font-family: "modernmono";
+    src: url("/fonts/modern-mono.woff2") format("woff2"),
+    url("/fonts/modern-mono.woff") format("woff"),
+    url("/fonts/modern-mono.otf") format("opentype");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --foreground-rgb: 0, 0, 0;
     --background-start-rgb: 214, 219, 220;
