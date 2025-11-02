@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useCallback, useRef, useEffect } from "react"
 import ReactFlow, {
     ReactFlowProvider,
-    Background,
+    Background, BackgroundVariant,
     Controls,
     MiniMap,
     addEdge,
@@ -1121,10 +1121,12 @@ function WorkflowBuilderInner({
             color: isDark ? currentGradient.glow : "#4a5568",
             gap: 20,
             size: isDark ? 3 : 2,
-            variant: "dots" as const,
+            variant: BackgroundVariant.Dots,
             style: {
                 filter: isDark
-                    ? `drop-shadow(0 0 6px ${currentGradient.glow}) drop-shadow(0 0 12px ${currentGradient.glow}80) drop-shadow(0 0 18px ${currentGradient.glow}40)`
+                    ? `drop-shadow(0 0 6px ${currentGradient.glow})
+           drop-shadow(0 0 12px ${currentGradient.glow}80)
+           drop-shadow(0 0 18px ${currentGradient.glow}40)`
                     : "none",
                 opacity: isDark ? 0.8 : 1,
             },

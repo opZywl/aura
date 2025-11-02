@@ -1,35 +1,87 @@
-import type { Node } from "reactflow"
+import type { Node, Edge } from "reactflow"
 
+/**
+ * 📘 NodeData
+ * Estrutura de dados usada por todos os nós do fluxo.
+ * Cada tipo de nó usa um subconjunto dessas propriedades.
+ */
 export interface NodeData {
-  label: string
-  description?: string
-  required?: boolean
+    /** Nome visível ou rótulo do nó */
+    label: string
 
-  // Input node properties
-  dataSource?: "manual" | "api" | "database" | "file"
-  sampleData?: string
+    /** Descrição opcional (usada em StartNode e outros) */
+    description?: string
 
-  // Output node properties
-  outputType?: "console" | "api" | "database" | "file"
-  outputFormat?: "json" | "csv" | "xml" | "text"
+    /** Define se o campo é obrigatório (usado em inputs, por exemplo) */
+    required?: boolean
 
-  // Process node properties
-  processType?: "transform" | "filter" | "aggregate" | "sort"
-  processConfig?: string
+    /** Mensagem final (para FinalizarNode) */
+    finalMessage?: string
 
-  // Conditional node properties
-  condition?: string
-  trueLabel?: string
-  falseLabel?: string
+    /** ID customizado, exibido no nó */
+    customId?: string
 
-  // Code node properties
-  codeLanguage?: "javascript" | "typescript"
-  code?: string
+    /** Mensagem principal (para SendMessageNode, OptionsNode etc.) */
+    message?: string
+
+    /** Lista de opções (para OptionsNode) */
+    options?: Array<{
+        id: string
+        text: string
+    }>
+
+    /* -----------------------------------------------------
+     * 🧠 Propriedades específicas por tipo de nó
+     * --------------------------------------------------- */
+
+    /** Origem de dados (para nós de entrada) */
+    dataSource?: "manual" | "api" | "database" | "file"
+
+    /** Dados de exemplo (para visualização ou debug) */
+    sampleData?: string
+
+    /** Tipo de saída (para nós de saída) */
+    outputType?: "console" | "api" | "database" | "file"
+
+    /** Formato de saída (para exportação de dados) */
+    outputFormat?: "json" | "csv" | "xml" | "text"
+
+    /** Tipo de processamento (para ProcessNode) */
+    processType?: "transform" | "filter" | "aggregate" | "sort"
+
+    /** Configuração específica de processamento */
+    processConfig?: string
+
+    /** Condição lógica (para ConditionalNode) */
+    condition?: string
+
+    /** Rótulo de saída para a condição verdadeira */
+    trueLabel?: string
+
+    /** Rótulo de saída para a condição falsa */
+    falseLabel?: string
+
+    /** Linguagem usada no CodeNode */
+    codeLanguage?: "javascript" | "typescript"
+
+    /** Código-fonte do CodeNode */
+    code?: string
 }
 
+/**
+ * 📗 WorkflowNode
+ * Representa um nó completo do ReactFlow com os dados definidos acima.
+ */
 export type WorkflowNode = Node<NodeData>
 
+/**
+ * 📙 Workflow
+ * Representa o estado completo de um fluxo (nós + conexões).
+ */
 export interface Workflow {
-  nodes: WorkflowNode[]
-  edges: any[]
+    /** Lista de nós */
+    nodes: WorkflowNode[]
+
+    /** Lista de conexões (arestas) entre nós */
+    edges: Edge[]
 }

@@ -8,11 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-    useSettings,
-    type AnimationType,
-    type MouseEffectType,
-} from "@/src/aura/contexts/AnimationsSettingsContext"
+import { useSettings, type AnimationType, type MouseEffectType } from "@/src/aura/contexts/AnimationsSettingsContext"
 
 // ===== Ponte de tipo local (somente neste arquivo) =====
 type BaseSettings = ReturnType<typeof useSettings>
@@ -36,11 +32,10 @@ type LocalSettings = BaseSettings & {
 }
 interface SettingsModalProps {
     isOpen: boolean
-    onClose: () => void
+    onCloseAction: () => void
 }
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-
+export default function SettingsModal({ isOpen, onCloseAction }: SettingsModalProps) {
     const [activeTab, setActiveTab] = useState("general")
     // usa o hook normalmente, mas com o tipo ampliado localmente
     const settings = useSettings() as LocalSettings
@@ -454,7 +449,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                    onClick={onClose}
+                    onClick={onCloseAction}
                 >
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0 }}
@@ -471,7 +466,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                         <RotateCcw className="w-4 h-4 mr-2" />
                                         Restaurar padrões
                                     </Button>
-                                    <Button variant="ghost" size="sm" onClick={onClose}>
+                                    <Button variant="ghost" size="sm" onClick={onCloseAction}>
                                         <X className="w-4 h-4" />
                                     </Button>
                                 </div>
