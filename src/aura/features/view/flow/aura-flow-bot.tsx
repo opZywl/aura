@@ -848,22 +848,6 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                                 />
                             ))}
                         </div>
-
-                        {/* Main button */}
-                        <motion.button
-                            onClick={toggleChat}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 p-4 rounded-2xl shadow-2xl border border-purple-500/30 backdrop-blur-sm"
-                            style={{
-                                boxShadow: "0 0 30px rgba(147, 51, 234, 0.4), 0 0 60px rgba(59, 130, 246, 0.2)",
-                            }}
-                        >
-                            <BotIcon className="w-6 h-6 text-white" />
-
-                            <div className="absolute inset-0 rounded-2xl border-2 border-purple-400/50 animate-ping" />
-                            <div className="absolute inset-0 rounded-2xl border border-blue-400/30 animate-pulse" />
-                        </motion.button>
                     </motion.div>
                 </div>
             )}
