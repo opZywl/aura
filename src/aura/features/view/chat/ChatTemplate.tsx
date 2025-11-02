@@ -16,45 +16,6 @@ import ExitConfirmModal from "./ExitConfirmModal"
 import FinalizarModal from "./FinalizarModal"
 import type { Conversation, AIAgent, Message, ChatSettings } from "./types"
 
-const FALLBACK_CONVERSATIONS: Conversation[] = [
-    {
-        id: "fallback-1",
-        title: "Atendimento de demonstração",
-        lastMessage: "Perfeito! Ficarei aguardando a confirmação.",
-        messages: [
-            {
-                id: "fallback-msg-1",
-                content: "Olá! Preciso de ajuda com a integração do WhatsApp.",
-                role: "user",
-                timestamp: new Date(Date.now() - 1000 * 60 * 5),
-                status: "sent",
-            },
-            {
-                id: "fallback-msg-2",
-                content: "Claro! Já estou verificando os detalhes para você.",
-                role: "operator",
-                timestamp: new Date(Date.now() - 1000 * 60 * 4),
-                status: "sent",
-            },
-            {
-                id: "fallback-msg-3",
-                content: "Perfeito! Ficarei aguardando a confirmação.",
-                role: "user",
-                timestamp: new Date(Date.now() - 1000 * 60 * 3),
-                status: "sent",
-            },
-        ],
-        unreadCount: 0,
-        status: "online",
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6),
-        updatedAt: new Date(Date.now() - 1000 * 60 * 3),
-        isPinned: false,
-        situacao: "Em Atendimento",
-        isArchived: false,
-        platform: "web",
-    },
-]
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
 const determineMessageRole = (sender: string | undefined | null): "user" | "operator" => {
@@ -99,7 +60,9 @@ const chatAPI = {
             return data
         } catch (error) {
             console.error("ERRO: Erro ao carregar conversas:", error)
-            return []
+            throw error instanceof Error
+                ? error
+                : new Error("Failed to fetch conversations from backend")
         }
     },
 
@@ -590,34 +553,13 @@ const ChatTemplateContent = () => {
 
     // Check API availability and load conversations
     const loadConversations = async () => {
+        setLoading(true)
+
         try {
-            setLoading(true)
-            console.log("Verificando disponibilidade da API...")
-
-            const isAvailable = await chatAPI.checkHealth()
-            setApiAvailable(isAvailable)
-
-            if (!isAvailable) {
-                console.warn("AVISO: API não disponível - utilizando conversas de demonstração")
-
-                const fallbackCopy = FALLBACK_CONVERSATIONS.map((conv) => ({
-                    ...conv,
-                    messages: conv.messages.map((msg) => ({ ...msg })),
-                }))
-
-                setConversations((prev) => (prev.length > 0 ? prev : fallbackCopy))
-
-                if (!currentConversation && fallbackCopy.length > 0) {
-                    setCurrentConversation(fallbackCopy[0])
-                    setMessages(fallbackCopy[0].messages)
-                }
-
-                setLoading(false)
-                return
-            }
-
             console.log("Carregando conversas reais do Telegram...")
             const apiConversations = await chatAPI.getConversations()
+
+            setApiAvailable(true)
 
             const formattedConversations: Conversation[] = apiConversations.map((conv) => ({
                 id: conv.id,
@@ -631,27 +573,39 @@ const ChatTemplateContent = () => {
                 isPinned: false,
                 situacao: "Em Atendimento",
                 isArchived: false,
-                platform: conv.platform || "telegram", // Adicionar platform das conversas reais
+                platform: conv.platform || "telegram",
             }))
 
             setConversations(formattedConversations)
             console.log(`[OK] ${formattedConversations.length} conversas reais carregadas`)
 
-            // Set first conversation as current if exists
-            if (formattedConversations.length > 0 && !currentConversation) {
-                setCurrentConversation(formattedConversations[0])
-                await loadMessages(formattedConversations[0].id)
+            if (formattedConversations.length === 0) {
+                setCurrentConversation(null)
+                setMessages([])
+                return
             }
+
+            // Preserve the current conversation when possible
+            const existingSelection = currentConversation
+                ? formattedConversations.find((conv) => conv.id === currentConversation.id)
+                : null
+
+            if (existingSelection) {
+                setCurrentConversation(existingSelection)
+                await loadMessages(existingSelection.id)
+                return
+            }
+
+            const firstConversation = formattedConversations[0]
+            setCurrentConversation(firstConversation)
+            await loadMessages(firstConversation.id)
         } catch (error) {
             console.error("ERRO: Erro ao carregar conversas:", error)
-            const fallbackCopy = FALLBACK_CONVERSATIONS.map((conv) => ({
-                ...conv,
-                messages: conv.messages.map((msg) => ({ ...msg })),
-            }))
-            setConversations((prev) => (prev.length > 0 ? prev : fallbackCopy))
-            if (!currentConversation && fallbackCopy.length > 0) {
-                setCurrentConversation(fallbackCopy[0])
-                setMessages(fallbackCopy[0].messages)
+            setApiAvailable(false)
+
+            if (conversations.length === 0) {
+                setCurrentConversation(null)
+                setMessages([])
             }
         } finally {
             setLoading(false)
@@ -660,22 +614,6 @@ const ChatTemplateContent = () => {
 
     // Load messages for a conversation - com lógica consistente de role
     const loadMessages = async (conversationId: string) => {
-        if (!apiAvailable) {
-            const localConversation = conversations.find((conv) => conv.id === conversationId)
-
-            if (localConversation) {
-                const localMessages = localConversation.messages ?? []
-                setMessages(localMessages)
-                setCurrentConversation((prev) =>
-                    prev && prev.id === conversationId
-                        ? { ...prev, messages: localMessages }
-                        : prev,
-                )
-            }
-
-            return
-        }
-
         try {
             console.log(`Carregando mensagens para conversa: ${conversationId}`)
             const apiMessages = await chatAPI.getMessages(conversationId)
@@ -754,21 +692,6 @@ const ChatTemplateContent = () => {
         try {
             console.log("Envio Enviando mensagem:", content)
 
-            if (!apiAvailable) {
-                console.warn("API indisponível - registrando mensagem localmente")
-
-                const offlineMessage: Message = {
-                    id: `offline-${currentConversation.id}-${Date.now()}`,
-                    content,
-                    role: "operator",
-                    timestamp: new Date(),
-                    status: "sent",
-                }
-
-                applyLocalMessage(offlineMessage)
-                return
-            }
-
             // Enviar mensagem via API (será enviada para o Telegram)
             const apiMessage = await chatAPI.sendMessage(currentConversation.id, "operator", content)
 
@@ -777,7 +700,7 @@ const ChatTemplateContent = () => {
                 content,
                 role: "operator",
                 timestamp: new Date(),
-                status: "sent" as const,
+                status: "sent",
             }
 
             applyLocalMessage(newMessage)
@@ -792,7 +715,7 @@ const ChatTemplateContent = () => {
                 content,
                 role: "operator",
                 timestamp: new Date(),
-                status: "error" as const,
+                status: "error",
             }
 
             applyLocalMessage(fallbackMessage)
