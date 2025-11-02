@@ -4,6 +4,8 @@ import json
 import queue
 import threading
 import time
+import re
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response, stream_with_context
@@ -110,9 +112,14 @@ class Conversation:
 
 # Armazenamento otimizado em memória
 _conversations: Dict[str, Conversation] = {}
-_conversation_lock = threading.Lock()
+_conversation_lock = threading.RLock()
 chat_to_account: Dict[str, str] = {}
 sse_subscribers: Dict[str, List[queue.Queue]] = {}
+
+DATA_DIR = Path(__file__).resolve().parent / "data" / "telegram_history"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+_FILENAME_SANITIZER = re.compile(r"[^a-z0-9_-]+")
 
 # Cache para otimização
 _cache = {
@@ -120,6 +127,136 @@ _cache = {
     'conversations_cache': [],
     'cache_duration': 5
 }
+
+
+def _sanitize_filename(value: str) -> str:
+    if not value:
+        return "contato"
+
+    normalized = value.strip().lower()
+    sanitized = _FILENAME_SANITIZER.sub("_", normalized)
+    sanitized = re.sub(r"_+", "_", sanitized).strip("_")
+    return sanitized or "contato"
+
+
+def _history_path(title: str, conversation_id: str) -> Path:
+    safe_title = _sanitize_filename(title or conversation_id)
+    return DATA_DIR / f"{safe_title}_{conversation_id}_telegram.json"
+
+
+def _find_history_path(conversation_id: str) -> Optional[Path]:
+    possible_files = list(DATA_DIR.glob(f"*_{conversation_id}_telegram.json"))
+    return possible_files[0] if possible_files else None
+
+
+def _conversation_to_full_dict(conv: Conversation) -> Dict:
+    data = conv.to_dict()
+    data["messages"] = [msg.to_dict() for msg in conv.messages]
+    return data
+
+
+def _load_conversation_from_disk(conversation_id: str, fallback_title: str = "") -> Optional[Conversation]:
+    try:
+        history_path = _find_history_path(conversation_id)
+        if not history_path or not history_path.exists():
+            return None
+
+        with history_path.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+
+        title = data.get("title") or fallback_title or conversation_id
+
+        with _conversation_lock:
+            conv = _conversations.get(conversation_id) or Conversation(
+                id=conversation_id,
+                title=title,
+                createdAt=data.get("createdAt", get_brasil_time()),
+                lastMessage=data.get("lastMessage", ""),
+                lastAt=data.get("lastAt", get_brasil_time()),
+                isArchived=data.get("isArchived", False),
+                platform=data.get("platform", "telegram"),
+                chat_type=data.get("chat_type", "private"),
+                is_bot_conversation=data.get("is_bot_conversation", False)
+            )
+
+            conv.title = title
+            conv.createdAt = data.get("createdAt", conv.createdAt)
+            conv.lastMessage = data.get("lastMessage", conv.lastMessage)
+            conv.lastAt = data.get("lastAt", conv.lastAt)
+            conv.isArchived = data.get("isArchived", conv.isArchived)
+            conv.platform = data.get("platform", conv.platform)
+            conv.chat_type = data.get("chat_type", conv.chat_type)
+            conv.is_bot_conversation = data.get("is_bot_conversation", conv.is_bot_conversation)
+
+            conv.messages = []
+            for msg_data in data.get("messages", []):
+                conv.messages.append(
+                    Message(
+                        id=msg_data.get("id", uuid.uuid4().hex),
+                        sender=msg_data.get("sender", "user"),
+                        text=msg_data.get("text", ""),
+                        timestamp=msg_data.get("timestamp", get_brasil_time()),
+                        read=msg_data.get("read", False),
+                        platform=msg_data.get("platform", conv.platform)
+                    )
+                )
+
+            def _msg_datetime(message: Message) -> datetime:
+                try:
+                    return datetime.fromisoformat(message.timestamp)
+                except ValueError:
+                    return datetime.fromtimestamp(0, tz=BRASIL_TZ)
+
+            conv.messages.sort(key=_msg_datetime)
+            _conversations[conversation_id] = conv
+            return conv
+    except Exception as error:
+        logger.error(f"Erro ao carregar histórico da conversa {conversation_id}: {error}")
+        return None
+
+
+def _load_all_conversations_from_disk():
+    for file_path in DATA_DIR.glob("*_telegram.json"):
+        try:
+            with file_path.open("r", encoding="utf-8") as file:
+                data = json.load(file)
+
+            conversation_id = str(data.get("id") or data.get("conversation_id") or "").strip()
+            if not conversation_id:
+                continue
+
+            _load_conversation_from_disk(conversation_id, data.get("title", ""))
+        except Exception as error:
+            logger.error(f"Erro ao carregar histórico em {file_path}: {error}")
+
+
+def _save_conversation_history(conv: Conversation):
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        new_path = _history_path(conv.title, conv.id)
+        existing_path = _find_history_path(conv.id)
+
+        if existing_path and existing_path != new_path and existing_path.exists():
+            try:
+                existing_path.unlink()
+            except OSError as remove_error:
+                logger.warning(f"Não foi possível remover histórico antigo {existing_path}: {remove_error}")
+
+        with new_path.open("w", encoding="utf-8") as file:
+            json.dump(_conversation_to_full_dict(conv), file, ensure_ascii=False, indent=2)
+
+        _cache['conversations_last_update'] = 0
+    except Exception as error:
+        logger.error(f"Erro ao salvar histórico da conversa {conv.id}: {error}")
+
+
+def _delete_conversation_history(conversation_id: str):
+    try:
+        history_path = _find_history_path(conversation_id)
+        if history_path and history_path.exists():
+            history_path.unlink()
+    except Exception as error:
+        logger.error(f"Erro ao remover histórico da conversa {conversation_id}: {error}")
 
 # --- Funções utilitárias ---
 def get_brasil_time():
@@ -541,6 +678,8 @@ def listar_conversas():
             logger.info(f"Cache hit - Retornando {len(_cache['conversations_cache'])} conversas")
             return jsonify(_cache['conversations_cache']), 200
 
+        _load_all_conversations_from_disk()
+
         telegram_conversations = []
         with _conversation_lock:
             logger.info(f"Verificando {len(_conversations)} conversas no armazenamento")
@@ -548,11 +687,11 @@ def listar_conversas():
                 logger.info(
                     f"   Conversa {conv_id}: {conv.title} - Arquivada: {conv.isArchived}, Bot: {conv.is_bot_conversation}"
                 )
-                if not conv.isArchived and not conv.is_bot_conversation:
+                if not conv.is_bot_conversation:
                     telegram_conversations.append(conv.to_dict())
                     logger.info("     Incluída na lista")
                 else:
-                    logger.info("     Filtrada (arquivada ou bot)")
+                    logger.info("     Filtrada (bot)")
 
         telegram_conversations.sort(key=lambda x: x.get('lastAt', ''), reverse=True)
 
@@ -580,6 +719,11 @@ def obter_conversa(conversation_id):
                 conv = _conversations[conversation_id]
                 logger.info(f"Conversa Telegram encontrada: {conv.title}")
                 return jsonify(conv.to_dict()), 200
+
+        conv = _load_conversation_from_disk(conversation_id)
+        if conv:
+            logger.info(f"Conversa carregada do histórico: {conv.title}")
+            return jsonify(conv.to_dict()), 200
 
         logger.warning(f"Conversa não encontrada: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
@@ -611,6 +755,18 @@ def obter_mensagens(conversation_id):
                 messages_data = [msg.to_dict() for msg in messages]
                 logger.info("Retornando %s mensagens Telegram", len(messages_data))
                 return jsonify(messages_data), 200
+
+        conv = _load_conversation_from_disk(conversation_id)
+        if conv:
+            messages = conv.messages
+            if limit is not None:
+                messages = messages[offset : offset + limit]
+            else:
+                messages = messages[offset:]
+
+            messages_data = [msg.to_dict() for msg in messages]
+            logger.info("Retornando %s mensagens Telegram do histórico", len(messages_data))
+            return jsonify(messages_data), 200
 
         logger.warning(f"Conversa não encontrada: {conversation_id}")
         return jsonify({"erro": "Conversa não encontrada"}), 404
@@ -661,10 +817,13 @@ def enviar_mensagem(conversation_id):
                         conv.messages.append(nova_mensagem)
                         conv.lastMessage = text
                         conv.lastAt = nova_mensagem.timestamp
+                        conv.isArchived = False
 
                         broadcast_to_subscribers(conversation_id, nova_mensagem.to_dict())
 
                         _cache['conversations_last_update'] = 0
+
+                        _save_conversation_history(conv)
 
                         logger.info(f"Mensagem Telegram enviada: {nova_mensagem.id}")
                         return jsonify(nova_mensagem.to_dict()), 201
@@ -705,6 +864,7 @@ def renomear_conversa(conversation_id):
                 conv.title = new_title
 
                 _cache['conversations_last_update'] = 0
+                _save_conversation_history(conv)
 
                 logger.info(f"Conversa Telegram renomeada: '{old_title}' -> '{new_title}'")
                 return jsonify(conv.to_dict()), 200
@@ -732,6 +892,7 @@ def arquivar_conversa(conversation_id):
                 conv.isArchived = is_archived
 
                 _cache['conversations_last_update'] = 0
+                _save_conversation_history(conv)
 
                 logger.info(
                     "Conversa Telegram %s: %s",
@@ -766,6 +927,7 @@ def deletar_conversa(conversation_id):
                     del chat_to_account[conversation_id]
 
                 _cache['conversations_last_update'] = 0
+                _delete_conversation_history(conversation_id)
 
                 logger.info(f"Conversa Telegram deletada: {conversation_id}")
                 return '', 204
@@ -823,6 +985,9 @@ def webhook_telegram(account_id):
         # Buscar ou criar conversa
         with _conversation_lock:
             if chat_id not in _conversations:
+                _load_conversation_from_disk(chat_id, user_name)
+
+            if chat_id not in _conversations:
                 logger.info(f"Criando nova conversa para chat {chat_id}")
                 _conversations[chat_id] = Conversation(
                     id=chat_id,
@@ -848,11 +1013,14 @@ def webhook_telegram(account_id):
             conv.messages.append(nova_mensagem)
             conv.lastMessage = text
             conv.lastAt = nova_mensagem.timestamp
+            conv.isArchived = False
 
             logger.info(f"Mensagem do usuário adicionada à conversa {chat_id}: {nova_mensagem.id}")
 
             # Broadcast para subscribers
             broadcast_to_subscribers(chat_id, nova_mensagem.to_dict())
+
+            _cache['conversations_last_update'] = 0
 
         workflows = bot_components_api.get_all_workflows()
         active_workflows = [w for w in workflows if w.get('enabled', True)]
@@ -934,6 +1102,10 @@ def webhook_telegram(account_id):
         logger.info("Cache limpo - conversas serão recarregadas")
 
         logger.info(f"Webhook processado com sucesso para {chat_id}")
+        conv = _conversations.get(chat_id)
+        if conv:
+            _save_conversation_history(conv)
+
         return '', 200
 
     except Exception as e:
