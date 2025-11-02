@@ -10,7 +10,6 @@ import Header from "../../components/Header"
 import Footer from "../../components/Footer"
 import LogoCarousel from "../../components/LogoCarousel"
 import AnimatedText from "../../components/AnimatedText"
-import WaveDotsBackground from "../../components/WaveDotsBackground"
 import NeuralNetworkAnimation from "../../components/NeuralNetworkAnimation"
 import CalendarModal from "@/components/calendar-modal"
 import { useMobile } from "@/hooks/use-mobile"
@@ -23,8 +22,13 @@ function HomeContent() {
     const isMobile = useMobile()
     const [scrollY, setScrollY] = useState(0)
     const { theme } = useTheme()
+    const [mounted, setMounted] = useState(false)
     const { highContrast, reducedMotion, fadeEffects } = useSettings()
     const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     useEffect(() => {
         const handleScroll = () => {
@@ -34,38 +38,60 @@ function HomeContent() {
         return () => window.removeEventListener("scroll", handleScroll)
     }, [])
 
+    const currentTheme = mounted ? theme : "dark"
+
     const serviceAreas = [
         {
             title: "Vendas",
             description: "Qualificação de leads, follow-ups e automação de funil.",
-            icon: <DollarSign className={`h-8 w-8 sm:h-10 sm:w-10 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />,
+            icon: (
+                <DollarSign
+                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
+                />
+            ),
         },
         {
             title: "Suporte",
             description: "Atendimento 24/7 com escalonamento humano quando necessário.",
             icon: (
-                <MessageSquare className={`h-8 w-8 sm:h-10 sm:w-10 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+                <MessageSquare
+                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
+                />
             ),
         },
         {
             title: "Financeiro",
             description: "Cobrança, 2ª via e conciliações automatizadas.",
-            icon: <DollarSign className={`h-8 w-8 sm:h-10 sm:w-10 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />,
+            icon: (
+                <DollarSign
+                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
+                />
+            ),
         },
         {
             title: "Agendamentos",
             description: "Marcação de reuniões, lembretes e reprogramações.",
-            icon: <Calendar className={`h-8 w-8 sm:h-10 sm:w-10 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />,
+            icon: (
+                <Calendar
+                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
+                />
+            ),
         },
         {
             title: "Operações",
             description: "Rotinas, integrações e orquestração de processos.",
-            icon: <Settings className={`h-8 w-8 sm:h-10 sm:w-10 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />,
+            icon: (
+                <Settings
+                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
+                />
+            ),
         },
         {
             title: "Customizado",
             description: "Agentes sob medida para seu caso de uso.",
-            icon: <Code className={`h-8 w-8 sm:h-10 sm:w-10 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />,
+            icon: (
+                <Code className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            ),
         },
     ]
 
@@ -73,50 +99,62 @@ function HomeContent() {
         {
             title: "Ações e Automações",
             description: "Execução de tarefas reais via integrações seguras.",
-            icon: <Play className={`h-8 w-8 sm:h-10 sm:w-10 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />,
+            icon: (
+                <Play className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            ),
         },
         {
             title: "Multicanal",
             description: "Conversas naturais por chat, e-mail, WhatsApp e mais.",
             icon: (
-                <MessageCircle className={`h-8 w-8 sm:h-10 sm:w-10 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+                <MessageCircle
+                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
+                />
             ),
         },
         {
             title: "Integrações",
             description: "Conecte CRM, ERP, calendários e sua base de dados.",
-            icon: <LinkIcon className={`h-8 w-8 sm:h-10 sm:w-10 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />,
+            icon: (
+                <LinkIcon
+                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
+                />
+            ),
         },
     ]
 
     const getContrastClass = () => {
         if (highContrast) {
-            return theme === "dark" ? "text-white" : "text-black"
+            return currentTheme === "dark" ? "text-white" : "text-black"
         }
-        return theme === "dark" ? "text-gray-200" : "text-gray-900"
+        return currentTheme === "dark" ? "text-gray-200" : "text-gray-900"
     }
 
     const getSecondaryContrastClass = () => {
         if (highContrast) {
-            return theme === "dark" ? "text-gray-100" : "text-gray-800"
+            return currentTheme === "dark" ? "text-gray-100" : "text-gray-800"
         }
-        return theme === "dark" ? "text-gray-400" : "text-gray-600"
+        return currentTheme === "dark" ? "text-gray-400" : "text-gray-600"
     }
 
     return (
-        <div
-            className={`min-h-screen overflow-hidden transition-colors duration-300 ${
-                theme === "dark" ? "bg-black" : "bg-white"
-            } ${getContrastClass()}`}
-        >
+        <div className="min-h-screen overflow-hidden transition-colors duration-300 relative">
+            <div className="fixed inset-0 z-0">
+                <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-300"
+                    style={{
+                        backgroundImage: currentTheme === "dark" ? "url('/grad1.svg')" : "url('/grad2.svg')",
+                    }}
+                />
+                {/* Overlay for better text contrast */}
+                <div className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/20" : "bg-white/30"}`} />
+            </div>
+
             <div className="relative z-10">
                 <Header />
 
-                {/* Wave Dots Background */}
-                <WaveDotsBackground />
-
                 {/* Hero Section */}
-                <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
+                <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-20">
                     <motion.div
                         initial={reducedMotion ? {} : { opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -142,7 +180,7 @@ function HomeContent() {
                             className={`text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 ${getContrastClass()}`}
                             style={{
                                 textShadow: !reducedMotion
-                                    ? theme === "dark"
+                                    ? currentTheme === "dark"
                                         ? "0 0 10px rgba(192, 192, 192, 0.7), 0 0 20px rgba(192, 192, 192, 0.5)"
                                         : "0 0 10px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 0, 0, 0.2)"
                                     : "none",
@@ -184,19 +222,24 @@ function HomeContent() {
                     <motion.div
                         style={reducedMotion ? {} : { y: scrollY * 0.2 }}
                         className={`absolute bottom-0 left-0 w-full h-32 z-10 ${
-                            theme === "dark" ? "bg-gradient-to-t from-black to-transparent" : "bg-gradient-to-t from-white to-transparent"
+                            currentTheme === "dark"
+                                ? "bg-gradient-to-t from-black/60 to-transparent"
+                                : "bg-gradient-to-t from-white/60 to-transparent"
                         }`}
                     />
                 </section>
 
                 {/* What are AI Agents Section */}
                 <section id="que-son" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative">
+                    <div
+                        className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/30" : "bg-white/50"} backdrop-blur-sm`}
+                    />
                     <motion.div
                         initial={reducedMotion ? {} : { opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         transition={reducedMotion ? {} : { duration: 1 }}
                         viewport={{ once: true }}
-                        className="max-w-6xl mx-auto"
+                        className="max-w-6xl mx-auto relative z-10"
                     >
                         <h2
                             className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-8 sm:mb-12 text-center ${getContrastClass()}`}
@@ -215,9 +258,11 @@ function HomeContent() {
                                 <p className={`text-base sm:text-lg lg:text-xl leading-relaxed ${getSecondaryContrastClass()}`}>
                                     Agentes de IA entendem objetivos, executam tarefas e aprendem com o contexto para entregar resultados.
                                 </p>
-                                <p className={`text-base sm:text-lg lg:text-xl leading-relaxed mt-4 sm:mt-6 ${getSecondaryContrastClass()}`}>
-                                    Com a AURA, eles se conectam às suas ferramentas e fluxos para operar de ponta a ponta, com segurança e
-                                    controle.
+                                <p
+                                    className={`text-base sm:text-lg lg:text-xl leading-relaxed mt-4 sm:mt-6 ${getSecondaryContrastClass()}`}
+                                >
+                                    Com a AURA, eles se conectam às suas ferramentas e fluxos para operar de ponta a ponta, com segurança
+                                    e controle.
                                 </p>
                             </motion.div>
                             <div className="relative h-64 sm:h-80 lg:h-96 w-full rounded-2xl overflow-hidden shadow-2xl shadow-black/50 order-1 lg:order-2">
@@ -228,11 +273,11 @@ function HomeContent() {
                 </section>
 
                 {/* Application Areas Section */}
-                <section
-                    id="areas"
-                    className={`py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative ${theme === "dark" ? "bg-black/30" : "bg-gray-50/50"}`}
-                >
-                    <div className="max-w-6xl mx-auto">
+                <section id="areas" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative">
+                    <div
+                        className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/40" : "bg-gray-50/70"} backdrop-blur-sm`}
+                    />
+                    <div className="max-w-6xl mx-auto relative z-10">
                         <h2
                             className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-12 sm:mb-16 text-center ${getContrastClass()}`}
                             style={{ letterSpacing: "0.05em" }}
@@ -251,7 +296,9 @@ function HomeContent() {
                                 >
                                     <Card className="h-full p-4 sm:p-6 transition-all duration-300">
                                         <div className="mb-3 sm:mb-4">{service.icon}</div>
-                                        <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-3 ${getContrastClass()}`}>{service.title}</h3>
+                                        <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-3 ${getContrastClass()}`}>
+                                            {service.title}
+                                        </h3>
                                         <p className={`text-sm sm:text-base ${getSecondaryContrastClass()}`}>{service.description}</p>
                                     </Card>
                                 </motion.div>
@@ -262,7 +309,10 @@ function HomeContent() {
 
                 {/* Features Section */}
                 <section id="funcionalidades" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative">
-                    <div className="max-w-6xl mx-auto">
+                    <div
+                        className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/30" : "bg-white/50"} backdrop-blur-sm`}
+                    />
+                    <div className="max-w-6xl mx-auto relative z-10">
                         <h2
                             className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-12 sm:mb-16 text-center ${getContrastClass()}`}
                             style={{ letterSpacing: "0.05em" }}
@@ -296,12 +346,15 @@ function HomeContent() {
 
                 {/* CTA Section */}
                 <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative">
+                    <div
+                        className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/40" : "bg-white/60"} backdrop-blur-sm`}
+                    />
                     <motion.div
                         initial={reducedMotion ? {} : { opacity: 0, y: 50 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={reducedMotion ? {} : { duration: 0.8 }}
                         viewport={{ once: true }}
-                        className="max-w-4xl mx-auto text-center"
+                        className="max-w-4xl mx-auto text-center relative z-10"
                     >
                         <h2
                             className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 ${getContrastClass()}`}
@@ -313,18 +366,24 @@ function HomeContent() {
                             Implante agentes em dias, não em meses. Comece com um piloto guiado.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <motion.div whileHover={reducedMotion ? {} : { scale: 1.05 }} whileTap={reducedMotion ? {} : { scale: 0.95 }}>
+                            <motion.div
+                                whileHover={reducedMotion ? {} : { scale: 1.05 }}
+                                whileTap={reducedMotion ? {} : { scale: 0.95 }}
+                            >
                                 <Link href="https://lucas-lima.vercel.app" target="_blank" rel="noopener noreferrer">
                                     <Button className="text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 rounded-xl shadow-lg w-full sm:w-auto">
                                         Ver demonstração
                                     </Button>
                                 </Link>
                             </motion.div>
-                            <motion.div whileHover={reducedMotion ? {} : { scale: 1.05 }} whileTap={reducedMotion ? {} : { scale: 0.95 }}>
+                            <motion.div
+                                whileHover={reducedMotion ? {} : { scale: 1.05 }}
+                                whileTap={reducedMotion ? {} : { scale: 0.95 }}
+                            >
                                 <Link href="https://lucas-lima.vercel.app" target="_blank" rel="noopener noreferrer">
                                     <Button
                                         variant="outline"
-                                        className="text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 border-2 rounded-xl w-full sm:w-auto transition-all duration-300"
+                                        className="text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 border-2 rounded-xl w-full sm:w-auto transition-all duration-300 bg-transparent"
                                     >
                                         Falar com especialista
                                     </Button>
@@ -350,14 +409,3 @@ export default function Home() {
         </SettingsProvider>
     )
 }
-
-;<style jsx>{`
-    @keyframes shimmer {
-        0% {
-            transform: translateX(-100%);
-        }
-        100% {
-            transform: translateX(100%);
-        }
-    }
-`}</style>

@@ -6,10 +6,18 @@ import AnimatedFooterText from "./AnimatedFooterText"
 import AnimatedCopyrightText from "./AnimatedCopyrightText"
 import { useSettings } from "@/src/aura/features/view/lobby/contexts/SettingsContext"
 import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
 const Footer = () => {
     const { animationsEnabled } = useSettings()
     const { theme } = useTheme()
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    const currentTheme = mounted ? theme : "dark"
 
     const contributorLinks = [
         { name: "Lucas Lima", href: "https://lucas-lima.vercel.app/" },
@@ -26,16 +34,25 @@ const Footer = () => {
     ]
 
     return (
-        <footer className="relative py-16 px-4 sm:px-6 lg:px-8 bg-background">
+        <footer className="relative py-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
+            <div className="absolute inset-0 z-0">
+                <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                    style={{
+                        backgroundImage: currentTheme === "dark" ? "url('/grad1.svg')" : "url('/grad2.svg')",
+                    }}
+                />
+                <div className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/60" : "bg-white/70"}`} />
+            </div>
+
             {/* Background with animations */}
             {animationsEnabled && (
                 <>
-                    <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/50 to-background"></div>
                     <div
-                        className="absolute inset-0 opacity-5"
+                        className="absolute inset-0 opacity-5 z-0"
                         style={{
                             backgroundImage:
-                                theme === "dark"
+                                currentTheme === "dark"
                                     ? "radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)"
                                     : "radial-gradient(circle at 25% 25%, rgba(0, 0, 0, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(0, 0, 0, 0.1) 0%, transparent 50%)",
                             backgroundSize: "100px 100px",
@@ -46,41 +63,50 @@ const Footer = () => {
             )}
 
             {/* Main footer content with border */}
-            <div className="relative max-w-7xl mx-auto border border-border rounded-2xl p-8 bg-background/40 backdrop-blur-sm">
+            <div className="relative max-w-7xl mx-auto border border-border rounded-2xl p-8 bg-background/40 backdrop-blur-sm z-10">
                 {/* Main footer content */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                     {/* Logo and description */}
                     <div className="md:col-span-1">
                         <h3 className="text-2xl font-bold mb-4 text-foreground">Aura</h3>
-                        <p className="text-muted-foreground text-sm">Produzido por estudantes.</p>
+                        <p className="text-muted-foreground text-sm leading-relaxed">Produzido por estudantes.</p>
                     </div>
 
                     {/* PRODUTO */}
                     <div>
-                        <h4 className="text-sm font-semibold mb-6 text-muted-foreground uppercase tracking-wider">
+                        <h4 className="text-xs font-bold mb-6 text-foreground uppercase tracking-widest border-b border-border/50 pb-2">
                             {animationsEnabled ? <AnimatedFooterText text="PRODUTO" delay={0} /> : "PRODUTO"}
                         </h4>
                         <ul className="space-y-3">
                             <li>
-                                <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                                <Link
+                                    href="#"
+                                    className="text-muted-foreground hover:text-foreground transition-colors text-sm hover:translate-x-1 inline-block"
+                                >
                                     Artigo
                                 </Link>
                             </li>
                             <li>
                                 <Link
                                     href="/technology"
-                                    className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                                    className="text-muted-foreground hover:text-foreground transition-colors text-sm hover:translate-x-1 inline-block"
                                 >
                                     Tecnologia
                                 </Link>
                             </li>
                             <li>
-                                <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                                <Link
+                                    href="#"
+                                    className="text-muted-foreground hover:text-foreground transition-colors text-sm hover:translate-x-1 inline-block"
+                                >
                                     Orientadores
                                 </Link>
                             </li>
                             <li>
-                                <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                                <Link
+                                    href="#"
+                                    className="text-muted-foreground hover:text-foreground transition-colors text-sm hover:translate-x-1 inline-block"
+                                >
                                     Home
                                 </Link>
                             </li>
@@ -89,7 +115,7 @@ const Footer = () => {
 
                     {/* CONTRIBUIDORES */}
                     <div>
-                        <h4 className="text-sm font-semibold mb-6 text-muted-foreground uppercase tracking-wider">
+                        <h4 className="text-xs font-bold mb-6 text-foreground uppercase tracking-widest border-b border-border/50 pb-2">
                             {animationsEnabled ? <AnimatedFooterText text="CONTRIBUIDORES" delay={1000} /> : "CONTRIBUIDORES"}
                         </h4>
                         <ul className="space-y-3">
@@ -99,7 +125,7 @@ const Footer = () => {
                                         href={contributor.href}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-muted-foreground hover:text-foreground transition-colors text-sm hover:underline"
+                                        className="text-muted-foreground hover:text-foreground transition-all text-sm hover:underline hover:translate-x-1 inline-block"
                                     >
                                         {contributor.name}
                                     </a>
@@ -110,7 +136,7 @@ const Footer = () => {
 
                     {/* LEGAL */}
                     <div>
-                        <h4 className="text-sm font-semibold mb-6 text-muted-foreground uppercase tracking-wider">
+                        <h4 className="text-xs font-bold mb-6 text-foreground uppercase tracking-widest border-b border-border/50 pb-2">
                             {animationsEnabled ? <AnimatedFooterText text="LEGAL" delay={2000} /> : "LEGAL"}
                         </h4>
                         <ul className="space-y-3">
@@ -121,14 +147,14 @@ const Footer = () => {
                                             href={link.href}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-muted-foreground hover:text-foreground transition-colors text-sm hover:underline"
+                                            className="text-muted-foreground hover:text-foreground transition-all text-sm hover:underline hover:translate-x-1 inline-block"
                                         >
                                             {link.name}
                                         </a>
                                     ) : (
                                         <Link
                                             href={link.href}
-                                            className="text-muted-foreground hover:text-foreground transition-colors text-sm hover:underline"
+                                            className="text-muted-foreground hover:text-foreground transition-all text-sm hover:underline hover:translate-x-1 inline-block"
                                         >
                                             {link.name}
                                         </Link>
@@ -144,15 +170,24 @@ const Footer = () => {
                     <div className="flex flex-col md:flex-row justify-between items-center">
                         {/* Social media icons */}
                         <div className="flex space-x-4 mb-4 md:mb-0">
-                            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Link
+                                href="#"
+                                className="text-muted-foreground hover:text-foreground transition-colors hover:scale-110 inline-block"
+                            >
                                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                                 </svg>
                             </Link>
-                            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Link
+                                href="#"
+                                className="text-muted-foreground hover:text-foreground transition-colors hover:scale-110 inline-block"
+                            >
                                 <Linkedin className="h-5 w-5" />
                             </Link>
-                            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Link
+                                href="#"
+                                className="text-muted-foreground hover:text-foreground transition-colors hover:scale-110 inline-block"
+                            >
                                 <Github className="h-5 w-5" />
                             </Link>
                         </div>
