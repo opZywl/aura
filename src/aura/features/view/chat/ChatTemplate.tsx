@@ -317,7 +317,7 @@ const testAPIConnectivity = async () => {
 const mockAgent: AIAgent = {
     id: "1",
     name: "Aura Assistant",
-    status: "online",
+    status: "online" as const,
 }
 
 interface ConversationCounts {
@@ -508,6 +508,7 @@ const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
 // Component that uses the language context
 const ChatTemplateContent = () => {
     const { theme, setTheme } = useTheme()
+    const resolvedTheme = theme ?? "dark"
     const [mounted, setMounted] = useState(false)
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null)
@@ -573,7 +574,7 @@ const ChatTemplateContent = () => {
                 lastMessage: conv.lastMessage || "",
                 messages: [],
                 unreadCount: 0,
-                status: "online",
+                status: "online" as const,
                 createdAt: conv.createdAt ? new Date(conv.createdAt) : new Date(),
                 updatedAt: conv.lastAt ? new Date(conv.lastAt) : new Date(),
                 isPinned: false,
@@ -614,7 +615,7 @@ const ChatTemplateContent = () => {
                         content: msg.text,
                         role: role,
                         timestamp: new Date(msg.timestamp),
-                        status: "sent",
+                        status: "sent" as const,
                     }
                 })
                 .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Ordenar por timestamp
@@ -646,7 +647,7 @@ const ChatTemplateContent = () => {
                 content: content,
                 role: "operator",
                 timestamp: new Date(),
-                status: "sent",
+                status: "sent" as const,
             }
 
             setMessages((prev) => {
@@ -671,7 +672,7 @@ const ChatTemplateContent = () => {
                 content: content,
                 role: "operator",
                 timestamp: new Date(),
-                status: "error",
+                status: "error" as const,
             }
 
             setMessages((prev) => {
@@ -752,14 +753,16 @@ const ChatTemplateContent = () => {
             )
 
             console.log(`[OK] Conversa ${newArchivedState ? "arquivada" : "desarquivada"} com sucesso: ${conversationId}`)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("ERRO: Erro ao arquivar conversa:", error)
 
+            const errorMessage = error instanceof Error ? error.message : String(error)
+
             // Verificar se é erro de rede ou do servidor
-            if (error.message.includes("Failed to fetch") || error.message.includes("HTTP")) {
+            if (errorMessage.includes("Failed to fetch") || errorMessage.includes("HTTP")) {
                 alert("ERRO: Erro de conexão. Verifique se o backend está rodando:\n\npython src/aura/app.py")
             } else {
-                alert(`ERRO: Erro ao ${conversation.isArchived ? "desarquivar" : "arquivar"} conversa: ${error.message}`)
+                alert(`ERRO: Erro ao ${conversation.isArchived ? "desarquivar" : "arquivar"} conversa: ${errorMessage}`)
             }
         }
     }
@@ -817,7 +820,7 @@ const ChatTemplateContent = () => {
                         lastMessage: conv.lastMessage || "",
                         messages: [],
                         unreadCount: 1,
-                        status: "online",
+                        status: "online" as const,
                         createdAt: conv.createdAt ? new Date(conv.createdAt) : new Date(),
                         updatedAt: conv.lastAt ? new Date(conv.lastAt) : new Date(),
                         isPinned: false,
@@ -872,7 +875,7 @@ const ChatTemplateContent = () => {
                                     content: msg.text,
                                     role: role,
                                     timestamp: new Date(msg.timestamp),
-                                    status: "sent",
+                                    status: "sent" as const,
                                 }
                             })
                             .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
@@ -941,14 +944,14 @@ O sistema funciona localmente sem ele.
                 const parsed = JSON.parse(savedSettings)
                 console.log("Configurações carregadas do localStorage:", parsed)
                 setThemeSettings(parsed)
-                applyThemeSettingsToCSS(parsed, theme)
+                applyThemeSettingsToCSS(parsed, resolvedTheme)
             } else {
                 console.log("NOVO: Usando configurações padrão")
-                applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, theme)
+                applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, resolvedTheme)
             }
         } catch (error) {
             console.error("ERRO: Erro ao carregar configurações:", error)
-            applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, theme)
+            applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, resolvedTheme)
         }
 
         // Load conversations on mount
@@ -973,7 +976,7 @@ O sistema funciona localmente sem ele.
     // Aplicar configurações sempre que mudarem
     useEffect(() => {
         if (mounted) {
-            applyThemeSettingsToCSS(themeSettings, theme)
+            applyThemeSettingsToCSS(themeSettings, resolvedTheme)
         }
     }, [themeSettings, mounted, theme])
 
@@ -1114,7 +1117,7 @@ O sistema funciona localmente sem ele.
     const handleThemeSettingsChange = (newSettings: ThemeSettings) => {
         console.log("Mudando configurações de tema:", newSettings)
         setThemeSettings(newSettings)
-        applyThemeSettingsToCSS(newSettings, theme)
+        applyThemeSettingsToCSS(newSettings, resolvedTheme)
     }
 
     const handleSaveSettings = () => {
@@ -1142,7 +1145,7 @@ O sistema funciona localmente sem ele.
     const handleResetSettings = () => {
         console.log("Resetando configurações para padrão")
         setThemeSettings(DEFAULT_THEME_SETTINGS)
-        applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, theme)
+        applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, resolvedTheme)
         localStorage.removeItem("chat-theme-settings")
 
         // Mostrar feedback visual
@@ -1213,20 +1216,20 @@ O sistema funciona localmente sem ele.
                 {/* Control Sidebar - Left */}
                 {!controlSidebarHidden && (
                     <ControlSidebar
-                        onNewConversation={() => setShowNewMessage(true)}
-                        onShowDetails={handleToggleTagsVisibility}
-                        onGoBack={handleGoBack}
-                        onToggleTheme={toggleTheme}
-                        onToggleFullscreen={toggleFullscreen}
-                        onToggleControlSidebar={() => setControlSidebarHidden(true)}
+                        onNewConversationAction={() => setShowNewMessage(true)}
+                        onShowDetailsAction={handleToggleTagsVisibility}
+                        onGoBackAction={handleGoBack}
+                        onToggleThemeAction={toggleTheme}
+                        onToggleFullscreenAction={toggleFullscreen}
+                        onToggleControlSidebarAction={() => setControlSidebarHidden(true)}
                         theme={currentTheme}
                         isFullscreen={isFullscreen}
                         performanceSettings={performanceSettings}
-                        onPerformanceSettingsChange={handlePerformanceSettingsChange}
+                        onPerformanceSettingsChangeAction={handlePerformanceSettingsChange}
                         themeSettings={themeSettings}
-                        onThemeSettingsChange={handleThemeSettingsChange}
-                        onSaveSettings={handleSaveSettings}
-                        onResetSettings={handleResetSettings}
+                        onThemeSettingsChangeAction={handleThemeSettingsChange}
+                        onSaveSettingsAction={handleSaveSettings}
+                        onResetSettingsAction={handleResetSettings}
                     />
                 )}
 
@@ -1238,15 +1241,15 @@ O sistema funciona localmente sem ele.
                         conversationCounts={conversationCounts}
                         theme={currentTheme}
                         themeSettings={themeSettings}
-                        onToggleSidebar={() => setSidebarHidden(!sidebarHidden)}
+                        onToggleSidebarAction={() => setSidebarHidden(!sidebarHidden)}
                         controlSidebarHidden={controlSidebarHidden}
-                        onToggleControlSidebar={() => setControlSidebarHidden(!controlSidebarHidden)}
+                        onToggleControlSidebarAction={() => setControlSidebarHidden(!controlSidebarHidden)}
                         activeFilter={activeFilter}
-                        onFilterChange={handleFilterChange}
-                        onSelectConversation={handleSelectConversation}
-                        onArchiveConversation={handleArchiveConversation}
+                        onFilterChangeAction={handleFilterChange}
+                        onSelectConversationAction={handleSelectConversation}
+                        onArchiveConversationAction={handleArchiveConversation}
                         showDetails={hideTagsMode}
-                        userName={userName}
+                        userName={userName ?? undefined}
                         isLoading={loading}
                     />
                 )}
@@ -1258,15 +1261,15 @@ O sistema funciona localmente sem ele.
                             <ChatHeader
                                 agent={mockAgent}
                                 conversation={currentConversation}
-                                onToggleInfo={() => setShowInfo(!showInfo)}
-                                onEditNickname={() => setIsEditingNickname(true)}
+                                onToggleInfoAction={() => setShowInfo(!showInfo)}
+                                onEditNicknameAction={() => setIsEditingNickname(true)}
                                 isEditingNickname={isEditingNickname}
-                                onNicknameChange={handleNicknameChange}
-                                onCancelEdit={() => setIsEditingNickname(false)}
-                                onToggleSidebar={() => setSidebarHidden(!sidebarHidden)}
-                                onToggleControlSidebar={() => setControlSidebarHidden(!controlSidebarHidden)}
-                                onFinalize={() => setShowFinalizarModal(true)}
-                                onArchiveConversation={handleArchiveConversation}
+                                onNicknameChangeAction={handleNicknameChange}
+                                onCancelEditAction={() => setIsEditingNickname(false)}
+                                onToggleSidebarAction={() => setSidebarHidden(!sidebarHidden)}
+                                onToggleControlSidebarAction={() => setControlSidebarHidden(!controlSidebarHidden)}
+                                onFinalizeAction={() => setShowFinalizarModal(true)}
+                                onArchiveConversationAction={handleArchiveConversation}
                                 sidebarHidden={sidebarHidden}
                                 controlSidebarHidden={controlSidebarHidden}
                                 theme={currentTheme}
@@ -1276,7 +1279,7 @@ O sistema funciona localmente sem ele.
                             <ChatMessages messages={messages} agent={mockAgent} theme={currentTheme} themeSettings={themeSettings} />
 
                             <ChatInput
-                                onSendMessage={handleSendMessage}
+                                onSendMessageAction={handleSendMessage}
                                 theme={currentTheme}
                                 themeSettings={themeSettings}
                                 disabled={!apiAvailable}
@@ -1339,7 +1342,7 @@ O sistema funciona localmente sem ele.
                     <ChatInfo
                         agent={mockAgent}
                         conversation={currentConversation}
-                        onClose={() => setShowInfo(false)}
+                        onCloseAction={() => setShowInfo(false)}
                         onSituationChange={handleSituationChange}
                         onPlatformChange={handlePlatformChange}
                         theme={currentTheme}
@@ -1350,13 +1353,13 @@ O sistema funciona localmente sem ele.
 
             {/* Modals */}
             {showClientData && currentConversation && (
-                <ClientDataModal conversation={currentConversation} onClose={() => setShowClientData(false)} />
+                <ClientDataModal conversation={currentConversation} onCloseAction={() => setShowClientData(false)} />
             )}
 
             {showNewMessage && (
                 <NewMessageModal
-                    onClose={() => setShowNewMessage(false)}
-                    onSendTemplate={(template) => {
+                    onCloseAction={() => setShowNewMessage(false)}
+                    onSendTemplateAction={(template) => {
                         console.log("Sending template:", template)
                         setShowNewMessage(false)
                     }}
@@ -1366,21 +1369,21 @@ O sistema funciona localmente sem ele.
             )}
 
             {showDetails && currentConversation && (
-                <DetailsModal conversation={currentConversation} onClose={() => setShowDetails(false)} theme={currentTheme} />
+                <DetailsModal conversation={currentConversation} onCloseAction={() => setShowDetails(false)} theme={currentTheme} />
             )}
 
             {showExitConfirm && (
                 <ExitConfirmModal
-                    onConfirm={handleExitConfirm}
-                    onCancel={() => setShowExitConfirm(false)}
+                    onConfirmAction={handleExitConfirm}
+                    onCancelAction={() => setShowExitConfirm(false)}
                     theme={currentTheme}
                 />
             )}
 
             {showFinalizarModal && (
                 <FinalizarModal
-                    onConfirm={handleFinalizarConfirm}
-                    onCancel={() => setShowFinalizarModal(false)}
+                    onConfirmAction={handleFinalizarConfirm}
+                    onCancelAction={() => setShowFinalizarModal(false)}
                     theme={currentTheme}
                 />
             )}

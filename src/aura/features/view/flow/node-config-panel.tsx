@@ -7,16 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { WorkflowNode } from "@/lib/types"
+import type { NodeData, WorkflowNode } from "@/lib/types"
 import CodeEditor from "./code-editor"
 import { useTheme } from "../homePanels/ThemeContext"
 import { toast } from "@/components/ui/use-toast"
 
 interface NodeConfigPanelProps {
     node: WorkflowNode
-    updateNodeData: (nodeId: string, data: any) => void
-    onClose: () => void
-    onRemove: () => void
+    updateNodeDataAction: (nodeId: string, data: NodeData) => void
+    onCloseAction: () => void
+    onRemoveAction: () => void
 }
 
 // Mapeamento de tipos para nomes em português
@@ -34,27 +34,32 @@ const getNodeTypeName = (type: string): string => {
     return typeNames[type] || type
 }
 
-export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemove }: NodeConfigPanelProps) {
+export default function NodeConfigPanel({
+    node,
+    updateNodeDataAction,
+    onCloseAction,
+    onRemoveAction,
+}: NodeConfigPanelProps) {
     const { theme } = useTheme()
-    const [localData, setLocalData] = useState({ ...node.data })
+    const [localData, setLocalData] = useState<NodeData>({ ...node.data })
 
     // Sincronizar mudanças em tempo real
     useEffect(() => {
         setLocalData({ ...node.data })
     }, [node.data])
 
-    const handleChange = (key: string, value: any) => {
-        const newData = {
+    const handleChange = <K extends keyof NodeData>(key: K, value: NodeData[K]) => {
+        const newData: NodeData = {
             ...localData,
             [key]: value,
         }
         setLocalData(newData)
-        updateNodeData(node.id, newData)
+        updateNodeDataAction(node.id, newData)
     }
 
     const copyNodeId = () => {
         const idToCopy = localData.customId || node.id
-        navigator.clipboard.writeText(idToCopy)
+        void navigator.clipboard.writeText(idToCopy)
         toast({
             title: "ID copiado!",
             description: `ID ${idToCopy} copiado para a área de transferência`,
@@ -63,7 +68,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
 
     const handleRemove = () => {
         if (confirm("Tem certeza que deseja remover este nó?")) {
-            onRemove()
+            onRemoveAction()
         }
     }
 
@@ -76,7 +81,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             <Label htmlFor="dataSource">Fonte de Dados</Label>
                             <Select
                                 value={localData.dataSource || "manual"}
-                                onValueChange={(value) => handleChange("dataSource", value)}
+                                onValueChange={(value) => handleChange("dataSource", value as NodeData["dataSource"])}
                             >
                                 <SelectTrigger id="dataSource">
                                     <SelectValue placeholder="Selecione a fonte de dados" />
@@ -110,7 +115,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             <Label htmlFor="outputType">Tipo de Saída</Label>
                             <Select
                                 value={localData.outputType || "console"}
-                                onValueChange={(value) => handleChange("outputType", value)}
+                                onValueChange={(value) => handleChange("outputType", value as NodeData["outputType"])}
                             >
                                 <SelectTrigger id="outputType">
                                     <SelectValue placeholder="Selecione o tipo de saída" />
@@ -128,7 +133,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             <Label htmlFor="outputFormat">Formato de Saída</Label>
                             <Select
                                 value={localData.outputFormat || "json"}
-                                onValueChange={(value) => handleChange("outputFormat", value)}
+                                onValueChange={(value) => handleChange("outputFormat", value as NodeData["outputFormat"])}
                             >
                                 <SelectTrigger id="outputFormat">
                                     <SelectValue placeholder="Selecione o formato" />
@@ -151,7 +156,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             <Label htmlFor="processType">Tipo de Processo</Label>
                             <Select
                                 value={localData.processType || "transform"}
-                                onValueChange={(value) => handleChange("processType", value)}
+                                onValueChange={(value) => handleChange("processType", value as NodeData["processType"])}
                             >
                                 <SelectTrigger id="processType">
                                     <SelectValue placeholder="Selecione o tipo de processo" />
@@ -218,7 +223,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             <Label htmlFor="codeLanguage">Linguagem</Label>
                             <Select
                                 value={localData.codeLanguage || "javascript"}
-                                onValueChange={(value) => handleChange("codeLanguage", value)}
+                                onValueChange={(value) => handleChange("codeLanguage", value as NodeData["codeLanguage"])}
                             >
                                 <SelectTrigger id="codeLanguage">
                                     <SelectValue placeholder="Selecione a linguagem" />
@@ -237,7 +242,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                                     localData.code ||
                                     "// Escreva seu código aqui\nfunction processar(dados) {\n  // Transformar dados\n  return dados;\n}"
                                 }
-                                onChange={(value) => handleChange("code", value)}
+                                onChangeAction={(value) => handleChange("code", value)}
                                 language={localData.codeLanguage || "javascript"}
                             />
                         </div>
@@ -262,7 +267,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             <Label htmlFor="messageType">Tipo de Mensagem</Label>
                             <Select
                                 value={localData.messageType || "text"}
-                                onValueChange={(value) => handleChange("messageType", value)}
+                                onValueChange={(value) => handleChange("messageType", value as NodeData["messageType"])}
                             >
                                 <SelectTrigger id="messageType">
                                     <SelectValue placeholder="Selecione o tipo" />
@@ -279,8 +284,14 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                 )
 
             case "options":
-                return (
-                    <>
+                {
+                    const optionsToRender =
+                        localData.options && localData.options.length > 0
+                            ? localData.options
+                            : [{ text: "Opção 1", digit: "1" }]
+
+                    return (
+                        <>
                         <div className="space-y-2">
                             <Label htmlFor="message">Mensagem</Label>
                             <Textarea
@@ -297,15 +308,22 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             <div className="text-xs text-gray-500 mb-2">Configure as opções que o usuário poderá escolher</div>
 
                             {/* Gerenciar opções */}
-                            {(localData.options || [{ text: "Opção 1", digit: "1" }]).map((option: any, index: number) => (
+                            {optionsToRender.map((option, index) => (
                                 <div key={index} className="flex items-center gap-2 p-2 border rounded-lg">
                                     <span className="text-sm font-medium w-6">{index + 1}</span>
                                     <div className="flex-1">
                                         <Input
                                             value={option.text || ""}
                                             onChange={(e) => {
-                                                const newOptions = [...(localData.options || [])]
-                                                newOptions[index] = { ...newOptions[index], text: e.target.value }
+                                                const newOptions = optionsToRender.map((existingOption, existingIndex) =>
+                                                    existingIndex === index
+                                                        ? { ...existingOption, text: e.target.value }
+                                                        : existingOption,
+                                                )
+                                                newOptions[index] = {
+                                                    ...newOptions[index],
+                                                    text: e.target.value,
+                                                }
                                                 handleChange("options", newOptions)
                                             }}
                                             placeholder="Texto da opção"
@@ -316,8 +334,15 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                                         <Input
                                             value={option.digit || ""}
                                             onChange={(e) => {
-                                                const newOptions = [...(localData.options || [])]
-                                                newOptions[index] = { ...newOptions[index], digit: e.target.value }
+                                                const newOptions = optionsToRender.map((existingOption, existingIndex) =>
+                                                    existingIndex === index
+                                                        ? { ...existingOption, digit: e.target.value }
+                                                        : existingOption,
+                                                )
+                                                newOptions[index] = {
+                                                    ...newOptions[index],
+                                                    digit: e.target.value,
+                                                }
                                                 handleChange("options", newOptions)
                                             }}
                                             placeholder="Dígito"
@@ -329,7 +354,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                                             variant="outline"
                                             size="sm"
                                             onClick={() => {
-                                                const newOptions = (localData.options || []).filter((_: any, i: number) => i !== index)
+                                                const newOptions = optionsToRender.filter((_, i) => i !== index)
                                                 handleChange("options", newOptions)
                                             }}
                                         >
@@ -342,11 +367,12 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             <Button
                                 variant="outline"
                                 onClick={() => {
+                                    const nextIndex = optionsToRender.length + 1
                                     const newOptions = [
-                                        ...(localData.options || []),
+                                        ...optionsToRender,
                                         {
-                                            text: `Opção ${(localData.options || []).length + 1}`,
-                                            digit: `${(localData.options || []).length + 1}`,
+                                            text: `Opção ${nextIndex}`,
+                                            digit: `${nextIndex}`,
                                         },
                                     ]
                                     handleChange("options", newOptions)
@@ -357,7 +383,8 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             </Button>
                         </div>
                     </>
-                )
+                    )
+                }
 
             case "finalizar":
                 return (
@@ -366,7 +393,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                             <Label htmlFor="finalizationType">Tipo de Finalização</Label>
                             <Select
                                 value={localData.finalizationType || "success"}
-                                onValueChange={(value) => handleChange("finalizationType", value)}
+                                onValueChange={(value) => handleChange("finalizationType", value as NodeData["finalizationType"])}
                             >
                                 <SelectTrigger id="finalizationType">
                                     <SelectValue placeholder="Selecione o tipo" />
@@ -404,7 +431,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
         <div className="h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
                 <h2 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
-                    Configurar {getNodeTypeName(node.type)}
+                    Configurar {getNodeTypeName(node.type ?? "unknown")}
                 </h2>
                 <div className="flex gap-2">
                     <Button variant="ghost" size="icon" onClick={handleRemove} className="text-red-500 hover:text-red-700">
@@ -415,7 +442,7 @@ export default function NodeConfigPanel({ node, updateNodeData, onClose, onRemov
                         size="icon"
                         onClick={(e) => {
                             e.stopPropagation()
-                            onClose()
+                            onCloseAction()
                         }}
                     >
                         <X className="h-4 w-4" />

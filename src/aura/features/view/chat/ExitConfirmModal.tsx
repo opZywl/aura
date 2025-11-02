@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button"
 import { AlertTriangle } from "lucide-react"
 
 interface ExitConfirmModalProps {
-    onConfirm: () => void
-    onCancel: () => void
+    onConfirmAction: () => void
+    onCancelAction: () => void
     theme: string
 }
 
-export default function ExitConfirmModal({ onConfirm, onCancel, theme }: ExitConfirmModalProps) {
+export default function ExitConfirmModal({ onConfirmAction, onCancelAction, theme }: ExitConfirmModalProps) {
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
             <div className={`w-full max-w-sm p-6 ${theme === "dark" ? "bg-[#1a1a1a]" : "bg-white"} shadow-lg`}>
@@ -22,13 +22,13 @@ export default function ExitConfirmModal({ onConfirm, onCancel, theme }: ExitCon
 
                 <div className="flex justify-end space-x-3">
                     <Button
-                        onClick={onCancel}
+                        onClick={onCancelAction}
                         variant="outline"
                         className={`${theme === "dark" ? "border-gray-600 text-gray-300 hover:bg-gray-700" : "border-gray-300 text-gray-700 hover:bg-gray-100"}`}
                     >
                         Não
                     </Button>
-                    <Button onClick={onConfirm} className="bg-red-600 hover:bg-red-700 text-white">
+                    <Button onClick={onConfirmAction} className="bg-red-600 hover:bg-red-700 text-white">
                         Sim
                     </Button>
                 </div>

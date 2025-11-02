@@ -8,7 +8,7 @@ import { useTheme } from "next-themes"
 
 interface SettingsModalProps {
   isOpen: boolean
-  onClose: () => void
+  onCloseAction: () => void
 }
 
 const CustomSwitch = ({
@@ -78,7 +78,7 @@ const CustomSlider = ({
   )
 }
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onCloseAction }: SettingsModalProps) {
   const [tab, setTab] = useState(0)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -125,14 +125,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
-      const handleEsc = (e: KeyboardEvent) => e.key === "Escape" && onClose()
+      const handleEsc = (e: KeyboardEvent) => e.key === "Escape" && onCloseAction()
       document.addEventListener("keydown", handleEsc)
       return () => {
         document.body.style.overflow = ""
         document.removeEventListener("keydown", handleEsc)
       }
     }
-  }, [isOpen, onClose])
+  }, [isOpen, onCloseAction])
 
   if (!isOpen || !mounted) return null
 
@@ -173,7 +173,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   return (
       <div
           className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4"
-          onClick={(e) => e.target === e.currentTarget && onClose()}
+          onClick={(e) => e.target === e.currentTarget && onCloseAction()}
       >
         <div
             className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg w-full max-w-sm shadow-2xl"
@@ -194,7 +194,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onClose}
+                  onClick={onCloseAction}
                   className="h-8 w-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 rounded-md"
               >
                 <X className="h-4 w-4" />
@@ -354,7 +354,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           {/* Footer */}
           <div className="p-4 border-t border-gray-200 dark:border-gray-800">
             <Button
-                onClick={onClose}
+                onClick={onCloseAction}
                 className="w-full bg-gray-600 hover:bg-gray-700 dark:bg-gray-400 dark:hover:bg-gray-500 text-white"
             >
               Fechar
