@@ -11,7 +11,6 @@ import { useTheme } from "next-themes"
 import SettingsModal from "./SettingsModal"
 import ThemeToggle from "./ThemeToggle"
 import { useSettings } from "../contexts/SettingsContext"
-import { useLanguage } from "../contexts/LanguageContext"
 import { Button } from "@/components/ui/button"
 
 const Header = () => {
@@ -21,7 +20,6 @@ const Header = () => {
   const isMobile = useMobile()
   const { theme } = useTheme()
   const { glowEffects, reducedMotion } = useSettings()
-  const { language, setLanguage, t } = useLanguage()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,13 +36,6 @@ const Header = () => {
       href: "#artigo",
       gradient: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.06) 50%, rgba(29,78,216,0) 100%)",
       color: "text-blue-500",
-    },
-    {
-      name: language === "pt-BR" ? "PT" : "EN",
-      href: "#",
-      gradient: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(147,51,234,0.06) 50%, rgba(126,34,206,0) 100%)",
-      color: "text-purple-500",
-      isLanguageSelector: true,
     },
     {
       name: "Changelog",
@@ -84,19 +75,6 @@ const Header = () => {
     stiffness: 100,
     damping: 20,
     duration: reducedMotion ? 0.1 : 0.5,
-  }
-
-  const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage)
-  }
-
-  const handleNavItemClick = (item: any, e: React.MouseEvent) => {
-    if (item.isLanguageSelector) {
-      e.preventDefault()
-      // Toggle language
-      const newLanguage = language === "pt-BR" ? "en-US" : "pt-BR"
-      handleLanguageChange(newLanguage)
-    }
   }
 
   return (
@@ -157,7 +135,6 @@ const Header = () => {
                         />
                         <motion.a
                           href={item.href}
-                          onClick={(e) => handleNavItemClick(item, e)}
                           className={`flex items-center px-3 py-1 relative z-10 bg-transparent transition-colors rounded-lg cursor-pointer ${
                             theme === "dark"
                               ? "text-gray-300 group-hover:text-white"
@@ -176,7 +153,6 @@ const Header = () => {
                         {!reducedMotion && (
                           <motion.a
                             href={item.href}
-                            onClick={(e) => handleNavItemClick(item, e)}
                             className={`flex items-center px-3 py-1 absolute inset-0 z-10 bg-transparent transition-colors rounded-lg cursor-pointer ${
                               theme === "dark"
                                 ? "text-gray-300 group-hover:text-white"

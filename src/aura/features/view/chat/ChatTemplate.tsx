@@ -509,7 +509,7 @@ const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
 // Component that uses the language context
 const ChatTemplateContent = () => {
     const { theme, setTheme } = useTheme()
-    const { language, t } = useLanguage()
+    const { t } = useLanguage()
     const [mounted, setMounted] = useState(false)
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null)
