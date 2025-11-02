@@ -5,18 +5,15 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { Menu, X, Settings } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { useMobile } from "@/hooks/use-mobile"
 import { useTheme } from "next-themes"
-import SettingsModal from "./SettingsModal"
 import ThemeToggle from "./ThemeToggle"
 import { useSettings } from "@/src/aura/features/view/lobby/contexts/SettingsContext"
-import { Button } from "@/components/ui/button"
 
 const Header = () => {
     const [isScrolled, setIsScrolled] = useState(false)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
     const isMobile = useMobile()
     const { theme } = useTheme()
     const { glowEffects, reducedMotion } = useSettings()
@@ -40,27 +37,31 @@ const Header = () => {
 
     const navItems: NavItem[] = [
         {
-            name: "Artigo",
-            href: "#artigo",
-            gradient: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.06) 50%, rgba(29,78,216,0) 100%)",
-            color: "text-blue-500",
+            name: "Serviços",
+            href: "#o-que-fazemos",
+            gradient: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(147,51,234,0.06) 50%, rgba(126,34,206,0) 100%)",
+            color: "text-purple-500",
         },
         {
-            name: "Changelog",
-            href: "#changelog",
-            gradient: "radial-gradient(circle, rgba(34,197,94,0.15) 0%, rgba(22,163,74,0.06) 50%, rgba(21,128,61,0) 100%)",
-            color: "text-green-500",
+            name: "Sobre",
+            href: "#sobre-projeto",
+            gradient: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(147,51,234,0.06) 50%, rgba(126,34,206,0) 100%)",
+            color: "text-purple-500",
+        },
+        {
+            name: "Contato",
+            href: "#contato",
+            gradient: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(147,51,234,0.06) 50%, rgba(126,34,206,0) 100%)",
+            color: "text-purple-500",
         },
     ]
 
     const handleNavItemClick = (item: NavItem, e: React.MouseEvent<HTMLAnchorElement>) => {
-        // rolagem suave para âncoras internas
         if (item.href.startsWith("#")) {
             e.preventDefault()
             const el = document.querySelector(item.href)
             if (el) el.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" })
         }
-        // fecha o menu no mobile (a menos que seja um seletor de idioma)
         if (!item.isLanguageSelector) setMobileMenuOpen(false)
     }
 
@@ -100,7 +101,7 @@ const Header = () => {
         <>
             <header
                 className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-                    isScrolled || true ? "bg-black/20 backdrop-blur-xl py-3 border-b border-white/5" : "bg-transparent py-4"
+                    isScrolled ? "bg-black/20 backdrop-blur-xl py-3 border-b border-white/5" : "bg-transparent py-4"
                 }`}
                 style={{
                     backdropFilter: "blur(16px)",
@@ -109,24 +110,25 @@ const Header = () => {
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center">
-                        <Link href="/" className="flex items-center">
+                        <Link href="/" className="flex items-center gap-2">
                             <motion.div
                                 whileHover={reducedMotion ? {} : { scale: 1.05 }}
-                                className="text-xl sm:text-2xl font-light tracking-[0.2em] text-white"
+                                className="flex items-center gap-2 text-xl sm:text-2xl font-light tracking-[0.1em] text-white font-modernmono"
                             >
-                                Aura
+                                <span className="text-2xl">✨</span>
+                                <span>Aura</span>
                             </motion.div>
                         </Link>
 
                         {!isMobile && (
                             <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2">
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
+                                <div className="flex items-center gap-1 px-2 py-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
                                     {navItems.map((item) => (
                                         <motion.a
                                             key={item.name}
                                             href={item.href}
                                             onClick={(e) => handleNavItemClick(item, e)}
-                                            className="px-4 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 relative overflow-hidden group"
+                                            className="px-4 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 relative overflow-hidden group font-modernmono"
                                             whileHover={reducedMotion ? {} : { scale: 1.05 }}
                                         >
                       <span className="relative z-10 inline-flex">
@@ -144,7 +146,7 @@ const Header = () => {
                                     },
                                 }}
                             >
-                                {char}
+                                {char === " " ? "\u00A0" : char}
                             </motion.span>
                         ))}
                       </span>
@@ -155,22 +157,9 @@ const Header = () => {
                         )}
 
                         <div className="hidden md:flex items-center gap-3">
-                            {/* Settings Button */}
-                            <motion.button
-                                onClick={() => setIsSettingsOpen(true)}
-                                className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200"
-                                whileHover={reducedMotion ? {} : { scale: 1.1, rotate: 90 }}
-                                whileTap={reducedMotion ? {} : { scale: 0.95 }}
-                                animate={reducedMotion ? {} : { rotate: 0 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <Settings className="h-5 w-5" />
-                            </motion.button>
-
-                            {/* Login Button */}
                             <Link href="/login">
                                 <motion.div
-                                    className="px-4 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 border border-white/10 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer"
+                                    className="px-4 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 border border-white/10 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer font-modernmono"
                                     whileHover={reducedMotion ? {} : { scale: 1.05 }}
                                     whileTap={reducedMotion ? {} : { scale: 0.95 }}
                                 >
@@ -181,7 +170,6 @@ const Header = () => {
                             <ThemeToggle />
                         </div>
 
-                        {/* Mobile Menu Button */}
                         {isMobile && (
                             <button
                                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -193,7 +181,6 @@ const Header = () => {
                     </div>
                 </div>
 
-                {/* Mobile Menu */}
                 <AnimatePresence>
                     {mobileMenuOpen && isMobile && (
                         <motion.div
@@ -216,16 +203,6 @@ const Header = () => {
                                     ))}
                                 </div>
                                 <div className="flex items-center justify-between px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                                    {/* Settings Button Mobile */}
-                                    <Button
-                                        onClick={() => setIsSettingsOpen(true)}
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-white hover:text-gray-300"
-                                    >
-                                        <Settings className="h-5 w-5" />
-                                    </Button>
-
                                     <Link href="/login">
                                         <div className="px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 border border-white/10 rounded-full cursor-pointer transition-all">
                                             Login
@@ -238,9 +215,6 @@ const Header = () => {
                     )}
                 </AnimatePresence>
             </header>
-
-            {/* Settings Modal */}
-            <SettingsModal isOpen={isSettingsOpen} onCloseAction={() => setIsSettingsOpen(false)} />
         </>
     )
 }

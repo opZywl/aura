@@ -2,14 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { MessageSquare, DollarSign, Calendar, Settings, Code, Play, MessageCircle, LinkIcon } from "lucide-react"
-import Link from "next/link"
+import { Plus, Minus } from "lucide-react"
 import Header from "../../components/Header"
 import Footer from "../../components/Footer"
 import LogoCarousel from "../../components/LogoCarousel"
-import AnimatedText from "../../components/AnimatedText"
 import NeuralNetworkAnimation from "../../components/NeuralNetworkAnimation"
 import CalendarModal from "@/components/calendar-modal"
 import { useMobile } from "@/hooks/use-mobile"
@@ -25,6 +21,9 @@ function HomeContent() {
     const [mounted, setMounted] = useState(false)
     const { highContrast, reducedMotion, fadeEffects } = useSettings()
     const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+    const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
+    const [showCarouselTooltip, setShowCarouselTooltip] = useState(false)
+    const [isInFooterSection, setIsInFooterSection] = useState(false)
 
     useEffect(() => {
         setMounted(true)
@@ -33,6 +32,12 @@ function HomeContent() {
     useEffect(() => {
         const handleScroll = () => {
             setScrollY(window.scrollY)
+
+            const footerSection = document.getElementById("footer-section")
+            if (footerSection) {
+                const rect = footerSection.getBoundingClientRect()
+                setIsInFooterSection(rect.top <= 0)
+            }
         }
         window.addEventListener("scroll", handleScroll)
         return () => window.removeEventListener("scroll", handleScroll)
@@ -40,86 +45,58 @@ function HomeContent() {
 
     const currentTheme = mounted ? theme : "dark"
 
-    const serviceAreas = [
+    const whatWeDoItems = [
         {
-            title: "Vendas",
-            description: "Qualificação de leads, follow-ups e automação de funil.",
-            icon: (
-                <DollarSign
-                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
-                />
-            ),
+            title: "WORKFLOW DE MENSAGENS",
+            description:
+                "Visualize e configure o fluxo completo de mensagens do chatbot. Crie workflows personalizados para automatizar respostas e ações baseadas nas interações dos clientes.",
+            image: "/workflow-diagram-automation.jpg",
         },
         {
-            title: "Suporte",
-            description: "Atendimento 24/7 com escalonamento humano quando necessário.",
-            icon: (
-                <MessageSquare
-                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
-                />
-            ),
+            title: "CHAT INTELIGENTE",
+            description:
+                "Interface de chat em tempo real integrada ao sistema. Acompanhe conversas, responda manualmente quando necessário e veja o histórico completo de interações.",
+            image: "/chat-interface-messaging.jpg",
         },
         {
-            title: "Financeiro",
-            description: "Cobrança, 2ª via e conciliações automatizadas.",
-            icon: (
-                <DollarSign
-                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
-                />
-            ),
+            title: "GESTÃO DE CONTAS",
+            description:
+                "Sistema completo de gestão financeira e ordens de serviço. Controle pagamentos, visualize status de serviços e mantenha o histórico de todas as transações da oficina.",
+            image: "/financial-dashboard-accounts.jpg",
         },
         {
-            title: "Agendamentos",
-            description: "Marcação de reuniões, lembretes e reprogramações.",
-            icon: (
-                <Calendar
-                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
-                />
-            ),
-        },
-        {
-            title: "Operações",
-            description: "Rotinas, integrações e orquestração de processos.",
-            icon: (
-                <Settings
-                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
-                />
-            ),
-        },
-        {
-            title: "Customizado",
-            description: "Agentes sob medida para seu caso de uso.",
-            icon: (
-                <Code className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
-            ),
+            title: "PAINEL DE AGENDAMENTOS",
+            description:
+                "Visualização completa de agendamentos confirmados e relatórios de conversas. Configure links de agendamento, horários disponíveis e acompanhe todo o histórico de interações dos clientes.",
+            image: "/appointment-calendar-dashboard.jpg",
         },
     ]
 
-    const features = [
+    const faqItems = [
         {
-            title: "Ações e Automações",
-            description: "Execução de tarefas reais via integrações seguras.",
-            icon: (
-                <Play className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
-            ),
+            question: "O QUE É O PROJETO AURA?",
+            answer:
+                "AURA é um sistema de chatbot integrado desenvolvido por estudantes para automatizar o atendimento de oficinas mecânicas, incluindo agendamentos, consultas e gestão de processos.",
         },
         {
-            title: "Multicanal",
-            description: "Conversas naturais por chat, e-mail, WhatsApp e mais.",
-            icon: (
-                <MessageCircle
-                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
-                />
-            ),
+            question: "QUAIS TECNOLOGIAS SÃO UTILIZADAS?",
+            answer:
+                "O projeto utiliza Flask, React, PostgreSQL, TypeScript e Python, seguindo a arquitetura MVC para garantir escalabilidade e manutenibilidade.",
         },
         {
-            title: "Integrações",
-            description: "Conecte CRM, ERP, calendários e sua base de dados.",
-            icon: (
-                <LinkIcon
-                    className={`h-8 w-8 sm:h-10 sm:w-10 ${currentTheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
-                />
-            ),
+            question: "COMO FUNCIONA A INTEGRAÇÃO?",
+            answer:
+                "O AURA se integra aos sistemas internos da oficina através de APIs, permitindo acesso em tempo real a informações de agendamentos, ordens de serviço e disponibilidade.",
+        },
+        {
+            question: "O SISTEMA É PERSONALIZÁVEL?",
+            answer:
+                "Sim! O AURA oferece fluxos personalizados que podem ser adaptados às necessidades específicas de cada oficina mecânica.",
+        },
+        {
+            question: "QUAL O DIFERENCIAL DO AURA?",
+            answer:
+                "Diferente de soluções genéricas, o AURA foi desenvolvido especificamente para oficinas mecânicas, com funcionalidades direcionadas para este segmento e integração completa com sistemas internos.",
         },
     ]
 
@@ -127,34 +104,46 @@ function HomeContent() {
         if (highContrast) {
             return currentTheme === "dark" ? "text-white" : "text-black"
         }
-        return currentTheme === "dark" ? "text-gray-200" : "text-gray-900"
+        return currentTheme === "dark" ? "text-white" : "text-gray-900"
     }
 
     const getSecondaryContrastClass = () => {
         if (highContrast) {
             return currentTheme === "dark" ? "text-gray-100" : "text-gray-800"
         }
-        return currentTheme === "dark" ? "text-gray-400" : "text-gray-600"
+        return currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
     }
 
     return (
-        <div className="min-h-screen overflow-hidden transition-colors duration-300 relative">
+        <div className="min-h-screen overflow-hidden transition-colors duration-300 relative bg-black">
             <div className="fixed inset-0 z-0">
+                <div
+                    className="absolute inset-0 opacity-[0.03]"
+                    style={{
+                        backgroundImage: `
+              linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)
+            `,
+                        backgroundSize: "50px 50px",
+                    }}
+                />
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-300"
                     style={{
                         backgroundImage: currentTheme === "dark" ? "url('/grad1.svg')" : "url('/grad2.svg')",
                     }}
                 />
-                {/* Overlay for better text contrast */}
-                <div className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/20" : "bg-white/30"}`} />
+                <div className="absolute inset-0 bg-black/60" />
             </div>
 
             <div className="relative z-10">
-                <Header />
+                <div
+                    className={`transition-opacity duration-300 ${isInFooterSection ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+                >
+                    <Header />
+                </div>
 
-                {/* Hero Section */}
-                <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-20">
+                <section className="relative h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
                     <motion.div
                         initial={reducedMotion ? {} : { opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -162,78 +151,68 @@ function HomeContent() {
                         className="text-center max-w-4xl mx-auto w-full"
                     >
                         <div className="mb-4 sm:mb-6">
-                            <div className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-purple-900/40 via-blue-900/40 to-purple-900/40 border border-purple-500/30 rounded-full text-xs sm:text-sm text-white backdrop-blur-sm shadow-lg shadow-purple-500/20 relative overflow-hidden">
-                                {!reducedMotion && (
-                                    <>
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
-                                        <div
-                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-400/30 to-transparent animate-pulse"
-                                            style={{ animation: "shimmer 3s ease-in-out infinite" }}
-                                        ></div>
-                                    </>
-                                )}
-                                <span className="relative z-10 font-medium">IA pronta para seu negócio</span>
+                            <div className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-zinc-800/60 border border-zinc-700/40 rounded-full text-xs sm:text-sm text-white backdrop-blur-md shadow-lg relative overflow-hidden">
+                                <span className="relative z-10 font-modernmono">Chatbot pronto para sua oficina</span>
                             </div>
                         </div>
 
                         <h1
-                            className={`text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 ${getContrastClass()}`}
+                            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 font-modernmono text-white"
                             style={{
-                                textShadow: !reducedMotion
-                                    ? currentTheme === "dark"
-                                        ? "0 0 10px rgba(192, 192, 192, 0.7), 0 0 20px rgba(192, 192, 192, 0.5)"
-                                        : "0 0 10px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 0, 0, 0.2)"
-                                    : "none",
-                                letterSpacing: "0.1em",
+                                letterSpacing: "0.05em",
+                                textShadow: "0 0 40px rgba(255, 255, 255, 0.5), 0 0 80px rgba(255, 255, 255, 0.3)",
                             }}
                         >
-                            AURA: agentes de IA para sua empresa
+                            AURA: chatbot com sistema integrado
                         </h1>
 
-                        <p className={`text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 ${getSecondaryContrastClass()}`}>
-                            Automatize atendimento, vendas e operações com IA colaborativa.
+                        <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-gray-200 font-medium">
+                            Automatize atendimento, agendamentos e operações da sua oficina mecânica.
                         </p>
 
-                        {/* Botão "Fale com AURA" */}
+                        <p className="text-sm sm:text-base text-gray-300 mb-6">
+                            Produzido por estudantes | Chatbot inteligente com integrações de sistemas
+                        </p>
+
                         <div className="hidden">
                             <AuraFlowBot standalone={true} />
                         </div>
 
-                        <div className={`text-xs sm:text-sm mt-6 sm:mt-8 max-w-2xl mx-auto px-4 ${getSecondaryContrastClass()}`}>
-                            {fadeEffects ? (
-                                <AnimatedText
-                                    text="A AURA combina agentes inteligentes, integrações e automações para acelerar processos e oferecer experiências incríveis aos seus clientes."
-                                    className={`text-xs sm:text-sm ${getSecondaryContrastClass()}`}
-                                />
-                            ) : (
-                                <span>
-                  A AURA combina agentes inteligentes, integrações e automações para acelerar processos e oferecer
-                  experiências incríveis aos seus clientes.
-                </span>
+                        <div
+                            className="mt-4 sm:mt-6 relative"
+                            onMouseEnter={() => setShowCarouselTooltip(true)}
+                            onMouseLeave={() => setShowCarouselTooltip(false)}
+                        >
+                            {showCarouselTooltip && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 text-sm text-gray-300 whitespace-nowrap z-50 font-modernmono"
+                                >
+                                    Empresas e instituições que apoiaram nossa jornada acadêmica
+                                </motion.div>
                             )}
-                        </div>
-
-                        {/* Logo Carousel */}
-                        <div className="mt-4 sm:mt-6">
                             <LogoCarousel />
                         </div>
                     </motion.div>
 
                     <motion.div
-                        style={reducedMotion ? {} : { y: scrollY * 0.2 }}
-                        className={`absolute bottom-0 left-0 w-full h-32 z-10 ${
-                            currentTheme === "dark"
-                                ? "bg-gradient-to-t from-black/60 to-transparent"
-                                : "bg-gradient-to-t from-white/60 to-transparent"
-                        }`}
-                    />
+                        animate={{ y: [0, 10, 0] }}
+                        transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+                    >
+                        <div className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-2">
+                            <motion.div
+                                animate={{ y: [0, 12, 0] }}
+                                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                                className="w-1.5 h-1.5 bg-white rounded-full"
+                            />
+                        </div>
+                    </motion.div>
                 </section>
 
-                {/* What are AI Agents Section */}
-                <section id="que-son" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative">
-                    <div
-                        className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/30" : "bg-white/50"} backdrop-blur-sm`}
-                    />
+                <section id="que-son" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative bg-black">
                     <motion.div
                         initial={reducedMotion ? {} : { opacity: 0 }}
                         whileInView={{ opacity: 1 }}
@@ -242,10 +221,10 @@ function HomeContent() {
                         className="max-w-6xl mx-auto relative z-10"
                     >
                         <h2
-                            className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-8 sm:mb-12 text-center ${getContrastClass()}`}
+                            className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-8 sm:mb-12 text-center text-white font-modernmono`}
                             style={{ letterSpacing: "0.05em" }}
                         >
-                            O que são Agentes de IA?
+                            O que é o Sistema AURA?
                         </h2>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
                             <motion.div
@@ -255,148 +234,253 @@ function HomeContent() {
                                 viewport={{ once: true }}
                                 className="order-2 lg:order-1"
                             >
-                                <p className={`text-base sm:text-lg lg:text-xl leading-relaxed ${getSecondaryContrastClass()}`}>
-                                    Agentes de IA entendem objetivos, executam tarefas e aprendem com o contexto para entregar resultados.
+                                <p className={`text-base sm:text-lg lg:text-xl leading-relaxed text-gray-300`}>
+                                    O AURA é um sistema de chatbot integrado desenvolvido especificamente para oficinas mecânicas
+                                    automotivas, automatizando atendimento ao cliente, agendamentos e consultas de serviços.
                                 </p>
-                                <p
-                                    className={`text-base sm:text-lg lg:text-xl leading-relaxed mt-4 sm:mt-6 ${getSecondaryContrastClass()}`}
-                                >
-                                    Com a AURA, eles se conectam às suas ferramentas e fluxos para operar de ponta a ponta, com segurança
-                                    e controle.
+                                <p className={`text-base sm:text-lg lg:text-xl leading-relaxed mt-4 sm:mt-6 text-gray-300`}>
+                                    Com integração completa aos sistemas internos da oficina, o AURA centraliza atendimentos de múltiplos
+                                    canais em um único painel, oferecendo respostas rápidas e precisas 24 horas por dia.
                                 </p>
                             </motion.div>
-                            <div className="relative h-64 sm:h-80 lg:h-96 w-full rounded-2xl overflow-hidden shadow-2xl shadow-black/50 order-1 lg:order-2">
+                            <div className="relative h-64 sm:h-80 lg:h-96 w-full rounded-2xl overflow-hidden shadow-2xl shadow-black/50 order-1 lg:order-2 border border-white/10">
                                 <NeuralNetworkAnimation />
                             </div>
                         </div>
                     </motion.div>
                 </section>
 
-                {/* Application Areas Section */}
-                <section id="areas" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative">
-                    <div
-                        className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/40" : "bg-gray-50/70"} backdrop-blur-sm`}
-                    />
+                <section id="o-que-fazemos" className="py-20 sm:py-32 lg:py-40 px-4 sm:px-6 lg:px-8 relative bg-black">
                     <div className="max-w-6xl mx-auto relative z-10">
-                        <h2
-                            className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-12 sm:mb-16 text-center ${getContrastClass()}`}
-                            style={{ letterSpacing: "0.05em" }}
+                        <motion.div
+                            initial={reducedMotion ? {} : { opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            transition={reducedMotion ? {} : { duration: 1 }}
+                            viewport={{ once: true }}
+                            className="mb-20"
                         >
-                            Áreas de Aplicação
-                        </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                            {serviceAreas.map((service, index) => (
+                            <div className="flex items-center justify-center mb-4">
+                                <div className="h-px w-12 bg-white/30"></div>
+                            </div>
+                            <h2
+                                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-center text-white font-modernmono"
+                                style={{ letterSpacing: "0.1em" }}
+                            >
+                                O QUE FAZEMOS?
+                            </h2>
+                        </motion.div>
+
+                        <div className="space-y-40 sm:space-y-60">
+                            {whatWeDoItems.map((item, index) => (
                                 <motion.div
                                     key={index}
-                                    initial={reducedMotion ? {} : { y: 50, opacity: 0 }}
-                                    whileInView={{ y: 0, opacity: 1 }}
-                                    transition={reducedMotion ? {} : { duration: 0.5, delay: index * 0.1 }}
-                                    viewport={{ once: true }}
-                                    whileHover={reducedMotion ? {} : { y: -10, transition: { duration: 0.2 } }}
+                                    initial={reducedMotion ? {} : { opacity: 0, scale: 0.8 }}
+                                    whileInView={{ opacity: 1, scale: 1 }}
+                                    transition={reducedMotion ? {} : { duration: 1, ease: "easeOut" }}
+                                    viewport={{ once: false, margin: "-20%" }}
+                                    className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
                                 >
-                                    <Card className="h-full p-4 sm:p-6 transition-all duration-300">
-                                        <div className="mb-3 sm:mb-4">{service.icon}</div>
-                                        <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-3 ${getContrastClass()}`}>
-                                            {service.title}
-                                        </h3>
-                                        <p className={`text-sm sm:text-base ${getSecondaryContrastClass()}`}>{service.description}</p>
-                                    </Card>
+                                    {index % 2 === 0 ? (
+                                        <>
+                                            <motion.div
+                                                initial={reducedMotion ? {} : { x: -100, opacity: 0 }}
+                                                whileInView={{ x: 0, opacity: 1 }}
+                                                transition={reducedMotion ? {} : { duration: 1.2, delay: 0.2 }}
+                                                viewport={{ once: false, margin: "-20%" }}
+                                                className="space-y-6"
+                                            >
+                                                <div className="h-px w-16 bg-white/50"></div>
+                                                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white font-modernmono tracking-wider">
+                                                    {item.title}
+                                                </h3>
+                                                <p className="text-lg sm:text-xl text-gray-300 leading-relaxed">{item.description}</p>
+                                            </motion.div>
+                                            <motion.div
+                                                initial={reducedMotion ? {} : { x: 100, opacity: 0, rotateY: -15 }}
+                                                whileInView={{ x: 0, opacity: 1, rotateY: 0 }}
+                                                transition={reducedMotion ? {} : { duration: 1.2, delay: 0.4 }}
+                                                viewport={{ once: false, margin: "-20%" }}
+                                                className="relative h-80 sm:h-96 lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+                                                style={{ perspective: "1000px" }}
+                                            >
+                                                <img
+                                                    src={item.image || "/placeholder.svg"}
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                            </motion.div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <motion.div
+                                                initial={reducedMotion ? {} : { x: -100, opacity: 0, rotateY: 15 }}
+                                                whileInView={{ x: 0, opacity: 1, rotateY: 0 }}
+                                                transition={reducedMotion ? {} : { duration: 1.2, delay: 0.4 }}
+                                                viewport={{ once: false, margin: "-20%" }}
+                                                className="relative h-80 sm:h-96 lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl border border-white/10 order-2 lg:order-1"
+                                                style={{ perspective: "1000px" }}
+                                            >
+                                                <img
+                                                    src={item.image || "/placeholder.svg"}
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                            </motion.div>
+                                            <motion.div
+                                                initial={reducedMotion ? {} : { x: 100, opacity: 0 }}
+                                                whileInView={{ x: 0, opacity: 1 }}
+                                                transition={reducedMotion ? {} : { duration: 1.2, delay: 0.2 }}
+                                                viewport={{ once: false, margin: "-20%" }}
+                                                className="space-y-6 order-1 lg:order-2"
+                                            >
+                                                <div className="h-px w-16 bg-white/50"></div>
+                                                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white font-modernmono tracking-wider">
+                                                    {item.title}
+                                                </h3>
+                                                <p className="text-lg sm:text-xl text-gray-300 leading-relaxed">{item.description}</p>
+                                            </motion.div>
+                                        </>
+                                    )}
                                 </motion.div>
                             ))}
                         </div>
                     </div>
                 </section>
 
-                {/* Features Section */}
-                <section id="funcionalidades" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative">
-                    <div
-                        className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/30" : "bg-white/50"} backdrop-blur-sm`}
-                    />
-                    <div className="max-w-6xl mx-auto relative z-10">
-                        <h2
-                            className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-12 sm:mb-16 text-center ${getContrastClass()}`}
-                            style={{ letterSpacing: "0.05em" }}
-                        >
-                            Funcionalidades
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-                            {features.map((feature, index) => (
-                                <motion.div
-                                    key={index}
-                                    initial={reducedMotion ? {} : { scale: 0.9, opacity: 0 }}
-                                    whileInView={{ scale: 1, opacity: 1 }}
-                                    transition={reducedMotion ? {} : { duration: 0.5, delay: index * 0.1 }}
-                                    viewport={{ once: true }}
-                                    className="flex flex-col items-center text-center"
+                <div
+                    className={`transition-opacity duration-300 ${isInFooterSection ? "opacity-0 pointer-events-none h-0 overflow-hidden" : "opacity-100"}`}
+                >
+                    <section id="sobre-projeto" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative bg-black">
+                        <div className="max-w-4xl mx-auto relative z-10">
+                            <motion.div
+                                initial={reducedMotion ? {} : { opacity: 0 }}
+                                whileInView={{ opacity: 1 }}
+                                transition={reducedMotion ? {} : { duration: 1 }}
+                                viewport={{ once: true }}
+                                className="mb-12"
+                            >
+                                <div className="flex items-center justify-center mb-6">
+                                    <div
+                                        className="h-0.5 w-12"
+                                        style={{
+                                            background: "linear-gradient(90deg, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.5) 100%)",
+                                            borderRadius: "100px",
+                                            opacity: 1,
+                                        }}
+                                    ></div>
+                                </div>
+                                <h2
+                                    className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-white font-modernmono"
+                                    style={{ letterSpacing: "0.1em" }}
                                 >
+                                    SOBRE O PROJETO
+                                </h2>
+                            </motion.div>
+
+                            <div className="space-y-4">
+                                {faqItems.map((item, index) => (
                                     <motion.div
-                                        whileHover={reducedMotion ? {} : { rotate: 5, scale: 1.1 }}
-                                        transition={reducedMotion ? {} : { duration: 0.2 }}
-                                        className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-full border`}
+                                        key={index}
+                                        initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        transition={reducedMotion ? {} : { duration: 0.5, delay: index * 0.1 }}
+                                        viewport={{ once: true }}
+                                        className="rounded-2xl overflow-hidden bg-zinc-900/50 backdrop-blur-sm border border-white/10"
                                     >
-                                        {feature.icon}
+                                        <button
+                                            onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
+                                            className="w-full px-6 py-5 flex items-center justify-between text-left transition-all duration-200 hover:bg-white/5"
+                                        >
+                      <span className="text-sm sm:text-base font-bold text-white font-modernmono tracking-wide">
+                        {item.question}
+                      </span>
+                                            <motion.div
+                                                animate={{ rotate: openFaqIndex === index ? 180 : 0 }}
+                                                transition={{ duration: 0.3 }}
+                                                className="flex-shrink-0 ml-4"
+                                            >
+                                                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10">
+                                                    {openFaqIndex === index ? (
+                                                        <Minus className="h-4 w-4 text-white" />
+                                                    ) : (
+                                                        <Plus className="h-4 w-4 text-white" />
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        </button>
+                                        <motion.div
+                                            initial={false}
+                                            animate={{
+                                                height: openFaqIndex === index ? "auto" : 0,
+                                                opacity: openFaqIndex === index ? 1 : 0,
+                                            }}
+                                            transition={{ duration: 0.3 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="px-6 pb-5 text-sm sm:text-base text-gray-300 leading-relaxed font-modernmono">
+                                                {item.answer}
+                                            </div>
+                                        </motion.div>
                                     </motion.div>
-                                    <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-3 ${getContrastClass()}`}>{feature.title}</h3>
-                                    <p className={`text-sm sm:text-base ${getSecondaryContrastClass()}`}>{feature.description}</p>
-                                </motion.div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                </section>
+                    </section>
+                </div>
 
-                {/* CTA Section */}
-                <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative">
+                <section
+                    id="footer-section"
+                    className="relative py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 min-h-screen flex flex-col justify-center"
+                >
                     <div
-                        className={`absolute inset-0 ${currentTheme === "dark" ? "bg-black/40" : "bg-white/60"} backdrop-blur-sm`}
+                        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                        style={{
+                            backgroundImage:
+                                "url('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-WryolJTBBdAEAHABUqReT26WdkWeyC.png')",
+                            opacity: 1,
+                        }}
                     />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black" />
+
                     <motion.div
                         initial={reducedMotion ? {} : { opacity: 0, y: 50 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={reducedMotion ? {} : { duration: 0.8 }}
                         viewport={{ once: true }}
-                        className="max-w-4xl mx-auto text-center relative z-10"
+                        className="max-w-4xl mx-auto text-center relative z-10 mb-20"
                     >
-                        <h2
-                            className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 ${getContrastClass()}`}
-                            style={{ letterSpacing: "0.05em" }}
-                        >
-                            Pronto para acelerar com IA?
-                        </h2>
-                        <p className={`text-lg sm:text-xl mb-8 sm:mb-10 ${getSecondaryContrastClass()}`}>
-                            Implante agentes em dias, não em meses. Comece com um piloto guiado.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <motion.div
-                                whileHover={reducedMotion ? {} : { scale: 1.05 }}
-                                whileTap={reducedMotion ? {} : { scale: 0.95 }}
-                            >
-                                <Link href="https://lucas-lima.vercel.app" target="_blank" rel="noopener noreferrer">
-                                    <Button className="text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 rounded-xl shadow-lg w-full sm:w-auto">
-                                        Ver demonstração
-                                    </Button>
-                                </Link>
-                            </motion.div>
-                            <motion.div
-                                whileHover={reducedMotion ? {} : { scale: 1.05 }}
-                                whileTap={reducedMotion ? {} : { scale: 0.95 }}
-                            >
-                                <Link href="https://lucas-lima.vercel.app" target="_blank" rel="noopener noreferrer">
-                                    <Button
-                                        variant="outline"
-                                        className="text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 border-2 rounded-xl w-full sm:w-auto transition-all duration-300 bg-transparent"
-                                    >
-                                        Falar com especialista
-                                    </Button>
-                                </Link>
-                            </motion.div>
+                        <div className="flex items-center justify-center mb-8">
+                            <div
+                                className="h-0.5 w-12"
+                                style={{
+                                    background: "linear-gradient(90deg, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.5) 100%)",
+                                    borderRadius: "100px",
+                                    opacity: 1,
+                                }}
+                            ></div>
                         </div>
+                        <h2
+                            className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 text-white font-modernmono"
+                            style={{ letterSpacing: "0.1em" }}
+                        >
+                            LET'S GET
+                            <br />
+                            IN TOUCH
+                        </h2>
+                        <p className="text-lg sm:text-xl text-gray-200 max-w-2xl mx-auto font-modernmono leading-relaxed">
+                            Desenvolvido por estudantes apaixonados por tecnologia e inovação. Entre em contato para saber mais sobre
+                            o projeto AURA e como ele pode transformar sua oficina mecânica.
+                        </p>
                     </motion.div>
+
+                    <div className="relative z-10">
+                        <Footer />
+                    </div>
                 </section>
 
-                {/* Calendar Modal */}
                 {isCalendarOpen && <CalendarModal onClose={() => setIsCalendarOpen(false)} />}
-
-                <Footer />
             </div>
         </div>
     )

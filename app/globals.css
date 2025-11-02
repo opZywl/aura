@@ -4,12 +4,16 @@
 
 @font-face {
     font-family: "modernmono";
-    src: url("/fonts/modern-mono.woff2") format("woff2"),
-    url("/fonts/modern-mono.woff") format("woff"),
-    url("/fonts/modern-mono.otf") format("opentype");
+    src: url("/fonts/modernmono.woff2") format("woff2"), url("/fonts/modernmono.woff") format("woff"),
+    url("/fonts/modernmono.ttf") format("truetype");
     font-weight: normal;
     font-style: normal;
     font-display: swap;
+}
+
+@theme inline {
+    /* Added modernmono font to Tailwind theme */
+    --font-modernmono: "modernmono", monospace;
 }
 
 :root {
@@ -31,9 +35,9 @@ body {
     background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
 }
 
-/* Added scrollbar styling for better visual integration with gradient backgrounds */
+/* Updated scrollbar to transparent with small gray thumb */
 ::-webkit-scrollbar {
-    width: 10px;
+    width: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -41,26 +45,33 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, rgba(147, 112, 219, 0.6), rgba(99, 102, 241, 0.6));
-    border-radius: 5px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, rgba(147, 112, 219, 0.8), rgba(99, 102, 241, 0.8));
-    background-clip: padding-box;
+    background: rgba(156, 163, 175, 0.5);
 }
 
 /* Firefox scrollbar */
 * {
-    scrollbar-color: rgba(99, 102, 241, 0.6) transparent;
+    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
     scrollbar-width: thin;
 }
 
 @layer utilities {
     .text-balance {
         text-wrap: balance;
+    }
+}
+
+/* Added shimmer animation for hero badge */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
     }
 }
 
