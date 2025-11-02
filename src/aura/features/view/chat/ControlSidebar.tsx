@@ -21,20 +21,20 @@ interface PerformanceSettings {
 }
 
 interface ControlSidebarProps {
-    onNewConversation: () => void
-    onShowDetails: () => void
-    onGoBack: () => void
-    onToggleTheme: () => void
-    onToggleFullscreen: () => void
-    onToggleControlSidebar: () => void
+    onNewConversationAction: () => void
+    onShowDetailsAction: () => void
+    onGoBackAction: () => void
+    onToggleThemeAction: () => void
+    onToggleFullscreenAction: () => void
+    onToggleControlSidebarAction: () => void
     theme: string
     isFullscreen: boolean
     performanceSettings: PerformanceSettings
-    onPerformanceSettingsChange: (settings: PerformanceSettings) => void
+    onPerformanceSettingsChangeAction: (settings: PerformanceSettings) => void
     themeSettings: ThemeSettings
-    onThemeSettingsChange: (settings: ThemeSettings) => void
-    onSaveSettings: () => void
-    onResetSettings: () => void
+    onThemeSettingsChangeAction: (settings: ThemeSettings) => void
+    onSaveSettingsAction: () => void
+    onResetSettingsAction: () => void
 }
 
 const gradientThemes = [
@@ -81,31 +81,31 @@ const gradientThemes = [
 ]
 
 export default function ControlSidebar({
-                                           onNewConversation,
-                                           onShowDetails,
-                                           onGoBack,
-                                           onToggleTheme,
-                                           onToggleFullscreen,
-                                           onToggleControlSidebar,
+                                           onNewConversationAction,
+                                           onShowDetailsAction,
+                                           onGoBackAction,
+                                           onToggleThemeAction,
+                                           onToggleFullscreenAction,
+                                           onToggleControlSidebarAction,
                                            theme,
                                            isFullscreen,
                                            performanceSettings,
-                                           onPerformanceSettingsChange,
+                                           onPerformanceSettingsChangeAction,
                                            themeSettings,
-                                           onThemeSettingsChange,
-                                           onSaveSettings,
-                                           onResetSettings,
+                                           onThemeSettingsChangeAction,
+                                           onSaveSettingsAction,
+                                           onResetSettingsAction,
                                        }: ControlSidebarProps) {
     const handlePerformanceModeChange = (enabled: boolean) => {
         if (enabled) {
-            onPerformanceSettingsChange({
+            onPerformanceSettingsChangeAction({
                 performanceMode: true,
                 reducedAnimations: true,
                 lowFrameRate: true,
                 memoryOptimization: true,
             })
         } else {
-            onPerformanceSettingsChange({
+            onPerformanceSettingsChangeAction({
                 performanceMode: false,
                 reducedAnimations: false,
                 lowFrameRate: false,
@@ -125,13 +125,13 @@ export default function ControlSidebar({
             newSettings.performanceMode = true
         }
 
-        onPerformanceSettingsChange(newSettings)
+        onPerformanceSettingsChangeAction(newSettings)
     }
 
     const handleThemeSettingChange = (setting: keyof ThemeSettings, value: any) => {
         const newSettings = { ...themeSettings, [setting]: value }
         console.log(`Alterando ${setting}:`, value)
-        onThemeSettingsChange(newSettings)
+        onThemeSettingsChangeAction(newSettings)
     }
 
     const applyGradientTheme = (gradientTheme: any) => {
@@ -150,7 +150,7 @@ export default function ControlSidebar({
             currentGradient: gradientTheme.name,
         }
 
-        onThemeSettingsChange(newSettings)
+        onThemeSettingsChangeAction(newSettings)
     }
 
     // Define icon colors based on theme - much whiter in dark mode
@@ -211,7 +211,7 @@ export default function ControlSidebar({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                onClick={onToggleControlSidebar}
+                                onClick={onToggleControlSidebarAction}
                                 variant="ghost"
                                 size="icon"
                                 className={`w-12 h-12 rounded-xl transition-all duration-300 border-2 transform hover:scale-110 hover:rotate-12 ${
@@ -293,7 +293,7 @@ export default function ControlSidebar({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                onClick={onToggleTheme}
+                                onClick={onToggleThemeAction}
                                 variant="ghost"
                                 size="icon"
                                 className={`w-12 h-12 rounded-xl transition-all duration-300 border-2 transform hover:scale-110 hover:rotate-180 ${
@@ -501,7 +501,7 @@ export default function ControlSidebar({
                                 {/* Action Buttons */}
                                 <div className="flex space-x-2">
                                     <Button
-                                        onClick={onSaveSettings}
+                                        onClick={onSaveSettingsAction}
                                         size="sm"
                                         className="flex-1 bg-green-600 hover:bg-green-700 text-white transition-all hover:scale-105"
                                         data-save-button
@@ -509,7 +509,7 @@ export default function ControlSidebar({
                                         Salvar
                                     </Button>
                                     <Button
-                                        onClick={onResetSettings}
+                                        onClick={onResetSettingsAction}
                                         size="sm"
                                         variant="outline"
                                         className="flex-1 hover:scale-105 transition-all bg-transparent"
@@ -535,7 +535,7 @@ export default function ControlSidebar({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                onClick={onToggleFullscreen}
+                                onClick={onToggleFullscreenAction}
                                 variant="ghost"
                                 size="icon"
                                 className={`w-12 h-12 rounded-xl transition-all duration-300 border-2 transform hover:scale-110 hover:rotate-12 ${
@@ -561,7 +561,7 @@ export default function ControlSidebar({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                onClick={onShowDetails}
+                                onClick={onShowDetailsAction}
                                 variant="ghost"
                                 size="icon"
                                 className={`w-12 h-12 rounded-xl transition-all duration-300 border-2 transform hover:scale-110 hover:rotate-12 ${
@@ -584,7 +584,7 @@ export default function ControlSidebar({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
-                                    onClick={onNewConversation}
+                                    onClick={onNewConversationAction}
                                     className={`w-12 h-12 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-125 hover:rotate-90 border-2 border-red-500 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white ${themeSettings.textAnimations ? "chat-text-animated" : ""}`}
                                     style={
                                         themeSettings.glowEffects
@@ -618,7 +618,7 @@ export default function ControlSidebar({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                onClick={onGoBack}
+                                onClick={onGoBackAction}
                                 variant="ghost"
                                 size="icon"
                                 className={`w-12 h-12 rounded-xl transition-all duration-300 border-2 transform hover:scale-110 hover:rotate-12 ${

@@ -60,7 +60,9 @@ const chatAPI = {
             return data
         } catch (error) {
             console.error("ERRO: Erro ao carregar conversas:", error)
-            return []
+            throw error instanceof Error
+                ? error
+                : new Error("Failed to fetch conversations from backend")
         }
     },
 
@@ -317,7 +319,7 @@ const testAPIConnectivity = async () => {
 const mockAgent: AIAgent = {
     id: "1",
     name: "Aura Assistant",
-    status: "online",
+    status: "online" as const,
 }
 
 interface ConversationCounts {
@@ -508,6 +510,7 @@ const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
 // Component that uses the language context
 const ChatTemplateContent = () => {
     const { theme, setTheme } = useTheme()
+    const resolvedTheme = theme ?? "dark"
     const [mounted, setMounted] = useState(false)
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null)
@@ -550,22 +553,13 @@ const ChatTemplateContent = () => {
 
     // Check API availability and load conversations
     const loadConversations = async () => {
+        setLoading(true)
+
         try {
-            setLoading(true)
-            console.log("Verificando disponibilidade da API...")
-
-            const isAvailable = await chatAPI.checkHealth()
-            setApiAvailable(isAvailable)
-
-            if (!isAvailable) {
-                console.warn("AVISO: API não disponível - Chat funcionará apenas quando houver conversas do Telegram")
-                setConversations([])
-                setLoading(false)
-                return
-            }
-
             console.log("Carregando conversas reais do Telegram...")
             const apiConversations = await chatAPI.getConversations()
+
+            setApiAvailable(true)
 
             const formattedConversations: Conversation[] = apiConversations.map((conv) => ({
                 id: conv.id,
@@ -573,26 +567,46 @@ const ChatTemplateContent = () => {
                 lastMessage: conv.lastMessage || "",
                 messages: [],
                 unreadCount: 0,
-                status: "online",
+                status: "online" as const,
                 createdAt: conv.createdAt ? new Date(conv.createdAt) : new Date(),
                 updatedAt: conv.lastAt ? new Date(conv.lastAt) : new Date(),
                 isPinned: false,
                 situacao: "Em Atendimento",
                 isArchived: false,
-                platform: conv.platform || "telegram", // Adicionar platform das conversas reais
+                platform: conv.platform || "telegram",
             }))
 
             setConversations(formattedConversations)
             console.log(`[OK] ${formattedConversations.length} conversas reais carregadas`)
 
-            // Set first conversation as current if exists
-            if (formattedConversations.length > 0 && !currentConversation) {
-                setCurrentConversation(formattedConversations[0])
-                await loadMessages(formattedConversations[0].id)
+            if (formattedConversations.length === 0) {
+                setCurrentConversation(null)
+                setMessages([])
+                return
             }
+
+            // Preserve the current conversation when possible
+            const existingSelection = currentConversation
+                ? formattedConversations.find((conv) => conv.id === currentConversation.id)
+                : null
+
+            if (existingSelection) {
+                setCurrentConversation(existingSelection)
+                await loadMessages(existingSelection.id)
+                return
+            }
+
+            const firstConversation = formattedConversations[0]
+            setCurrentConversation(firstConversation)
+            await loadMessages(firstConversation.id)
         } catch (error) {
             console.error("ERRO: Erro ao carregar conversas:", error)
-            setConversations([])
+            setApiAvailable(false)
+
+            if (conversations.length === 0) {
+                setCurrentConversation(null)
+                setMessages([])
+            }
         } finally {
             setLoading(false)
         }
@@ -614,24 +628,65 @@ const ChatTemplateContent = () => {
                         content: msg.text,
                         role: role,
                         timestamp: new Date(msg.timestamp),
-                        status: "sent",
+                        status: "sent" as const,
                     }
                 })
                 .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Ordenar por timestamp
 
             setMessages(formattedMessages)
+            setCurrentConversation((prev) =>
+                prev && prev.id === conversationId
+                    ? { ...prev, messages: formattedMessages }
+                    : prev,
+            )
             console.log(`[OK] ${formattedMessages.length} mensagens carregadas e ordenadas`)
         } catch (error) {
             console.error("ERRO: Erro ao carregar mensagens:", error)
             setMessages([])
+            setCurrentConversation((prev) =>
+                prev && prev.id === conversationId
+                    ? { ...prev, messages: [] }
+                    : prev,
+            )
         }
     }
 
     // Send message (integra com Telegram) - CORRIGIDO para enviar realmente
     const sendMessage = async (content: string) => {
-        if (!currentConversation || !apiAvailable) {
-            console.warn("AVISO: Não é possível enviar mensagem - conversa ou API indisponível")
+        if (!currentConversation) {
+            console.warn("AVISO: Não é possível enviar mensagem - conversa não selecionada")
             return
+        }
+
+        const applyLocalMessage = (message: Message) => {
+            setMessages((prev) => {
+                const newMessages = [...prev, message]
+                return newMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+            })
+
+            setCurrentConversation((prev) =>
+                prev && prev.id === currentConversation.id
+                    ? {
+                          ...prev,
+                          lastMessage: message.content,
+                          updatedAt: message.timestamp,
+                          messages: [...(prev.messages ?? []), message],
+                      }
+                    : prev,
+            )
+
+            setConversations((prev) =>
+                prev.map((conv) =>
+                    conv.id === currentConversation.id
+                        ? {
+                              ...conv,
+                              lastMessage: message.content,
+                              updatedAt: message.timestamp,
+                              messages: [...(conv.messages ?? []), message],
+                          }
+                        : conv,
+                ),
+            )
         }
 
         try {
@@ -640,26 +695,15 @@ const ChatTemplateContent = () => {
             // Enviar mensagem via API (será enviada para o Telegram)
             const apiMessage = await chatAPI.sendMessage(currentConversation.id, "operator", content)
 
-            // Adicionar mensagem localmente para feedback imediato
             const newMessage: Message = {
                 id: apiMessage.id || `local-${currentConversation.id}-${Date.now()}`,
-                content: content,
+                content,
                 role: "operator",
                 timestamp: new Date(),
                 status: "sent",
             }
 
-            setMessages((prev) => {
-                const newMessages = [...prev, newMessage]
-                return newMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-            })
-
-            // Update conversation last message locally for immediate feedback
-            setConversations((prev) =>
-                prev.map((conv) =>
-                    conv.id === currentConversation.id ? { ...conv, lastMessage: content, updatedAt: new Date() } : conv,
-                ),
-            )
+            applyLocalMessage(newMessage)
 
             console.log("[OK] Mensagem enviada com sucesso!")
         } catch (error) {
@@ -668,16 +712,13 @@ const ChatTemplateContent = () => {
             // Em caso de erro, adicionar mensagem localmente como fallback com ID único
             const fallbackMessage: Message = {
                 id: `error-${currentConversation.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                content: content,
+                content,
                 role: "operator",
                 timestamp: new Date(),
                 status: "error",
             }
 
-            setMessages((prev) => {
-                const newMessages = [...prev, fallbackMessage]
-                return newMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-            })
+            applyLocalMessage(fallbackMessage)
         }
     }
 
@@ -752,14 +793,16 @@ const ChatTemplateContent = () => {
             )
 
             console.log(`[OK] Conversa ${newArchivedState ? "arquivada" : "desarquivada"} com sucesso: ${conversationId}`)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("ERRO: Erro ao arquivar conversa:", error)
 
+            const errorMessage = error instanceof Error ? error.message : String(error)
+
             // Verificar se é erro de rede ou do servidor
-            if (error.message.includes("Failed to fetch") || error.message.includes("HTTP")) {
+            if (errorMessage.includes("Failed to fetch") || errorMessage.includes("HTTP")) {
                 alert("ERRO: Erro de conexão. Verifique se o backend está rodando:\n\npython src/aura/app.py")
             } else {
-                alert(`ERRO: Erro ao ${conversation.isArchived ? "desarquivar" : "arquivar"} conversa: ${error.message}`)
+                alert(`ERRO: Erro ao ${conversation.isArchived ? "desarquivar" : "arquivar"} conversa: ${errorMessage}`)
             }
         }
     }
@@ -817,7 +860,7 @@ const ChatTemplateContent = () => {
                         lastMessage: conv.lastMessage || "",
                         messages: [],
                         unreadCount: 1,
-                        status: "online",
+                        status: "online" as const,
                         createdAt: conv.createdAt ? new Date(conv.createdAt) : new Date(),
                         updatedAt: conv.lastAt ? new Date(conv.lastAt) : new Date(),
                         isPinned: false,
@@ -872,7 +915,7 @@ const ChatTemplateContent = () => {
                                     content: msg.text,
                                     role: role,
                                     timestamp: new Date(msg.timestamp),
-                                    status: "sent",
+                                    status: "sent" as const,
                                 }
                             })
                             .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
@@ -941,14 +984,14 @@ O sistema funciona localmente sem ele.
                 const parsed = JSON.parse(savedSettings)
                 console.log("Configurações carregadas do localStorage:", parsed)
                 setThemeSettings(parsed)
-                applyThemeSettingsToCSS(parsed, theme)
+                applyThemeSettingsToCSS(parsed, resolvedTheme)
             } else {
                 console.log("NOVO: Usando configurações padrão")
-                applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, theme)
+                applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, resolvedTheme)
             }
         } catch (error) {
             console.error("ERRO: Erro ao carregar configurações:", error)
-            applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, theme)
+            applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, resolvedTheme)
         }
 
         // Load conversations on mount
@@ -973,7 +1016,7 @@ O sistema funciona localmente sem ele.
     // Aplicar configurações sempre que mudarem
     useEffect(() => {
         if (mounted) {
-            applyThemeSettingsToCSS(themeSettings, theme)
+            applyThemeSettingsToCSS(themeSettings, resolvedTheme)
         }
     }, [themeSettings, mounted, theme])
 
@@ -1114,7 +1157,7 @@ O sistema funciona localmente sem ele.
     const handleThemeSettingsChange = (newSettings: ThemeSettings) => {
         console.log("Mudando configurações de tema:", newSettings)
         setThemeSettings(newSettings)
-        applyThemeSettingsToCSS(newSettings, theme)
+        applyThemeSettingsToCSS(newSettings, resolvedTheme)
     }
 
     const handleSaveSettings = () => {
@@ -1142,7 +1185,7 @@ O sistema funciona localmente sem ele.
     const handleResetSettings = () => {
         console.log("Resetando configurações para padrão")
         setThemeSettings(DEFAULT_THEME_SETTINGS)
-        applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, theme)
+        applyThemeSettingsToCSS(DEFAULT_THEME_SETTINGS, resolvedTheme)
         localStorage.removeItem("chat-theme-settings")
 
         // Mostrar feedback visual
@@ -1213,20 +1256,20 @@ O sistema funciona localmente sem ele.
                 {/* Control Sidebar - Left */}
                 {!controlSidebarHidden && (
                     <ControlSidebar
-                        onNewConversation={() => setShowNewMessage(true)}
-                        onShowDetails={handleToggleTagsVisibility}
-                        onGoBack={handleGoBack}
-                        onToggleTheme={toggleTheme}
-                        onToggleFullscreen={toggleFullscreen}
-                        onToggleControlSidebar={() => setControlSidebarHidden(true)}
+                        onNewConversationAction={() => setShowNewMessage(true)}
+                        onShowDetailsAction={handleToggleTagsVisibility}
+                        onGoBackAction={handleGoBack}
+                        onToggleThemeAction={toggleTheme}
+                        onToggleFullscreenAction={toggleFullscreen}
+                        onToggleControlSidebarAction={() => setControlSidebarHidden(true)}
                         theme={currentTheme}
                         isFullscreen={isFullscreen}
                         performanceSettings={performanceSettings}
-                        onPerformanceSettingsChange={handlePerformanceSettingsChange}
+                        onPerformanceSettingsChangeAction={handlePerformanceSettingsChange}
                         themeSettings={themeSettings}
-                        onThemeSettingsChange={handleThemeSettingsChange}
-                        onSaveSettings={handleSaveSettings}
-                        onResetSettings={handleResetSettings}
+                        onThemeSettingsChangeAction={handleThemeSettingsChange}
+                        onSaveSettingsAction={handleSaveSettings}
+                        onResetSettingsAction={handleResetSettings}
                     />
                 )}
 
@@ -1238,15 +1281,15 @@ O sistema funciona localmente sem ele.
                         conversationCounts={conversationCounts}
                         theme={currentTheme}
                         themeSettings={themeSettings}
-                        onToggleSidebar={() => setSidebarHidden(!sidebarHidden)}
+                        onToggleSidebarAction={() => setSidebarHidden(!sidebarHidden)}
                         controlSidebarHidden={controlSidebarHidden}
-                        onToggleControlSidebar={() => setControlSidebarHidden(!controlSidebarHidden)}
+                        onToggleControlSidebarAction={() => setControlSidebarHidden(!controlSidebarHidden)}
                         activeFilter={activeFilter}
-                        onFilterChange={handleFilterChange}
-                        onSelectConversation={handleSelectConversation}
-                        onArchiveConversation={handleArchiveConversation}
+                        onFilterChangeAction={handleFilterChange}
+                        onSelectConversationAction={handleSelectConversation}
+                        onArchiveConversationAction={handleArchiveConversation}
                         showDetails={hideTagsMode}
-                        userName={userName}
+                        userName={userName ?? undefined}
                         isLoading={loading}
                     />
                 )}
@@ -1258,15 +1301,15 @@ O sistema funciona localmente sem ele.
                             <ChatHeader
                                 agent={mockAgent}
                                 conversation={currentConversation}
-                                onToggleInfo={() => setShowInfo(!showInfo)}
-                                onEditNickname={() => setIsEditingNickname(true)}
+                                onToggleInfoAction={() => setShowInfo(!showInfo)}
+                                onEditNicknameAction={() => setIsEditingNickname(true)}
                                 isEditingNickname={isEditingNickname}
-                                onNicknameChange={handleNicknameChange}
-                                onCancelEdit={() => setIsEditingNickname(false)}
-                                onToggleSidebar={() => setSidebarHidden(!sidebarHidden)}
-                                onToggleControlSidebar={() => setControlSidebarHidden(!controlSidebarHidden)}
-                                onFinalize={() => setShowFinalizarModal(true)}
-                                onArchiveConversation={handleArchiveConversation}
+                                onNicknameChangeAction={handleNicknameChange}
+                                onCancelEditAction={() => setIsEditingNickname(false)}
+                                onToggleSidebarAction={() => setSidebarHidden(!sidebarHidden)}
+                                onToggleControlSidebarAction={() => setControlSidebarHidden(!controlSidebarHidden)}
+                                onFinalizeAction={() => setShowFinalizarModal(true)}
+                                onArchiveConversationAction={handleArchiveConversation}
                                 sidebarHidden={sidebarHidden}
                                 controlSidebarHidden={controlSidebarHidden}
                                 theme={currentTheme}
@@ -1276,7 +1319,7 @@ O sistema funciona localmente sem ele.
                             <ChatMessages messages={messages} agent={mockAgent} theme={currentTheme} themeSettings={themeSettings} />
 
                             <ChatInput
-                                onSendMessage={handleSendMessage}
+                                onSendMessageAction={handleSendMessage}
                                 theme={currentTheme}
                                 themeSettings={themeSettings}
                                 disabled={!apiAvailable}
@@ -1339,7 +1382,7 @@ O sistema funciona localmente sem ele.
                     <ChatInfo
                         agent={mockAgent}
                         conversation={currentConversation}
-                        onClose={() => setShowInfo(false)}
+                        onCloseAction={() => setShowInfo(false)}
                         onSituationChange={handleSituationChange}
                         onPlatformChange={handlePlatformChange}
                         theme={currentTheme}
@@ -1350,13 +1393,13 @@ O sistema funciona localmente sem ele.
 
             {/* Modals */}
             {showClientData && currentConversation && (
-                <ClientDataModal conversation={currentConversation} onClose={() => setShowClientData(false)} />
+                <ClientDataModal conversation={currentConversation} onCloseAction={() => setShowClientData(false)} />
             )}
 
             {showNewMessage && (
                 <NewMessageModal
-                    onClose={() => setShowNewMessage(false)}
-                    onSendTemplate={(template) => {
+                    onCloseAction={() => setShowNewMessage(false)}
+                    onSendTemplateAction={(template) => {
                         console.log("Sending template:", template)
                         setShowNewMessage(false)
                     }}
@@ -1366,21 +1409,21 @@ O sistema funciona localmente sem ele.
             )}
 
             {showDetails && currentConversation && (
-                <DetailsModal conversation={currentConversation} onClose={() => setShowDetails(false)} theme={currentTheme} />
+                <DetailsModal conversation={currentConversation} onCloseAction={() => setShowDetails(false)} theme={currentTheme} />
             )}
 
             {showExitConfirm && (
                 <ExitConfirmModal
-                    onConfirm={handleExitConfirm}
-                    onCancel={() => setShowExitConfirm(false)}
+                    onConfirmAction={handleExitConfirm}
+                    onCancelAction={() => setShowExitConfirm(false)}
                     theme={currentTheme}
                 />
             )}
 
             {showFinalizarModal && (
                 <FinalizarModal
-                    onConfirm={handleFinalizarConfirm}
-                    onCancel={() => setShowFinalizarModal(false)}
+                    onConfirmAction={handleFinalizarConfirm}
+                    onCancelAction={() => setShowFinalizarModal(false)}
                     theme={currentTheme}
                 />
             )}

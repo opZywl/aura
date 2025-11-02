@@ -240,7 +240,7 @@ const Header = () => {
             </header>
 
             {/* Settings Modal */}
-            <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+            <SettingsModal isOpen={isSettingsOpen} onCloseAction={() => setIsSettingsOpen(false)} />
         </>
     )
 }

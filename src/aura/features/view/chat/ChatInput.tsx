@@ -10,7 +10,7 @@ import EmojiPicker from "./EmojiPicker"
 import type { ThemeSettings } from "./ChatTemplate"
 
 interface ChatInputProps {
-  onSendMessage: (message: string) => void
+  onSendMessageAction: (message: string) => void
   theme: string
   themeSettings: ThemeSettings
   disabled?: boolean
@@ -130,7 +130,7 @@ const AnimatedPlaceholder = ({
   )
 }
 
-export default function ChatInput({ onSendMessage, theme, themeSettings, disabled = false }: ChatInputProps) {
+export default function ChatInput({ onSendMessageAction, theme, themeSettings, disabled = false }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
@@ -247,7 +247,7 @@ export default function ChatInput({ onSendMessage, theme, themeSettings, disable
       const reader = new FileReader()
       reader.onload = () => {
         const audioData = reader.result as string
-        onSendMessage(`Audio gravado (${formatTime(recordingTime)})`)
+        onSendMessageAction(`Audio gravado (${formatTime(recordingTime)})`)
         // TODO: Implement actual audio upload to server
         console.log("Audio data:", audioData.substring(0, 100) + "...")
       }
@@ -266,7 +266,7 @@ export default function ChatInput({ onSendMessage, theme, themeSettings, disable
       reader.onload = () => {
         const fileData = reader.result as string
         const fileType = file.type.startsWith("image/") ? "[imagem]" : "[arquivo]"
-        onSendMessage(`${fileType} ${file.name} (${(file.size / 1024).toFixed(1)}KB)`)
+        onSendMessageAction(`${fileType} ${file.name} (${(file.size / 1024).toFixed(1)}KB)`)
         // TODO: Implement actual file upload to server
         console.log("File data:", fileData.substring(0, 100) + "...")
       }
@@ -278,7 +278,7 @@ export default function ChatInput({ onSendMessage, theme, themeSettings, disable
 
   const handleSend = () => {
     if (message.trim() && !disabled) {
-      onSendMessage(message)
+      onSendMessageAction(message)
       setMessage("")
     }
   }
@@ -448,7 +448,7 @@ export default function ChatInput({ onSendMessage, theme, themeSettings, disable
       {/* Emoji Picker */}
       {showEmojiPicker && !disabled && (
         <div className="mb-4">
-          <EmojiPicker onEmojiSelect={handleEmojiSelect} theme={theme} />
+          <EmojiPicker onEmojiSelectAction={handleEmojiSelect} theme={theme} />
         </div>
       )}
 

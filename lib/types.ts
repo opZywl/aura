@@ -18,16 +18,23 @@ export interface NodeData {
     /** Mensagem final (para FinalizarNode) */
     finalMessage?: string
 
+    /** Tipo de finalização do nó finalizar */
+    finalizationType?: "success" | "error" | "timeout" | "cancel"
+
     /** ID customizado, exibido no nó */
     customId?: string
 
     /** Mensagem principal (para SendMessageNode, OptionsNode etc.) */
     message?: string
 
+    /** Tipo da mensagem enviada por um nó de mensagem */
+    messageType?: "text" | "image" | "audio" | "video"
+
     /** Lista de opções (para OptionsNode) */
     options?: Array<{
-        id: string
+        id?: string
         text: string
+        digit?: string
     }>
 
     /* -----------------------------------------------------

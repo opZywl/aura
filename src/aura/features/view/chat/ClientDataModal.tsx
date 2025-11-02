@@ -9,10 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface ClientDataModalProps {
   conversation?: Conversation
-  onClose: () => void
+  onCloseAction: () => void
 }
 
-export default function ClientDataModal({ conversation, onClose }: ClientDataModalProps) {
+export default function ClientDataModal({ conversation, onCloseAction }: ClientDataModalProps) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div className="w-full max-w-sm bg-[#1a1a1a] rounded-lg overflow-hidden">
@@ -20,7 +20,7 @@ export default function ClientDataModal({ conversation, onClose }: ClientDataMod
         <div className="p-4 border-b border-[#222222] flex items-center justify-between">
           <h3 className="font-semibold text-lg text-white">Dados do Cliente</h3>
           <Button
-            onClick={onClose}
+            onClick={onCloseAction}
             variant="ghost"
             size="sm"
             className="bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 p-0"
