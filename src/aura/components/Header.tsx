@@ -100,11 +100,11 @@ const Header = () => {
         <>
             <header
                 className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-                    isScrolled || true ? "bg-black/40 backdrop-blur-lg py-3 border-b border-white/10" : "bg-transparent py-4"
+                    isScrolled || true ? "bg-black/20 backdrop-blur-xl py-3 border-b border-white/5" : "bg-transparent py-4"
                 }`}
                 style={{
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
+                    backdropFilter: "blur(16px)",
+                    WebkitBackdropFilter: "blur(16px)",
                 }}
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

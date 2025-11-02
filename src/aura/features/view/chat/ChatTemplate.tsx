@@ -777,7 +777,7 @@ const ChatTemplateContent = () => {
                 content,
                 role: "operator",
                 timestamp: new Date(),
-                status: "sent",
+                status: "sent" as const,
             }
 
             applyLocalMessage(newMessage)
@@ -792,7 +792,7 @@ const ChatTemplateContent = () => {
                 content,
                 role: "operator",
                 timestamp: new Date(),
-                status: "error",
+                status: "error" as const,
             }
 
             applyLocalMessage(fallbackMessage)
