@@ -5,6 +5,36 @@ import { useState, useEffect } from "react"
 import { X, Palette, Plus } from "lucide-react"
 import { useTheme } from "./ThemeContext"
 
+const translations: { [key: string]: string } = {
+    "colorPanel.title": "Painel de Cores",
+    "colorPanel.colorsAndThemes": "Cores e Temas",
+    "colorPanel.unsavedChanges": "Você tem alterações não salvas!",
+    "colorPanel.createCustomTheme": "Criar Tema Customizado",
+    "colorPanel.primaryColor": "Cor Primária",
+    "colorPanel.secondaryColor": "Cor Secundária",
+    "colorPanel.accentColor": "Cor de Destaque",
+    "colorPanel.applyCustom": "Aplicar Tema",
+    "colorPanel.predefinedThemes": "Temas Predefinidos",
+    "colorPanel.clickToApply": "Clique para aplicar",
+    "colorPanel.glowSettings": "Configurações de Brilho",
+    "colorPanel.glowIntensity": "Intensidade",
+    "colorPanel.glowThickness": "Espessura",
+    "colorPanel.glowAnimation": "Animação de Brilho",
+    "colorPanel.fadeEffects": "Efeitos de Fade",
+    "colorPanel.fadeMode": "Modo de Fade",
+    "colorPanel.singular": "Singular",
+    "colorPanel.movement": "Movimento",
+    "colorPanel.primaryColorFade": "Cor Primária (Fade)",
+    "colorPanel.secondaryColorFade": "Cor Secundária (Fade)",
+    "colorPanel.movementSpeed": "Velocidade",
+    "colorPanel.saveSettings": "Salvar",
+    "colorPanel.resetSettings": "Resetar",
+    "colorPanel.chooseColorTheme": "Escolha um tema para o seu fluxo.",
+    "common.active": "Ativo",
+}
+
+const t = (key: string) => translations[key] || key
+
 // Custom Switch component
 const CustomSwitch = ({
                           checked,
@@ -76,42 +106,37 @@ const CustomSlider = ({
 
 const ColorPanel: React.FC = () => {
     const {
-        theme,
         showColorPanel,
         setShowColorPanel,
-        glowEnabled,
-        setGlowEnabled,
-        fadeEnabled,
-        setFadeEnabled,
-        fadeMode,
-        setFadeMode,
-        setGradientTheme,
         gradientThemes,
         currentGradient,
+        setGradientTheme,
+        theme,
         glowIntensity,
         setGlowIntensity,
         glowThickness,
         setGlowThickness,
         glowAnimation,
         setGlowAnimation,
+        fadeMode,
+        setFadeMode,
         fadeColor1,
         setFadeColor1,
         fadeColor2,
         setFadeColor2,
         fadeSpeed,
         setFadeSpeed,
+        glowEnabled,
+        setGlowEnabled,
+        fadeEnabled,
+        setFadeEnabled,
         applyGlowFadeSettings,
     } = useTheme()
-    const [mounted, setMounted] = useState(false)
 
     const [customColor1, setCustomColor1] = useState("#3b82f6")
     const [customColor2, setCustomColor2] = useState("#8b5cf6")
     const [customColor3, setCustomColor3] = useState("#ec4899")
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
 
     useEffect(() => {
         console.log("Renderização do ColorPanel - showColorPanel:", showColorPanel)
@@ -143,20 +168,15 @@ const ColorPanel: React.FC = () => {
             }
             localStorage.setItem("panel-glow-fade-settings", JSON.stringify(settings))
             setHasUnsavedChanges(false)
-
-            // Aplicar as configurações imediatamente
             applyGlowFadeSettings()
-
             console.log("Configurações salvas e aplicadas:", settings)
-
-            // Feedback visual
             const root = document.documentElement
             root.style.setProperty("--save-feedback", "rgba(34, 197, 94, 0.5)")
             setTimeout(() => {
                 root.style.setProperty("--save-feedback", "transparent")
             }, 1000)
         } catch (error) {
-            console.error("ERRO ao salvar configurações:", error)
+            console.error("Erro ao salvar configurações:", error)
         }
     }
 
@@ -173,7 +193,6 @@ const ColorPanel: React.FC = () => {
         setHasUnsavedChanges(true)
     }
 
-    // Detectar mudanças não salvas
     useEffect(() => {
         setHasUnsavedChanges(true)
     }, [
@@ -190,7 +209,6 @@ const ColorPanel: React.FC = () => {
 
     if (!showColorPanel) return null
 
-    // Verificação de segurança para gradientThemes
     const safeGradientThemes = gradientThemes || []
 
     return (
@@ -213,7 +231,7 @@ const ColorPanel: React.FC = () => {
                     boxShadow: `0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px var(--glow-color)`,
                 }}
             >
-                {/* Cabeçalho com Navbar Bonita */}
+                {/* Cabeçalho */}
                 <div
                     className="sticky top-0 z-10 border-b"
                     style={{
@@ -224,7 +242,6 @@ const ColorPanel: React.FC = () => {
                                 : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
                     }}
                 >
-                    {/* Header Principal */}
                     <div className="flex items-center justify-between p-4">
                         <div className="flex items-center space-x-2">
                             <Palette className={`w-5 h-5 ${theme === "dark" ? "text-blue-400" : "text-blue-600"} glow-title`} />
@@ -244,7 +261,7 @@ const ColorPanel: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Navbar de Navegação */}
+                    {/* Navbar */}
                     <div className="px-4 pb-3">
                         <div className={`flex space-x-1 p-1 rounded-lg ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-100/50"}`}>
                             <button
@@ -269,6 +286,7 @@ const ColorPanel: React.FC = () => {
                     )}
                 </div>
 
+                {/* Criar Tema Customizado */}
                 <div className="p-4 border-b" style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}>
                     <h4 className={`font-medium mb-3 ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
                         Create Custom Theme
@@ -306,10 +324,99 @@ const ColorPanel: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Temas Predefinidos */}
                 <div className="p-4 space-y-3">
                     <h4 className={`font-medium mb-3 ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
                         Predefined Themes
                     </h4>
+
+                    <button
+                        onClick={() =>
+                            setGradientTheme({
+                                name: "Dark Pure",
+                                primary: "linear-gradient(135deg, #000000 0%, #1a1a1a 100%)",
+                                secondary: "linear-gradient(135deg, #000000CC 0%, #1a1a1aCC 100%)",
+                                accent: "linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #2a2a2a 100%)",
+                                glow: "#00000099",
+                                headerBg: "#000000", // Added headerBg for pure black header
+                            })
+                        }
+                        className={`w-full p-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] group relative overflow-hidden panel-glow ${
+                            currentGradient?.name === "Dark Pure"
+                                ? `ring-2 ring-blue-500 ring-offset-2 ${theme === "dark" ? "ring-offset-gray-900" : "ring-offset-white"}`
+                                : ""
+                        }`}
+                        style={{
+                            background: theme === "dark" ? "#2a2a2a" : "#f8fafc",
+                            border: theme === "dark" ? "1px solid #3a3a3a" : "1px solid #e2e8f0",
+                        }}
+                    >
+                        <div className="relative z-10 flex items-center space-x-3">
+                            <div className="flex space-x-1">
+                                <div className="w-6 h-6 rounded-full shadow-lg panel-glow" style={{ background: "#000000" }} />
+                                <div className="w-6 h-6 rounded-full shadow-lg panel-glow" style={{ background: "#1a1a1a" }} />
+                                <div className="w-6 h-6 rounded-full shadow-lg panel-glow" style={{ background: "#2a2a2a" }} />
+                            </div>
+
+                            <div className="flex-1 text-left">
+                                <div className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
+                                    Dark Pure
+                                </div>
+                                <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} fade-text`}>
+                                    {currentGradient?.name === "Dark Pure" ? t("common.active") : t("colorPanel.clickToApply")}
+                                </div>
+                            </div>
+
+                            <div
+                                className="w-16 h-8 rounded-lg shadow-lg panel-glow"
+                                style={{ background: "linear-gradient(135deg, #000000 0%, #2a2a2a 100%)" }}
+                            />
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() =>
+                            setGradientTheme({
+                                name: "Dark Blue",
+                                primary: "linear-gradient(135deg, #1e293b 0%, #334155 100%)",
+                                secondary: "linear-gradient(135deg, #1e293bCC 0%, #334155CC 100%)",
+                                accent: "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)",
+                                glow: "#334155",
+                                headerBg: "#1e293b", // Added headerBg for dark blue header
+                            })
+                        }
+                        className={`w-full p-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] group relative overflow-hidden panel-glow ${
+                            currentGradient?.name === "Dark Blue"
+                                ? `ring-2 ring-blue-500 ring-offset-2 ${theme === "dark" ? "ring-offset-gray-900" : "ring-offset-white"}`
+                                : ""
+                        }`}
+                        style={{
+                            background: theme === "dark" ? "#2a2a2a" : "#f8fafc",
+                            border: theme === "dark" ? "1px solid #3a3a3a" : "1px solid #e2e8f0",
+                        }}
+                    >
+                        <div className="relative z-10 flex items-center space-x-3">
+                            <div className="flex space-x-1">
+                                <div className="w-6 h-6 rounded-full shadow-lg panel-glow" style={{ background: "#1e293b" }} />
+                                <div className="w-6 h-6 rounded-full shadow-lg panel-glow" style={{ background: "#334155" }} />
+                                <div className="w-6 h-6 rounded-full shadow-lg panel-glow" style={{ background: "#475569" }} />
+                            </div>
+
+                            <div className="flex-1 text-left">
+                                <div className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
+                                    Dark Blue
+                                </div>
+                                <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} fade-text`}>
+                                    {currentGradient?.name === "Dark Blue" ? t("common.active") : t("colorPanelclickToApply")}
+                                </div>
+                            </div>
+
+                            <div
+                                className="w-16 h-8 rounded-lg shadow-lg panel-glow"
+                                style={{ background: "linear-gradient(135deg, #1e293b 0%, #475569 100%)" }}
+                            />
+                        </div>
+                    </button>
 
                     {safeGradientThemes.map((gradient, index) => {
                         const isActive = currentGradient?.name === gradient.name
@@ -489,7 +596,7 @@ const ColorPanel: React.FC = () => {
 
                                     <div>
                                         <div className="flex justify-between mb-2">
-                      <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} fade-text`}>
+                 <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} fade-text`}>
                         Movement Speed
                       </span>
                                             <span className={`text-sm glow-title ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
