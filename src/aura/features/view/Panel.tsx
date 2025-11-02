@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { LanguageProvider } from "../../contexts/LanguageContext"
 import { ThemeProvider, useTheme } from "./homePanels/ThemeContext"
 import Sidebar from "./homePanels/Sidebar"
 import Header from "./homePanels/Header"
@@ -100,11 +99,9 @@ const PanelLayout = ({ children }: PanelProps) => {
 // This component sets up the providers
 const Panel = ({ children }: PanelProps) => {
     return (
-        <LanguageProvider>
-            <ThemeProvider>
-                <PanelContent>{children}</PanelContent>
-            </ThemeProvider>
-        </LanguageProvider>
+        <ThemeProvider>
+            <PanelContent>{children}</PanelContent>
+        </ThemeProvider>
     )
 }
 
