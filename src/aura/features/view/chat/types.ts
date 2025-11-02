@@ -62,6 +62,12 @@ export interface Conversation {
 
     /** Plataforma de origem (por exemplo: "WhatsApp", "Web", "Telegram") */
     platform?: string
+
+    /** Data formatada para exibição no painel de detalhes */
+    messageDate?: string
+
+    /** Quantidade de dias desde a criação da conversa */
+    daysCount?: number
 }
 
 /**
