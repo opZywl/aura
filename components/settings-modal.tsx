@@ -18,7 +18,7 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState("general")
-  const { language, setLanguage, t } = useLanguage()
+  const { t } = useLanguage()
   const {
     animationsEnabled,
     setAnimationsEnabled,
@@ -61,11 +61,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }
 
   const tabs = [
-    { id: "general", label: t("settings.tabs.general"), icon: Globe },
-    { id: "visual", label: t("settings.tabs.visual"), icon: Eye },
-    { id: "mouse", label: t("settings.tabs.mouse"), icon: Mouse },
-    { id: "accessibility", label: t("settings.tabs.accessibility"), icon: Accessibility },
-    { id: "performance", label: t("settings.tabs.performance"), icon: Zap },
+    { id: "general", label: t("settings.tabs.general") as string, icon: Globe },
+    { id: "visual", label: t("settings.tabs.visual") as string, icon: Eye },
+    { id: "mouse", label: t("settings.tabs.mouse") as string, icon: Mouse },
+    { id: "accessibility", label: t("settings.tabs.accessibility") as string, icon: Accessibility },
+    { id: "performance", label: t("settings.tabs.performance") as string, icon: Zap },
   ]
 
   const animationTypes: { value: AnimationType; label: string; description: string }[] = [
@@ -162,16 +162,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">{t("settings.language.title")}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t("settings.language.description")}</p>
-              <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pt-BR">{t("settings.language.portuguese")}</SelectItem>
-                  <SelectItem value="en-US">{t("settings.language.english")}</SelectItem>
-                </SelectContent>
-              </Select>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {t("settings.language.description")}
+              </p>
             </div>
           </div>
         )
