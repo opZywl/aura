@@ -16,7 +16,7 @@ interface ThemeSettings {
 interface ChatInfoProps {
     agent: AIAgent
     conversation?: Conversation
-    onClose: () => void
+    onCloseAction: () => void
     onSituationChange?: (newSituation: string) => void
     onPlatformChange?: (newPlatform: string) => void
     theme: string
@@ -25,7 +25,7 @@ interface ChatInfoProps {
 
 export default function ChatInfo({
                                      agent,
-                                     onClose,
+                                     onCloseAction,
                                      conversation,
                                      onSituationChange,
                                      onPlatformChange,
@@ -116,7 +116,7 @@ export default function ChatInfo({
                     Info do Contato
                 </h3>
                 <Button
-                    onClick={onClose}
+                    onClick={onCloseAction}
                     variant="ghost"
                     size="sm"
                     className={`bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 p-0 transition-all duration-300 ${themeSettings?.textAnimations ? "hover:scale-110 hover:rotate-90" : ""}`}

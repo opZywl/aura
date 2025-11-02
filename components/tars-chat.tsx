@@ -4,11 +4,16 @@ import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useChat } from "ai/react"
 import { Button } from "@/components/ui/button"
 import { SendIcon, XIcon, MinimizeIcon, MaximizeIcon, BotIcon } from "lucide-react"
 import { Avatar } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
+
+interface ChatMessage {
+    id: string
+    role: "assistant" | "user"
+    content: string
+}
 
 export default function AuraChat() {
     const [isOpen, setIsOpen] = useState(false)
@@ -68,7 +73,7 @@ export default function AuraChat() {
     }
 
     // Inicializar mensagens baseado no fluxo
-    const getInitialMessages = () => {
+    const getInitialMessages = (): ChatMessage[] => {
         const workflow = loadWorkflow()
 
         if (workflow && workflow.nodes && workflow.nodes.length > 1) {
@@ -92,11 +97,8 @@ export default function AuraChat() {
         }
     }
 
-    // Inicializar chat
-    const { messages, input, handleInputChange, setMessages } = useChat({
-        api: "/api/chat",
-        initialMessages: getInitialMessages(),
-    })
+    const [messages, setMessages] = useState<ChatMessage[]>(() => getInitialMessages())
+    const [input, setInput] = useState("")
 
     // Carregar fluxo quando abrir o chat
     useEffect(() => {
@@ -335,7 +337,7 @@ export default function AuraChat() {
         ])
 
         // Limpar o input imediatamente
-        handleInputChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>)
+        setInput("")
 
         // Se não há fluxo executado, mostrar mensagem de erro
         if (!isFlowExecuted || !savedFlow) {
@@ -592,7 +594,7 @@ export default function AuraChat() {
                                             ref={inputRef}
                                             type="text"
                                             value={input}
-                                            onChange={handleInputChange}
+                                            onChange={(event) => setInput(event.target.value)}
                                             placeholder={waitingForUserInput ? "Digite o número da opção..." : "Digite sua mensagem..."}
                                             className="flex-1 bg-gray-800 border border-gray-700 rounded-full px-4 py-2 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-600"
                                         />

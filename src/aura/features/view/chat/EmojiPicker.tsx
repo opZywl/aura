@@ -3,7 +3,7 @@
 import { useState } from "react"
 
 interface EmojiPickerProps {
-  onEmojiSelect: (emoji: string) => void
+  onEmojiSelectAction: (emoji: string) => void
   theme: string
 }
 
@@ -22,7 +22,7 @@ const emojiCategories = {
   ],
 }
 
-export default function EmojiPicker({ onEmojiSelect, theme }: EmojiPickerProps) {
+export default function EmojiPicker({ onEmojiSelectAction, theme }: EmojiPickerProps) {
   const [activeCategory, setActiveCategory] = useState<keyof typeof emojiCategories>("smileys")
 
   return (
@@ -61,7 +61,7 @@ export default function EmojiPicker({ onEmojiSelect, theme }: EmojiPickerProps) 
           {emojiCategories[activeCategory].map((emoji, index) => (
             <button
               key={index}
-              onClick={() => onEmojiSelect(emoji)}
+              onClick={() => onEmojiSelectAction(emoji)}
               className={`w-8 h-8 text-lg hover:scale-110 transition-transform rounded ${
                 theme === "dark" ? "hover:bg-gray-800" : "hover:bg-gray-100"
               }`}

@@ -21,12 +21,12 @@ interface PerformanceSettings {
 }
 
 interface ControlSidebarProps {
-    onNewConversation: () => void
+    onNewConversationAction: () => void
     onShowDetails: () => void
     onGoBack: () => void
     onToggleTheme: () => void
     onToggleFullscreen: () => void
-    onToggleControlSidebar: () => void
+    onToggleControlSidebarAction: () => void
     theme: string
     isFullscreen: boolean
     performanceSettings: PerformanceSettings
@@ -81,12 +81,12 @@ const gradientThemes = [
 ]
 
 export default function ControlSidebar({
-                                           onNewConversation,
+                                           onNewConversationAction,
                                            onShowDetails,
                                            onGoBack,
                                            onToggleTheme,
                                            onToggleFullscreen,
-                                           onToggleControlSidebar,
+                                           onToggleControlSidebarAction,
                                            theme,
                                            isFullscreen,
                                            performanceSettings,
@@ -211,7 +211,7 @@ export default function ControlSidebar({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                onClick={onToggleControlSidebar}
+                                onClick={onToggleControlSidebarAction}
                                 variant="ghost"
                                 size="icon"
                                 className={`w-12 h-12 rounded-xl transition-all duration-300 border-2 transform hover:scale-110 hover:rotate-12 ${
@@ -584,7 +584,7 @@ export default function ControlSidebar({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
-                                    onClick={onNewConversation}
+                                    onClick={onNewConversationAction}
                                     className={`w-12 h-12 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-125 hover:rotate-90 border-2 border-red-500 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white ${themeSettings.textAnimations ? "chat-text-animated" : ""}`}
                                     style={
                                         themeSettings.glowEffects

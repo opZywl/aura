@@ -6,11 +6,11 @@ import type { Conversation } from "./types"
 
 interface DetailsModalProps {
   conversation?: Conversation
-  onClose: () => void
+  onCloseAction: () => void
   theme: string
 }
 
-export default function DetailsModal({ conversation, onClose, theme }: DetailsModalProps) {
+export default function DetailsModal({ conversation, onCloseAction, theme }: DetailsModalProps) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div className={`w-full max-w-sm ${theme === "dark" ? "bg-[#1a1a1a]" : "bg-white"}`}>
@@ -20,7 +20,7 @@ export default function DetailsModal({ conversation, onClose, theme }: DetailsMo
         >
           <h3 className={`font-semibold text-lg ${theme === "dark" ? "text-white" : "text-gray-900"}`}>Detalhes</h3>
           <Button
-            onClick={onClose}
+            onClick={onCloseAction}
             variant="ghost"
             size="sm"
             className="bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 p-0"

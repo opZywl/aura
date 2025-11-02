@@ -3,15 +3,15 @@ import { Textarea } from "@/components/ui/textarea"
 
 interface CodeEditorProps {
   value: string
-  onChange: (value: string) => void
+  onChangeAction: (value: string) => void
   language?: string
 }
 
-export default function CodeEditor({ value, onChange, language = "javascript" }: CodeEditorProps) {
+export default function CodeEditor({ value, onChangeAction, language = "javascript" }: CodeEditorProps) {
   return (
     <Textarea
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChangeAction(e.target.value)}
       className="font-mono text-sm h-64 whitespace-pre"
       spellCheck={false}
     />

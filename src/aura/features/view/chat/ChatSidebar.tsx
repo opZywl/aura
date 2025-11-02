@@ -20,13 +20,13 @@ interface ChatSidebarProps {
     conversationCounts: ConversationCounts
     theme: string
     themeSettings: ThemeSettings
-    onToggleSidebar: () => void
+    onToggleSidebarAction: () => void
     controlSidebarHidden: boolean
-    onToggleControlSidebar: () => void
+    onToggleControlSidebarAction: () => void
     activeFilter: "all" | "active" | "waiting"
-    onFilterChange: (filter: "all" | "active" | "waiting") => void
-    onSelectConversation: (conversation: Conversation) => void
-    onArchiveConversation: (conversationId: string) => void
+    onFilterChangeAction: (filter: "all" | "active" | "waiting") => void
+    onSelectConversationAction: (conversation: Conversation) => void
+    onArchiveConversationAction: (conversationId: string) => void
     showDetails?: boolean
     userName?: string
     isLoading?: boolean
@@ -38,13 +38,13 @@ export default function ChatSidebar({
                                         conversationCounts,
                                         theme,
                                         themeSettings,
-                                        onToggleSidebar,
+                                        onToggleSidebarAction,
                                         controlSidebarHidden,
-                                        onToggleControlSidebar,
+                                        onToggleControlSidebarAction,
                                         activeFilter,
-                                        onFilterChange,
-                                        onSelectConversation,
-                                        onArchiveConversation,
+                                        onFilterChangeAction,
+                                        onSelectConversationAction,
+                                        onArchiveConversationAction,
                                         showDetails = false,
                                         userName = "Lucas",
                                         isLoading = false,
@@ -225,7 +225,7 @@ export default function ChatSidebar({
 
     const handleShowControlSidebar = () => {
         if (controlSidebarHidden) {
-            onToggleControlSidebar()
+            onToggleControlSidebarAction()
         }
     }
 
@@ -348,7 +348,7 @@ export default function ChatSidebar({
                                 <Button
                                     variant={activeFilter === "all" ? "default" : "ghost"}
                                     size="sm"
-                                    onClick={() => onFilterChange("all")}
+                                    onClick={() => onFilterChangeAction("all")}
                                     className={`text-xs transition-all duration-300 transform hover:scale-105 ${
                                         activeFilter !== "all" ? (theme === "dark" ? "filter-text-dark" : "filter-text-light") : ""
                                     } ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects && activeFilter === "all" ? "chat-glow-title" : ""}`}
@@ -394,7 +394,7 @@ export default function ChatSidebar({
                                 <Button
                                     variant={activeFilter === "active" ? "default" : "ghost"}
                                     size="sm"
-                                    onClick={() => onFilterChange("active")}
+                                    onClick={() => onFilterChangeAction("active")}
                                     className={`text-xs transition-all duration-300 transform hover:scale-105 ${
                                         activeFilter !== "active" ? (theme === "dark" ? "filter-text-dark" : "filter-text-light") : ""
                                     } ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects && activeFilter === "active" ? "chat-glow-title" : ""}`}
@@ -440,7 +440,7 @@ export default function ChatSidebar({
                                 <Button
                                     variant={activeFilter === "waiting" ? "default" : "ghost"}
                                     size="sm"
-                                    onClick={() => onFilterChange("waiting")}
+                                    onClick={() => onFilterChangeAction("waiting")}
                                     className={`text-xs transition-all duration-300 transform hover:scale-105 ${
                                         activeFilter !== "waiting" ? (theme === "dark" ? "filter-text-dark" : "filter-text-light") : ""
                                     } ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects && activeFilter === "waiting" ? "chat-glow-title" : ""}`}
@@ -526,7 +526,7 @@ export default function ChatSidebar({
                                                 ? `0 0 25px var(--chat-glow-color), 0 0 50px var(--chat-glow-color-light)`
                                                 : "none",
                                     }}
-                                    onClick={() => onSelectConversation(conversation)}
+                                    onClick={() => onSelectConversationAction(conversation)}
                                 >
                                     {/* Glow effect overlay */}
                                     {themeSettings.glowEffects && currentConversation?.id !== conversation.id && (
