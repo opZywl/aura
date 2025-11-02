@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { useSettings } from "../contexts/SettingsContext"
+import { useSettings } from "../contexts/AnimationsSettingsContext"
 import { useTheme } from "next-themes"
 
 const logos = [

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { X, RotateCcw, Eye, Mouse, Zap, Palette } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useSettings, type AnimationType, type MouseEffectType } from "../contexts/SettingsContext"
+import { useSettings, type AnimationType, type MouseEffectType } from "../contexts/AnimationsSettingsContext"
 import { useTheme } from "next-themes"
 
 interface SettingsModalProps {

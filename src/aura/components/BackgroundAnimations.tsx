@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useTheme } from "next-themes"
-import { useSettings } from "../contexts/SettingsContext"
+import { useSettings } from "../contexts/AnimationsSettingsContext"
 import MatrixRain from "@/components/matrix-rain"
 
 interface Particle {

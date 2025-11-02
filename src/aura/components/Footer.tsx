@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Github, Linkedin } from "lucide-react"
 import AnimatedFooterText from "./AnimatedFooterText"
 import AnimatedCopyrightText from "./AnimatedCopyrightText"
-import { useSettings } from "../contexts/SettingsContext"
+import { useSettings } from "../contexts/AnimationsSettingsContext"
 import { useTheme } from "next-themes"
 
 const Footer = () => {

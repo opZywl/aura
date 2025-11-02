@@ -75,7 +75,7 @@ interface SettingsContextType {
   setMemoryOptimization: (enabled: boolean) => void
 }
 
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
+const AnimationsSettingsContext = createContext<SettingsContextType | undefined>(undefined)
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   // Animation settings
@@ -301,7 +301,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [mouseEffectType, mouseEffectsEnabled])
 
   return (
-    <SettingsContext.Provider
+    <AnimationsSettingsContext.Provider
       value={{
         // Animation settings
         animationsEnabled,
@@ -351,12 +351,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </SettingsContext.Provider>
+    </AnimationsSettingsContext.Provider>
   )
 }
 
 export function useSettings() {
-  const context = useContext(SettingsContext)
+  const context = useContext(AnimationsSettingsContext)
   if (context === undefined) {
     throw new Error("useSettings must be used within a SettingsProvider")
   }

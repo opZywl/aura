@@ -10,7 +10,7 @@ import { useMobile } from "@/hooks/use-mobile"
 import { useTheme } from "next-themes"
 import SettingsModal from "./SettingsModal"
 import ThemeToggle from "./ThemeToggle"
-import { useSettings } from "../contexts/SettingsContext"
+import { useSettings } from "@/src/aura/features/view/lobby/contexts/SettingsContext"
 import { Button } from "@/components/ui/button"
 
 const Header = () => {
@@ -30,20 +30,41 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const navItems = [
-    {
-      name: "Artigo",
-      href: "#artigo",
-      gradient: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.06) 50%, rgba(29,78,216,0) 100%)",
-      color: "text-blue-500",
-    },
-    {
-      name: "Changelog",
-      href: "#changelog",
-      gradient: "radial-gradient(circle, rgba(34,197,94,0.15) 0%, rgba(22,163,74,0.06) 50%, rgba(21,128,61,0) 100%)",
-      color: "text-green-500",
-    },
-  ]
+    type NavItem = {
+        name: string
+        href: string
+        gradient: string
+        color: string
+        isLanguageSelector?: boolean
+    }
+
+    const navItems: NavItem[] = [
+        {
+            name: "Artigo",
+            href: "#artigo",
+            gradient:
+                "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.06) 50%, rgba(29,78,216,0) 100%)",
+            color: "text-blue-500",
+        },
+        {
+            name: "Changelog",
+            href: "#changelog",
+            gradient:
+                "radial-gradient(circle, rgba(34,197,94,0.15) 0%, rgba(22,163,74,0.06) 50%, rgba(21,128,61,0) 100%)",
+            color: "text-green-500",
+        },
+    ]
+
+    const handleNavItemClick = (item: NavItem, e: React.MouseEvent<HTMLAnchorElement>) => {
+        // rolagem suave para âncoras internas
+        if (item.href.startsWith("#")) {
+            e.preventDefault()
+            const el = document.querySelector(item.href)
+            if (el) el.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" })
+        }
+        // fecha o menu no mobile (a menos que seja um seletor de idioma)
+        if (!item.isLanguageSelector) setMobileMenuOpen(false)
+    }
 
   const itemVariants = {
     initial: { rotateX: 0, opacity: 1 },
@@ -235,21 +256,16 @@ const Header = () => {
                   }`}
                 >
                   {navItems.map((item) => (
-                    <a
-                      key={item.name}
-                      href={item.href}
-                      onClick={(e) => {
-                        handleNavItemClick(item, e)
-                        if (!item.isLanguageSelector) {
-                          setMobileMenuOpen(false)
-                        }
-                      }}
-                      className={`block py-2 transition-colors cursor-pointer ${
-                        theme === "dark" ? "text-gray-300 hover:text-white" : "text-gray-700 hover:text-black"
-                      }`}
-                    >
-                      {item.name}
-                    </a>
+                      <a
+                          key={item.name}
+                          href={item.href}
+                          onClick={(e) => handleNavItemClick(item, e)}
+                          className={`block py-2 transition-colors cursor-pointer ${
+                              theme === "dark" ? "text-gray-300 hover:text-white" : "text-gray-700 hover:text-black"
+                          }`}
+                      >
+                          {item.name}
+                      </a>
                   ))}
                 </div>
                 <div className="flex items-center justify-between px-4 py-3 border border-gray-600 rounded-lg">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { useSettings } from "../contexts/SettingsContext"
+import { useSettings } from "../contexts/AnimationsSettingsContext"
 
 interface AnimatedTextProps {
   text: string

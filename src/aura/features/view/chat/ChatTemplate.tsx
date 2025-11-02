@@ -14,7 +14,6 @@ import NewMessageModal from "./NewMessageModal"
 import DetailsModal from "./DetailsModal"
 import ExitConfirmModal from "./ExitConfirmModal"
 import FinalizarModal from "./FinalizarModal"
-import { LanguageProvider, useLanguage } from "../../../contexts/LanguageContext"
 import type { Conversation, AIAgent, Message, ChatSettings } from "./types"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
@@ -509,7 +508,6 @@ const applyThemeSettingsToCSS = (settings: ThemeSettings, theme: string) => {
 // Component that uses the language context
 const ChatTemplateContent = () => {
     const { theme, setTheme } = useTheme()
-    const { t } = useLanguage()
     const [mounted, setMounted] = useState(false)
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null)
@@ -1391,11 +1389,7 @@ O sistema funciona localmente sem ele.
 }
 
 const ChatTemplate = () => {
-    return (
-        <LanguageProvider>
-            <ChatTemplateContent />
-        </LanguageProvider>
-    )
+    return <ChatTemplateContent />
 }
 
 export default ChatTemplate

@@ -1,6 +1,6 @@
 "use client"
 
-import { useSettings } from "../contexts/SettingsContext"
+import { useSettings } from "../contexts/AnimationsSettingsContext"
 import BackgroundAnimations from "./BackgroundAnimations"
 
 export default function WaveDotsBackground() {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { useSettings } from "@/src/aura/contexts/SettingsContext"
+import { useSettings } from "@/src/aura/features/view/lobby/contexts/SettingsContext"
 
 export default function NeuralNetworkAnimation() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
