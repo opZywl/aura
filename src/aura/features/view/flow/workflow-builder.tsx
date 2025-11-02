@@ -4,7 +4,8 @@ import type React from "react"
 import { useState, useCallback, useRef, useEffect } from "react"
 import ReactFlow, {
     ReactFlowProvider,
-    Background, BackgroundVariant,
+    Background,
+    BackgroundVariant,
     Controls,
     MiniMap,
     addEdge,
@@ -1168,21 +1169,27 @@ function WorkflowBuilderInner({
 
             {showSidebar && (
                 <div
-                    className={`w-64 border-r p-4 ${isDark ? "bg-black border-gray-800" : "bg-white border-gray-200"} transition-all duration-300`}
+                    className={`w-64 border-r flex flex-col ${isDark ? "bg-black border-gray-800" : "bg-white border-gray-200"} transition-all duration-300`}
+                    style={{ height: "100%", maxHeight: "100vh" }}
                 >
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>Componentes</h2>
-                        <button
-                            onClick={onOpenBot}
-                            className={`p-2 rounded-md transition-colors ${
-                                isDark ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-600"
-                            }`}
-                            title="Aura Assistente de IA"
-                        >
-                            <BotIcon className="h-5 w-5" />
-                        </button>
+                    <div className="flex-shrink-0 px-4 pt-4 pb-2">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>Componentes</h2>
+                            <button
+                                onClick={onOpenBot}
+                                className={`p-2 rounded-md transition-colors ${
+                                    isDark ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-600"
+                                }`}
+                                title="Aura Assistente de IA"
+                            >
+                                <BotIcon className="h-5 w-5" />
+                            </button>
+                        </div>
                     </div>
-                    <NodeLibrary />
+
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4" style={{ minHeight: 0 }}>
+                        <NodeLibrary />
+                    </div>
                 </div>
             )}
 
@@ -1218,7 +1225,9 @@ function WorkflowBuilderInner({
 
             {selectedNode && (
                 <div
-                    className={`w-80 border-l p-4 ${isDark ? "bg-black border-gray-800" : "bg-white border-gray-200"} transition-all duration-300`}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`w-80 border-l p-4 flex flex-col ${isDark ? "bg-black border-gray-800" : "bg-white border-gray-200"} transition-all duration-300`}
+                    style={{ height: "100%", maxHeight: "100vh", overflow: "hidden" }}
                 >
                     <NodeConfigPanel
                         node={selectedNode as WorkflowNode}
