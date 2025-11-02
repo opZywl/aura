@@ -1217,19 +1217,19 @@ O sistema funciona localmente sem ele.
                 {!controlSidebarHidden && (
                     <ControlSidebar
                         onNewConversationAction={() => setShowNewMessage(true)}
-                        onShowDetails={handleToggleTagsVisibility}
-                        onGoBack={handleGoBack}
-                        onToggleTheme={toggleTheme}
-                        onToggleFullscreen={toggleFullscreen}
+                        onShowDetailsAction={handleToggleTagsVisibility}
+                        onGoBackAction={handleGoBack}
+                        onToggleThemeAction={toggleTheme}
+                        onToggleFullscreenAction={toggleFullscreen}
                         onToggleControlSidebarAction={() => setControlSidebarHidden(true)}
                         theme={currentTheme}
                         isFullscreen={isFullscreen}
                         performanceSettings={performanceSettings}
-                        onPerformanceSettingsChange={handlePerformanceSettingsChange}
+                        onPerformanceSettingsChangeAction={handlePerformanceSettingsChange}
                         themeSettings={themeSettings}
-                        onThemeSettingsChange={handleThemeSettingsChange}
-                        onSaveSettings={handleSaveSettings}
-                        onResetSettings={handleResetSettings}
+                        onThemeSettingsChangeAction={handleThemeSettingsChange}
+                        onSaveSettingsAction={handleSaveSettings}
+                        onResetSettingsAction={handleResetSettings}
                     />
                 )}
 
