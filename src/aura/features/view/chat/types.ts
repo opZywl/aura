@@ -10,7 +10,7 @@ export interface Message {
     content: string
 
     /** Origem da mensagem — enviada pelo usuário, assistente ou sistema */
-    role: "user" | "assistant" | "system"
+    role: "user" | "assistant" | "system" | "operator"
 
     /** Data e hora em que a mensagem foi criada */
     timestamp: Date

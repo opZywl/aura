@@ -25,14 +25,14 @@ interface Notification {
 
 interface ChatNotificationDropdownProps {
   notifications: Notification[]
-  onMarkAsRead: (notificationId: string) => void
-  onMarkAllAsRead: () => void
+  onMarkAsReadAction: (notificationId: string) => void
+  onMarkAllAsReadAction: () => void
 }
 
 export default function ChatNotificationDropdown({
   notifications,
-  onMarkAsRead,
-  onMarkAllAsRead,
+  onMarkAsReadAction,
+  onMarkAllAsReadAction,
 }: ChatNotificationDropdownProps) {
   const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -82,7 +82,7 @@ export default function ChatNotificationDropdown({
         <div className="flex items-center justify-between p-4">
           <h3 className="font-semibold">Notificações</h3>
           {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={onMarkAllAsRead} className="text-xs">
+            <Button variant="ghost" size="sm" onClick={onMarkAllAsReadAction} className="text-xs">
               Marcar todas como lidas
             </Button>
           )}
@@ -104,7 +104,7 @@ export default function ChatNotificationDropdown({
                   className={`p-4 cursor-pointer space-y-1 ${!notification.read ? "bg-accent/50" : ""}`}
                   onClick={() => {
                     if (!notification.read) {
-                      onMarkAsRead(notification.id)
+                      onMarkAsReadAction(notification.id)
                     }
                   }}
                 >

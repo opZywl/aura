@@ -10,8 +10,8 @@ import { X, AlertTriangle } from "lucide-react"
 import type { ThemeSettings } from "./ChatTemplate"
 
 interface NewMessageModalProps {
-  onClose: () => void
-  onSendTemplate: (template: { message: string; params: Record<string, string> }) => void
+  onCloseAction: () => void
+  onSendTemplateAction: (template: { message: string; params: Record<string, string> }) => void
   theme: string
   themeSettings?: ThemeSettings
 }
@@ -22,7 +22,7 @@ interface MessageTemplate {
   hasParams: boolean
 }
 
-export default function NewMessageModal({ onClose, onSendTemplate, theme, themeSettings }: NewMessageModalProps) {
+export default function NewMessageModal({ onCloseAction, onSendTemplateAction, theme, themeSettings }: NewMessageModalProps) {
   const [phoneCode, setPhoneCode] = useState("+55")
   const [customCode, setCustomCode] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
@@ -59,7 +59,7 @@ export default function NewMessageModal({ onClose, onSendTemplate, theme, themeS
   const handleSend = () => {
     const template = getSelectedTemplate()
     if (template) {
-      onSendTemplate({
+      onSendTemplateAction({
         message: template.text,
         params,
       })
@@ -169,7 +169,7 @@ export default function NewMessageModal({ onClose, onSendTemplate, theme, themeS
             Nova mensagem ativa
           </h3>
           <Button
-            onClick={onClose}
+            onClick={onCloseAction}
             variant="ghost"
             size="sm"
             className={`rounded-full w-8 h-8 p-0 transition-all duration-300 transform hover:scale-110 ${themeSettings?.textAnimations ? "chat-text-animated" : ""}`}
