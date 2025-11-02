@@ -195,7 +195,7 @@ function HomeContent() {
                         </p>
 
                         {/* Botão "Fale com AURA" */}
-                        <div className="flex justify-center mb-6 sm:mb-8">
+                        <div className="hidden">
                             <AuraFlowBot standalone={true} />
                         </div>
 
