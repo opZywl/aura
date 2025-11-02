@@ -17,15 +17,15 @@ import Image from "next/image"
 interface ChatHeaderProps {
     agent: AIAgent
     conversation: Conversation
-    onToggleInfo: () => void
-    onEditNickname: () => void
+    onToggleInfoAction: () => void
+    onEditNicknameAction: () => void
     isEditingNickname: boolean
-    onNicknameChange: (nickname: string) => void
-    onCancelEdit: () => void
-    onToggleSidebar: () => void
-    onToggleControlSidebar: () => void
-    onFinalize: () => void
-    onArchiveConversation: (conversationId: string) => void
+    onNicknameChangeAction: (nickname: string) => void
+    onCancelEditAction: () => void
+    onToggleSidebarAction: () => void
+    onToggleControlSidebarAction: () => void
+    onFinalizeAction: () => void
+    onArchiveConversationAction: (conversationId: string) => void
     sidebarHidden: boolean
     controlSidebarHidden: boolean
     theme: string
@@ -35,15 +35,15 @@ interface ChatHeaderProps {
 export default function ChatHeader({
                                        agent,
                                        conversation,
-                                       onToggleInfo,
-                                       onEditNickname,
+                                       onToggleInfoAction,
+                                       onEditNicknameAction,
                                        isEditingNickname,
-                                       onNicknameChange,
-                                       onCancelEdit,
-                                       onToggleSidebar,
-                                       onToggleControlSidebar,
-                                       onFinalize,
-                                       onArchiveConversation,
+                                       onNicknameChangeAction,
+                                       onCancelEditAction,
+                                       onToggleSidebarAction,
+                                       onToggleControlSidebarAction,
+                                       onFinalizeAction,
+                                       onArchiveConversationAction,
                                        sidebarHidden,
                                        controlSidebarHidden,
                                        theme,
@@ -135,7 +135,7 @@ export default function ChatHeader({
     }
 
     const handleSaveNickname = () => {
-        onNicknameChange(editingValue)
+        onNicknameChangeAction(editingValue)
     }
 
     const handleNotificationChange = (type: string, value: boolean) => {
@@ -230,7 +230,7 @@ export default function ChatHeader({
                                     <Check className="w-4 h-4" />
                                 </Button>
                                 <Button
-                                    onClick={onCancelEdit}
+                                    onClick={onCancelEditAction}
                                     size="sm"
                                     variant="outline"
                                     className="h-8 w-8 p-0"
@@ -254,7 +254,7 @@ export default function ChatHeader({
                                     {conversation.title}
                                 </h2>
                                 <Button
-                                    onClick={onEditNickname}
+                                    onClick={onEditNicknameAction}
                                     variant="ghost"
                                     size="icon"
                                     className={`w-6 h-6 transition-all duration-300 transform hover:scale-110 ${themeSettings.textAnimations ? "chat-text-animated" : ""}`}
@@ -299,7 +299,7 @@ export default function ChatHeader({
             <div className="flex items-center space-x-2">
                 {/* Archive Button */}
                 <Button
-                    onClick={() => onArchiveConversation(conversation.id)}
+                    onClick={() => onArchiveConversationAction(conversation.id)}
                     variant="outline"
                     size="sm"
                     className={`transition-all duration-300 transform hover:scale-105 ${themeSettings.textAnimations ? "chat-text-animated" : ""}`}
@@ -449,7 +449,7 @@ export default function ChatHeader({
 
                 {/* Info Button */}
                 <Button
-                    onClick={onToggleInfo}
+                    onClick={onToggleInfoAction}
                     variant="ghost"
                     size="icon"
                     className={`transition-all duration-300 transform hover:scale-110 ${themeSettings.textAnimations ? "chat-text-animated" : ""}`}
@@ -481,7 +481,7 @@ export default function ChatHeader({
                         }}
                     >
                         <DropdownMenuItem
-                            onClick={onFinalize}
+                            onClick={onFinalizeAction}
                             className={`transition-all duration-300 ${themeSettings.textAnimations ? "chat-text-animated" : ""} ${themeSettings.glowEffects ? "hover:chat-glow-title" : ""}`}
                             style={{ color: themeColors.text }}
                         >

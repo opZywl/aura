@@ -1231,9 +1231,9 @@ function WorkflowBuilderInner({
                 >
                     <NodeConfigPanel
                         node={selectedNode as WorkflowNode}
-                        updateNodeData={updateNodeData}
-                        onClose={() => setSelectedNode(null)}
-                        onRemove={() => removeNode(selectedNode.id)}
+                        updateNodeDataAction={updateNodeData}
+                        onCloseAction={() => setSelectedNode(null)}
+                        onRemoveAction={() => removeNode(selectedNode.id)}
                     />
                 </div>
             )}

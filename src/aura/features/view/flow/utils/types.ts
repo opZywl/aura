@@ -25,6 +25,26 @@ export interface NodeData {
   // Code node properties
   codeLanguage?: "javascript" | "typescript"
   code?: string
+
+  // Shared metadata
+  customId?: string
+  message?: string
+
+  // Send message node properties
+  messageType?: "text" | "image" | "audio" | "video"
+
+  // Options node properties
+  options?: NodeOption[]
+
+  // Finalizar node properties
+  finalizationType?: "success" | "error" | "timeout" | "cancel"
+  finalMessage?: string
+}
+
+export interface NodeOption {
+  id?: string
+  text: string
+  digit?: string
 }
 
 export type WorkflowNode = Node<NodeData>
