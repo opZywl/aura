@@ -9,6 +9,7 @@ import Header from "./homePanels/Header"
 import ColorPanel from "./homePanels/ColorPanel"
 import SearchPanel from "./homePanels/SearchPanel"
 import ChannelModal from "./homePanels/ChannelModal"
+import LoadingScreen from "@/components/ui/loading-screen"
 
 // Componente da barra lateral elegante para o painel
 const PanelElegantSidebar = ({ currentGradient }: { currentGradient: any }) => {
@@ -61,11 +62,7 @@ const PanelLayout = ({ children }: PanelProps) => {
     }, [])
 
     if (!mounted) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
-                <div className="text-lg">Loading...</div>
-            </div>
-        )
+        return <LoadingScreen />
     }
 
     return (

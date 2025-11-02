@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import LoadingScreen from "@/components/ui/loading-screen"
 
 type HomeTheme = "dark" | "light"
 
@@ -367,11 +368,7 @@ export const HomeThemeProvider: React.FC<ThemeProviderProps> = ({ children }) =>
     }
 
     if (!isLoaded) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
-                <div className="text-lg">Loading...</div>
-            </div>
-        )
+        return <LoadingScreen />
     }
 
     return <HomeThemeContext.Provider value={value}>{children}</HomeThemeContext.Provider>

@@ -87,3 +87,15 @@ body > div[style*="position: fixed"][style*="bottom: 10px"][style*="right: 20px"
 [id*="nextjs"] {
     display: none !important;
 }
+
+@keyframes loading-bar {
+    0% {
+        transform: translateX(-100%);
+    }
+    50% {
+        transform: translateX(0%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
