@@ -5,17 +5,18 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Palette } from "lucide-react"
 import { useMobile } from "@/hooks/use-mobile"
-import { useTheme } from "next-themes"
-import ThemeToggle from "./ThemeToggle"
 import { useSettings } from "@/src/aura/features/view/lobby/contexts/SettingsContext"
 
-const Header = () => {
+interface HeaderProps {
+    onOpenGradientSelector?: () => void
+}
+
+const Header = ({ onOpenGradientSelector }: HeaderProps) => {
     const [isScrolled, setIsScrolled] = useState(false)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const isMobile = useMobile()
-    const { theme } = useTheme()
     const { glowEffects, reducedMotion } = useSettings()
 
     useEffect(() => {
@@ -63,38 +64,6 @@ const Header = () => {
             if (el) el.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" })
         }
         if (!item.isLanguageSelector) setMobileMenuOpen(false)
-    }
-
-    const itemVariants = {
-        initial: { rotateX: 0, opacity: 1 },
-        hover: { rotateX: reducedMotion ? 0 : -90, opacity: reducedMotion ? 1 : 0 },
-    }
-
-    const backVariants = {
-        initial: { rotateX: reducedMotion ? 0 : 90, opacity: reducedMotion ? 1 : 0 },
-        hover: { rotateX: 0, opacity: 1 },
-    }
-
-    const glowVariants = {
-        initial: { opacity: 0, scale: 0.8 },
-        hover:
-            glowEffects && !reducedMotion
-                ? {
-                    opacity: 1,
-                    scale: 2,
-                    transition: {
-                        opacity: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
-                        scale: { duration: 0.5, type: "spring", stiffness: 300, damping: 25 },
-                    },
-                }
-                : { opacity: 0, scale: 0.8 },
-    }
-
-    const sharedTransition = {
-        type: "spring",
-        stiffness: 100,
-        damping: 20,
-        duration: reducedMotion ? 0.1 : 0.5,
     }
 
     return (
@@ -160,14 +129,23 @@ const Header = () => {
                             <Link href="/login">
                                 <motion.div
                                     className="px-4 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 border border-white/10 rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer font-modernmono"
-                                    whileHover={reducedMotion ? {} : { scale: 1.05 }}
+                                    whileHover={reducedMotion ? {} : { scale: 1.1, paddingLeft: "1.25rem", paddingRight: "1.25rem" }}
                                     whileTap={reducedMotion ? {} : { scale: 0.95 }}
                                 >
                                     Login
                                 </motion.div>
                             </Link>
 
-                            <ThemeToggle />
+                            {onOpenGradientSelector && (
+                                <motion.button
+                                    onClick={onOpenGradientSelector}
+                                    className="p-2 text-gray-300 hover:text-white hover:bg-white/10 border border-white/10 rounded-full backdrop-blur-md transition-all duration-200"
+                                    whileHover={reducedMotion ? {} : { scale: 1.1 }}
+                                    whileTap={reducedMotion ? {} : { scale: 0.95 }}
+                                >
+                                    <Palette className="w-4 h-4" />
+                                </motion.button>
+                            )}
                         </div>
 
                         {isMobile && (
@@ -208,7 +186,14 @@ const Header = () => {
                                             Login
                                         </div>
                                     </Link>
-                                    <ThemeToggle />
+                                    {onOpenGradientSelector && (
+                                        <button
+                                            onClick={onOpenGradientSelector}
+                                            className="p-2 text-gray-300 hover:text-white hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                                        >
+                                            <Palette className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>

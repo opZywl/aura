@@ -33,54 +33,42 @@ const Footer = () => {
     ]
 
     return (
-        <footer className="relative py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-black">
+        <footer className="relative py-8 px-4 sm:px-6 lg:px-8">
             <div className="relative max-w-7xl mx-auto z-10">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
                     <div className="md:col-span-1">
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="text-2xl">✨</span>
-                            <h3 className="text-2xl font-bold text-white font-modernmono">Aura</h3>
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xl">✨</span>
+                            <h3 className="text-xl font-bold text-white font-modernmono">Aura</h3>
                         </div>
-                        <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                        <p className="text-gray-300 text-xs leading-relaxed">
                             Sistema de chatbot integrado para oficinas mecânicas.
                         </p>
-                        <p className="text-xs text-gray-500 font-modernmono">Criado por estudantes</p>
+                        <p className="text-xs text-gray-400 font-modernmono mt-2">Criado por estudantes</p>
                     </div>
 
                     <div>
-                        <h4 className="text-xs font-bold mb-6 text-gray-400 uppercase tracking-widest font-modernmono">
+                        <h4 className="text-xs font-bold mb-4 text-gray-200 uppercase tracking-wider font-modernmono">
                             {animationsEnabled ? <AnimatedFooterText text="PRODUTO" delay={0} /> : "PRODUTO"}
                         </h4>
-                        <ul className="space-y-3">
+                        <ul className="space-y-2">
                             <li>
-                                <Link
-                                    href="#"
-                                    className="text-gray-500 hover:text-gray-300 transition-colors text-sm hover:translate-x-1 inline-block"
-                                >
+                                <Link href="#" className="text-gray-300 hover:text-white transition-colors text-xs">
                                     Artigo
                                 </Link>
                             </li>
                             <li>
-                                <Link
-                                    href="/technology"
-                                    className="text-gray-500 hover:text-gray-300 transition-colors text-sm hover:translate-x-1 inline-block"
-                                >
+                                <Link href="/technology" className="text-gray-300 hover:text-white transition-colors text-xs">
                                     Tecnologia
                                 </Link>
                             </li>
                             <li>
-                                <Link
-                                    href="#"
-                                    className="text-gray-500 hover:text-gray-300 transition-colors text-sm hover:translate-x-1 inline-block"
-                                >
+                                <Link href="#" className="text-gray-300 hover:text-white transition-colors text-xs">
                                     Orientadores
                                 </Link>
                             </li>
                             <li>
-                                <Link
-                                    href="#"
-                                    className="text-gray-500 hover:text-gray-300 transition-colors text-sm hover:translate-x-1 inline-block"
-                                >
+                                <Link href="#" className="text-gray-300 hover:text-white transition-colors text-xs">
                                     Home
                                 </Link>
                             </li>
@@ -88,17 +76,17 @@ const Footer = () => {
                     </div>
 
                     <div>
-                        <h4 className="text-xs font-bold mb-6 text-gray-400 uppercase tracking-widest font-modernmono">
+                        <h4 className="text-xs font-bold mb-4 text-gray-200 uppercase tracking-wider font-modernmono">
                             {animationsEnabled ? <AnimatedFooterText text="CONTRIBUIDORES" delay={1000} /> : "CONTRIBUIDORES"}
                         </h4>
-                        <ul className="space-y-3">
+                        <ul className="space-y-2">
                             {contributorLinks.map((contributor, index) => (
                                 <li key={index}>
                                     <a
                                         href={contributor.href}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-gray-500 hover:text-gray-300 transition-all text-sm hover:underline hover:translate-x-1 inline-block"
+                                        className="text-gray-300 hover:text-white transition-colors text-xs"
                                     >
                                         {contributor.name}
                                     </a>
@@ -108,10 +96,10 @@ const Footer = () => {
                     </div>
 
                     <div>
-                        <h4 className="text-xs font-bold mb-6 text-gray-400 uppercase tracking-widest font-modernmono">
+                        <h4 className="text-xs font-bold mb-4 text-gray-200 uppercase tracking-wider font-modernmono">
                             {animationsEnabled ? <AnimatedFooterText text="LEGAL" delay={2000} /> : "LEGAL"}
                         </h4>
-                        <ul className="space-y-3">
+                        <ul className="space-y-2">
                             {legalLinks.map((link, index) => (
                                 <li key={index}>
                                     {link.external ? (
@@ -119,15 +107,12 @@ const Footer = () => {
                                             href={link.href}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-gray-500 hover:text-gray-300 transition-all text-sm hover:underline hover:translate-x-1 inline-block"
+                                            className="text-gray-300 hover:text-white transition-colors text-xs"
                                         >
                                             {link.name}
                                         </a>
                                     ) : (
-                                        <Link
-                                            href={link.href}
-                                            className="text-gray-500 hover:text-gray-300 transition-all text-sm hover:underline hover:translate-x-1 inline-block"
-                                        >
+                                        <Link href={link.href} className="text-gray-300 hover:text-white transition-colors text-xs">
                                             {link.name}
                                         </Link>
                                     )}
@@ -137,7 +122,7 @@ const Footer = () => {
                     </div>
                 </div>
 
-                <div className="border-t border-white/5 pt-8">
+                <div className="pt-6">
                     <div className="flex justify-center items-center">
                         <AnimatedCopyrightText />
                     </div>

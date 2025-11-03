@@ -8,22 +8,23 @@ import Footer from "../../components/Footer"
 import LogoCarousel from "../../components/LogoCarousel"
 import NeuralNetworkAnimation from "../../components/NeuralNetworkAnimation"
 import CalendarModal from "@/components/calendar-modal"
+import GradientSelector from "../../components/GradientSelector"
 import { useMobile } from "@/hooks/use-mobile"
 import { useSettings } from "@/src/aura/features/view/lobby/contexts/SettingsContext"
 import { SettingsProvider } from "../../contexts/AnimationsSettingsContext"
-import { useTheme } from "next-themes"
 import AuraFlowBot from "./flow/aura-flow-bot"
 
 function HomeContent() {
     const isMobile = useMobile()
     const [scrollY, setScrollY] = useState(0)
-    const { theme } = useTheme()
     const [mounted, setMounted] = useState(false)
     const { highContrast, reducedMotion, fadeEffects } = useSettings()
     const [isCalendarOpen, setIsCalendarOpen] = useState(false)
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
     const [showCarouselTooltip, setShowCarouselTooltip] = useState(false)
     const [isInFooterSection, setIsInFooterSection] = useState(false)
+    const [isGradientSelectorOpen, setIsGradientSelectorOpen] = useState(false)
+    const [currentGradient, setCurrentGradient] = useState("url('/grad1.svg')")
 
     useEffect(() => {
         setMounted(true)
@@ -36,14 +37,12 @@ function HomeContent() {
             const footerSection = document.getElementById("footer-section")
             if (footerSection) {
                 const rect = footerSection.getBoundingClientRect()
-                setIsInFooterSection(rect.top <= 0)
+                setIsInFooterSection(rect.top <= 300)
             }
         }
         window.addEventListener("scroll", handleScroll)
         return () => window.removeEventListener("scroll", handleScroll)
     }, [])
-
-    const currentTheme = mounted ? theme : "dark"
 
     const whatWeDoItems = [
         {
@@ -102,16 +101,16 @@ function HomeContent() {
 
     const getContrastClass = () => {
         if (highContrast) {
-            return currentTheme === "dark" ? "text-white" : "text-black"
+            return "text-white"
         }
-        return currentTheme === "dark" ? "text-white" : "text-gray-900"
+        return "text-white"
     }
 
     const getSecondaryContrastClass = () => {
         if (highContrast) {
-            return currentTheme === "dark" ? "text-gray-100" : "text-gray-800"
+            return "text-gray-100"
         }
-        return currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
+        return "text-gray-300"
     }
 
     return (
@@ -130,7 +129,7 @@ function HomeContent() {
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-300"
                     style={{
-                        backgroundImage: currentTheme === "dark" ? "url('/grad1.svg')" : "url('/grad2.svg')",
+                        backgroundImage: currentGradient,
                     }}
                 />
                 <div className="absolute inset-0 bg-black/60" />
@@ -138,9 +137,9 @@ function HomeContent() {
 
             <div className="relative z-10">
                 <div
-                    className={`transition-opacity duration-300 ${isInFooterSection ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+                    className={`transition-all duration-500 ${isInFooterSection ? "opacity-0 pointer-events-none -translate-y-4" : "opacity-100 pointer-events-auto translate-y-0"}`}
                 >
-                    <Header />
+                    <Header onOpenGradientSelector={() => setIsGradientSelectorOpen(true)} />
                 </div>
 
                 <section className="relative h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
@@ -430,50 +429,60 @@ function HomeContent() {
                     </section>
                 </div>
 
-                <section
-                    id="footer-section"
-                    className="relative py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 min-h-screen flex flex-col justify-center"
-                >
-                    <div
-                        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                        style={{
-                            backgroundImage:
-                                "url('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-WryolJTBBdAEAHABUqReT26WdkWeyC.png')",
-                            opacity: 1,
-                        }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black" />
+                <section id="footer-section" className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-b from-black via-teal-950/20 to-black">
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-teal-900/30 via-transparent to-transparent" />
+
+                        <div className="absolute top-32 left-10 w-64 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-60 rotate-[-15deg]" />
+                        <div className="absolute top-20 right-20 w-96 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-60" />
+                        <div className="absolute bottom-40 right-10 w-80 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-60 rotate-[25deg]" />
+                    </div>
 
                     <motion.div
-                        initial={reducedMotion ? {} : { opacity: 0, y: 50 }}
+                        initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        transition={reducedMotion ? {} : { duration: 0.8 }}
+                        transition={reducedMotion ? {} : { duration: 0.6 }}
                         viewport={{ once: true }}
-                        className="max-w-4xl mx-auto text-center relative z-10 mb-20"
+                        className="max-w-4xl mx-auto text-center relative z-10 pt-32 pb-20 px-4 sm:px-6 lg:px-8"
                     >
                         <div className="flex items-center justify-center mb-8">
                             <div
-                                className="h-0.5 w-12"
+                                className="h-0.5 w-16"
                                 style={{
-                                    background: "linear-gradient(90deg, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.5) 100%)",
-                                    borderRadius: "100px",
-                                    opacity: 1,
+                                    background:
+                                        "linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0) 100%)",
                                 }}
-                            ></div>
+                            />
                         </div>
+
                         <h2
-                            className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 text-white font-modernmono"
-                            style={{ letterSpacing: "0.1em" }}
+                            className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-8 text-white font-modernmono"
+                            style={{ letterSpacing: "0.15em" }}
                         >
                             LET'S GET
                             <br />
                             IN TOUCH
                         </h2>
-                        <p className="text-lg sm:text-xl text-gray-200 max-w-2xl mx-auto font-modernmono leading-relaxed">
-                            Desenvolvido por estudantes apaixonados por tecnologia e inovação. Entre em contato para saber mais sobre
-                            o projeto AURA e como ele pode transformar sua oficina mecânica.
+                        <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-modernmono leading-relaxed">
+                            Desenvolvido por estudantes apaixonados por tecnologia e inovação.
+                            <br />
+                            Entre em contato para saber mais sobre o projeto AURA e como ele
+                            <br />
+                            pode transformar sua oficina mecânica.
                         </p>
                     </motion.div>
+
+                    <div className="relative z-10 flex items-center justify-center pb-12">
+                        <div
+                            className="h-px w-full max-w-6xl"
+                            style={{
+                                background:
+                                    "linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 50.42933558558559%, rgba(255, 255, 255, 0) 100%)",
+                                willChange: "transform",
+                                opacity: 1,
+                            }}
+                        />
+                    </div>
 
                     <div className="relative z-10">
                         <Footer />
@@ -481,6 +490,12 @@ function HomeContent() {
                 </section>
 
                 {isCalendarOpen && <CalendarModal onClose={() => setIsCalendarOpen(false)} />}
+                <GradientSelector
+                    isOpen={isGradientSelectorOpen}
+                    onClose={() => setIsGradientSelectorOpen(false)}
+                    currentGradient={currentGradient}
+                    onSelectGradient={setCurrentGradient}
+                />
             </div>
         </div>
     )

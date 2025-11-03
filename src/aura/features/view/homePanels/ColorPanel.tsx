@@ -269,7 +269,7 @@ const ColorPanel: React.FC = () => {
                                     theme === "dark" ? "text-blue-400 bg-blue-500/20 shadow-lg" : "text-blue-600 bg-blue-100 shadow-md"
                                 }`}
                             >
-                                Colors and Themes
+                                Cores e Temas
                             </button>
                         </div>
                     </div>
@@ -289,7 +289,7 @@ const ColorPanel: React.FC = () => {
                 {/* Criar Tema Customizado */}
                 <div className="p-4 border-b" style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}>
                     <h4 className={`font-medium mb-3 ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
-                        Create Custom Theme
+                        Criar Cor Customizada
                     </h4>
                     <div className="space-y-3">
                         {[customColor1, customColor2, customColor3].map((col, i) => (
@@ -319,7 +319,7 @@ const ColorPanel: React.FC = () => {
                             }}
                         >
                             <Plus className="w-4 h-4 text-white glow-title" />
-                            <span className="text-white font-medium glow-title">Apply Custom</span>
+                            <span className="text-white font-medium glow-title">Aplicar Customização</span>
                         </button>
                     </div>
                 </div>
@@ -327,7 +327,7 @@ const ColorPanel: React.FC = () => {
                 {/* Temas Predefinidos */}
                 <div className="p-4 space-y-3">
                     <h4 className={`font-medium mb-3 ${theme === "dark" ? "text-white" : "text-gray-900"} glow-title`}>
-                        Predefined Themes
+                        Temas predefinidos
                     </h4>
 
                     <button
@@ -623,7 +623,7 @@ const ColorPanel: React.FC = () => {
                                     : "bg-gray-400 text-gray-200 cursor-not-allowed"
                             }`}
                         >
-                            Save Settings
+                            Salvar Configuração
                         </button>
                         <button
                             onClick={resetSettings}
@@ -631,14 +631,14 @@ const ColorPanel: React.FC = () => {
                                 theme === "dark" ? "bg-red-600 text-white hover:bg-red-700" : "bg-red-500 text-white hover:bg-red-600"
                             } shadow-lg hover:shadow-red-500/25`}
                         >
-                            Reset Settings
+                            Resetar Configuração
                         </button>
                     </div>
                 </div>
 
                 <div className="p-4 border-t" style={{ borderColor: theme === "dark" ? "#3a3a3a" : "#e2e8f0" }}>
                     <p className={`text-xs text-center ${theme === "dark" ? "text-gray-400" : "text-gray-600"} fade-text`}>
-                        Choose Color Theme
+                        Escolha a Cor do Tema
                     </p>
                 </div>
             </div>
