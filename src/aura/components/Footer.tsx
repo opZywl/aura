@@ -4,31 +4,37 @@ import Link from "next/link"
 import AnimatedFooterText from "./AnimatedFooterText"
 import AnimatedCopyrightText from "./AnimatedCopyrightText"
 import { useSettings } from "@/src/aura/features/view/lobby/contexts/SettingsContext"
-import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
 
 const Footer = () => {
     const { animationsEnabled } = useSettings()
-    const { theme } = useTheme()
-    const [mounted, setMounted] = useState(false)
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
-
-    const currentTheme = mounted ? theme : "dark"
-
-    const contributorLinks = [
-        { name: "Lucas Lima", href: "https://lucas-lima.vercel.app/" },
-        { name: "Caio Gabriel", href: "https://caio-gabriel.vercel.app/" },
-        { name: "Matheus Theobald", href: "https://mateustheobald.github.io/" },
-        { name: "Rhyan Yassin", href: "https://rhyan019.github.io/" },
+    const projectLinks: { name: string; href: string; external?: boolean }[] = [
+        { name: "Visão geral", href: "/" },
+        {
+            name: "Artigo do Projeto",
+            href: "https://drive.google.com/drive/folders/aura-projeto",
+            external: true,
+        },
+        {
+            name: "Repositório no GitHub",
+            href: "https://github.com/opzywl/aura",
+            external: true,
+        },
     ]
 
-    const legalLinks = [
-        { name: "Código Fonte", href: "https://github.com/opzywl/aura", external: true },
-        { name: "Terms", href: "/terms", external: true },
-        { name: "Privacy", href: "/privacy" },
+    const teamMembers: { name: string; href?: string; role?: string }[] = [
+        { name: "Lucas de Lima Almeida", href: "https://lucas-lima.vercel.app/" },
+        { name: "Caio Gabriel Pereira do Nascimento", href: "https://caio-gabriel.vercel.app/" },
+        { name: "Mateus Delucas Theobald", href: "https://mateustheobald.github.io/" },
+        { name: "Rhyan Yassin Freitas Ahmad", href: "https://rhyan019.github.io/" },
+        {
+            name: "Profa. Dra. Adriana Aparecida Carnevalli Demetrio",
+            role: "Orientadora",
+        },
+    ]
+
+    const legalLinks: { name: string; href: string; external?: boolean }[] = [
+        { name: "Termos de Uso", href: "/terms" },
+        { name: "Privacidade", href: "/privacy" },
         { name: "Feedback", href: "/feedback" },
     ]
 
@@ -49,47 +55,52 @@ const Footer = () => {
 
                     <div>
                         <h4 className="text-xs font-bold mb-4 text-gray-200 uppercase tracking-wider font-modernmono">
-                            {animationsEnabled ? <AnimatedFooterText text="PRODUTO" delay={0} /> : "PRODUTO"}
+                            {animationsEnabled ? <AnimatedFooterText text="PROJETO" delay={0} /> : "PROJETO"}
                         </h4>
                         <ul className="space-y-2">
-                            <li>
-                                <Link href="#" className="text-gray-300 hover:text-white transition-colors text-xs">
-                                    Artigo
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/technology" className="text-gray-300 hover:text-white transition-colors text-xs">
-                                    Tecnologia
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="text-gray-300 hover:text-white transition-colors text-xs">
-                                    Orientadores
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="text-gray-300 hover:text-white transition-colors text-xs">
-                                    Home
-                                </Link>
-                            </li>
+                            {projectLinks.map((link, index) => (
+                                <li key={`${link.name}-${index}`}>
+                                    {link.external ? (
+                                        <a
+                                            href={link.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-gray-300 hover:text-white transition-colors text-xs"
+                                        >
+                                            {link.name}
+                                        </a>
+                                    ) : (
+                                        <Link href={link.href} className="text-gray-300 hover:text-white transition-colors text-xs">
+                                            {link.name}
+                                        </Link>
+                                    )}
+                                </li>
+                            ))}
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="text-xs font-bold mb-4 text-gray-200 uppercase tracking-wider font-modernmono">
-                            {animationsEnabled ? <AnimatedFooterText text="CONTRIBUIDORES" delay={1000} /> : "CONTRIBUIDORES"}
+                            {animationsEnabled ? <AnimatedFooterText text="EQUIPE" delay={1000} /> : "EQUIPE"}
                         </h4>
                         <ul className="space-y-2">
-                            {contributorLinks.map((contributor, index) => (
-                                <li key={index}>
-                                    <a
-                                        href={contributor.href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-gray-300 hover:text-white transition-colors text-xs"
-                                    >
-                                        {contributor.name}
-                                    </a>
+                            {teamMembers.map((member, index) => (
+                                <li key={`${member.name}-${index}`} className="text-gray-300 text-xs">
+                                    {member.href ? (
+                                        <a
+                                            href={member.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-gray-300 hover:text-white transition-colors text-xs"
+                                        >
+                                            {member.name}
+                                        </a>
+                                    ) : (
+                                        <span className="font-semibold text-white">{member.name}</span>
+                                    )}
+                                    {member.role && (
+                                        <span className="block text-gray-400 font-modernmono">{member.role}</span>
+                                    )}
                                 </li>
                             ))}
                         </ul>
