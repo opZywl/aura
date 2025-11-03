@@ -1,0 +1,18 @@
+<svg width="1600" height="1200" viewBox="0 0 1600 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="purpleGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(800 600) scale(850 700)">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="35%" stop-color="#4c1d95"/>
+      <stop offset="100%" stop-color="#0b0416"/>
+    </radialGradient>
+    <radialGradient id="highlight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(520 360) rotate(25) scale(520 420)">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="1200" fill="#05010b"/>
+  <rect width="1600" height="1200" fill="url(#purpleGlow)"/>
+  <ellipse cx="520" cy="360" rx="520" ry="420" fill="url(#highlight)"/>
+  <ellipse cx="1180" cy="860" rx="380" ry="300" fill="url(#highlight)" transform="rotate(-20 1180 860)" opacity="0.4"/>
+  <circle cx="1320" cy="260" r="220" fill="#a855f7" fill-opacity="0.12"/>
+</svg>

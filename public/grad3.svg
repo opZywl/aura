@@ -1,0 +1,21 @@
+<svg width="1600" height="1200" viewBox="0 0 1600 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="rainbow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(800 600) rotate(90) scale(700 900)">
+      <stop offset="0%" stop-color="#ffe29f"/>
+      <stop offset="15%" stop-color="#ffa99f"/>
+      <stop offset="35%" stop-color="#ff719a"/>
+      <stop offset="55%" stop-color="#a858e0"/>
+      <stop offset="75%" stop-color="#5a7efc"/>
+      <stop offset="100%" stop-color="#1fb6ff" stop-opacity="0.75"/>
+    </radialGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.6)"/>
+      <stop offset="40%" stop-color="rgba(255,255,255,0.1)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1200" fill="#05030d"/>
+  <rect width="1600" height="1200" fill="url(#rainbow)"/>
+  <ellipse cx="400" cy="200" rx="420" ry="320" fill="url(#shine)" transform="rotate(-12 400 200)"/>
+  <ellipse cx="1250" cy="950" rx="360" ry="260" fill="url(#shine)" transform="rotate(18 1250 950)" opacity="0.6"/>
+</svg>

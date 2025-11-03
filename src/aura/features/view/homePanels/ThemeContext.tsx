@@ -51,6 +51,22 @@ const gradientThemes: GradientTheme[] = [
         accent: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%)",
         glow: "rgba(6, 182, 212, 0.6)",
     },
+    {
+        name: "Deep Purple",
+        primary: "linear-gradient(135deg, #4c1d95 0%, #6d28d9 50%, #4338ca 100%)",
+        secondary: "linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%)",
+        accent: "linear-gradient(135deg, #a855f7 0%, #7c3aed 50%, #6366f1 100%)",
+        glow: "rgba(124, 58, 237, 0.65)",
+        headerBg: "#4c1d95",
+    },
+    {
+        name: "Rainbow Iridescent",
+        primary: "linear-gradient(135deg, #f97316 0%, #f43f5e 30%, #6366f1 70%, #22d3ee 100%)",
+        secondary: "linear-gradient(135deg, #fb7185 0%, #a855f7 50%, #38bdf8 100%)",
+        accent: "linear-gradient(135deg, #fde047 0%, #f472b6 35%, #8b5cf6 70%, #38bdf8 100%)",
+        glow: "rgba(99, 102, 241, 0.55)",
+        headerBg: "#4338ca",
+    },
 ]
 
 interface HomeThemeContextType {
