@@ -1024,6 +1024,7 @@ const FlowHeaderWithDialogs = ({
     const glowColor = currentGradient?.glow || "#000000"
 
     const isDark = theme === "dark"
+    const accentHex = extractHexColor(currentGradient?.primary, isDark ? "#6366f1" : "#4338ca")
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
