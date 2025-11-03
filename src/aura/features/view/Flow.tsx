@@ -142,141 +142,60 @@ const FlowStatusIndicator = ({ startPosition, mousePosition, componentCount, the
     const accentColor = extractHexColor(currentGradient?.primary, isDark ? "#6366f1" : "#4338ca")
     const secondaryAccent = extractHexColor(currentGradient?.secondary, accentColor)
 
-    const containerStyle = {
-        background: isDark
-            ? "linear-gradient(140deg, rgba(13,16,24,0.9), rgba(17,23,36,0.82))"
-            : "linear-gradient(140deg, rgba(255,255,255,0.96), rgba(241,245,249,0.9))",
-        border: `1px solid ${hexToRgba(accentColor, isDark ? 0.4 : 0.25)}`,
-        boxShadow: `0 28px 60px ${hexToRgba(accentColor, 0.18)}`,
-        backdropFilter: "blur(18px)",
-        borderRadius: "24px",
-        padding: "18px 20px",
-    }
-
-    const statusCards = [
+    const items = [
         {
             key: "status",
-            label: "Status do fluxo",
-            value: isExecuted ? "Executado" : "Não executado",
-            helper: isExecuted ? "Última execução sincronizada" : "Execute para habilitar o bot",
+            label: isExecuted ? "Fluxo executado" : "Fluxo não executado",
             icon: isExecuted ? FiCheckCircle : FiXCircle,
             iconColor: isExecuted ? "#22c55e" : "#f97316",
-            badge: isExecuted ? { text: "Pronto", color: "#22c55e" } : { text: "Pendente", color: "#f97316" },
         },
         {
             key: "start",
-            label: "Início do fluxo",
-            value: `(${Math.round(startPosition.x)}, ${Math.round(startPosition.y)})`,
-            helper: "Coordenadas do nó INÍCIO",
+            label: `Início: ${Math.round(startPosition.x)}, ${Math.round(startPosition.y)}`,
             icon: FiMapPin,
             iconColor: secondaryAccent,
         },
         {
             key: "cursor",
-            label: "Cursor em tempo real",
-            value: `(${Math.round(mousePosition.x)}, ${Math.round(mousePosition.y)})`,
-            helper: "Posição do mouse no canvas",
+            label: `Cursor: ${Math.round(mousePosition.x)}, ${Math.round(mousePosition.y)}`,
             icon: FiMousePointer,
             iconColor: "#a855f7",
         },
         {
             key: "components",
-            label: "Componentes ativos",
-            value: componentCount.toString(),
-            helper: "Elementos configurados",
+            label: `${componentCount} componentes`,
             icon: FiLayers,
             iconColor: "#f59e0b",
-            suffix: "itens",
         },
     ]
 
     return (
-        <div className="w-full max-w-2xl">
-            <div className="relative overflow-hidden" style={containerStyle}>
+        <div className="flex w-full flex-wrap items-center justify-center gap-2 xl:justify-end">
+            {items.map(({ key, label, icon: Icon, iconColor }) => (
                 <div
-                    className="pointer-events-none absolute inset-0 opacity-25"
+                    key={key}
+                    className="flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-medium shadow-sm"
                     style={{
-                        background: `radial-gradient(circle at 0% 0%, ${hexToRgba(accentColor, 0.35)} 0%, transparent 55%), radial-gradient(circle at 100% 100%, ${hexToRgba(secondaryAccent, 0.3)} 0%, transparent 60%)`,
+                        background: isDark
+                            ? `linear-gradient(120deg, ${hexToRgba(accentColor, 0.12)}, ${hexToRgba(iconColor, 0.12)})`
+                            : `linear-gradient(120deg, ${hexToRgba(accentColor, 0.08)}, ${hexToRgba(iconColor, 0.08)})`,
+                        border: `1px solid ${hexToRgba(iconColor, isDark ? 0.35 : 0.22)}`,
+                        color: isDark ? "#e2e8f0" : "#0f172a",
+                        backdropFilter: "blur(8px)",
                     }}
-                />
-                <div className="relative grid gap-3 sm:grid-cols-2">
-                    {statusCards.map((card) => {
-                        const Icon = card.icon
-                        const iconColor = card.iconColor
-                        const baseTextColor = isDark ? "#f8fafc" : "#0f172a"
-
-                        return (
-                            <div
-                                key={card.key}
-                                className="group relative overflow-hidden rounded-2xl border p-4 transition-transform duration-300 hover:-translate-y-0.5"
-                                style={{
-                                    background: isDark
-                                        ? "linear-gradient(150deg, rgba(17,24,39,0.72), rgba(15,23,42,0.58))"
-                                        : "linear-gradient(150deg, rgba(255,255,255,0.95), rgba(248,250,252,0.9))",
-                                    borderColor: hexToRgba(iconColor, isDark ? 0.32 : 0.22),
-                                    boxShadow: `0 18px 36px ${hexToRgba(iconColor, isDark ? 0.22 : 0.18)}`,
-                                }}
-                            >
-                                <div
-                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                                    style={{ background: hexToRgba(iconColor, isDark ? 0.12 : 0.08) }}
-                                />
-                                <div className="relative flex items-start justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <div
-                                            className="flex h-10 w-10 items-center justify-center rounded-xl shadow-lg transition-transform duration-300 group-hover:scale-105"
-                                            style={{
-                                                background: hexToRgba(iconColor, isDark ? 0.2 : 0.14),
-                                                boxShadow: `0 12px 28px ${hexToRgba(iconColor, isDark ? 0.35 : 0.2)}`,
-                                            }}
-                                        >
-                                            <Icon className="h-5 w-5" style={{ color: iconColor }} />
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <span
-                                                className="text-[11px] font-semibold uppercase tracking-[0.22em]"
-                                                style={{ color: hexToRgba(iconColor, isDark ? 0.7 : 0.55) }}
-                                            >
-                                                {card.label}
-                                            </span>
-                                            <span className="text-lg font-semibold" style={{ color: baseTextColor }}>
-                                                {card.value}
-                                                {card.suffix && (
-                                                    <span
-                                                        className="ml-1 text-sm font-medium"
-                                                        style={{ color: hexToRgba(iconColor, isDark ? 0.7 : 0.6) }}
-                                                    >
-                                                        {card.suffix}
-                                                    </span>
-                                                )}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {card.badge && (
-                                        <span
-                                            className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
-                                            style={{
-                                                background: hexToRgba(card.badge.color, isDark ? 0.22 : 0.14),
-                                                color: card.badge.color,
-                                            }}
-                                        >
-                                            {card.badge.text}
-                                        </span>
-                                    )}
-                                </div>
-                                {card.helper && (
-                                    <p
-                                        className="relative mt-3 text-xs leading-relaxed"
-                                        style={{ color: isDark ? "rgba(226,232,240,0.72)" : "rgba(30,41,59,0.65)" }}
-                                    >
-                                        {card.helper}
-                                    </p>
-                                )}
-                            </div>
-                        )
-                    })}
+                >
+                    <span
+                        className="flex h-5 w-5 items-center justify-center rounded-full"
+                        style={{
+                            background: hexToRgba(iconColor, 0.16),
+                            color: iconColor,
+                        }}
+                    >
+                        <Icon className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="whitespace-nowrap">{label}</span>
                 </div>
-            </div>
+            ))}
         </div>
     )
 }
@@ -1259,8 +1178,7 @@ const FlowHeaderWithDialogs = ({
                             : "rgba(255, 255, 255, 0.6)",
                     backdropFilter: "blur(20px)",
                     borderBottom: `1px solid ${isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
-                    minHeight: "60px",
-                    maxHeight: "60px",
+                    minHeight: "72px",
                     transition: "all 0.3s ease",
                     ...(glowEnabled && {
                         boxShadow: `0 0 60px ${glowColor}60, 0 0 120px ${glowColor}30, inset 0 0 40px ${glowColor}10`,
@@ -1271,9 +1189,9 @@ const FlowHeaderWithDialogs = ({
                     }),
                 }}
             >
-                <div className="flex items-center justify-between h-full">
+                <div className="mx-auto flex h-full w-full max-w-[1400px] items-center gap-4 px-2">
                     {/* Left Section: Zoom Controls */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-3">
                         <div
                             className="flex items-center gap-1 px-1 py-1 rounded-full"
                             style={{
@@ -1297,7 +1215,7 @@ const FlowHeaderWithDialogs = ({
                                     }}
                                     whileTap={{ scale: 0.9 }}
                                     onClick={action}
-                                    className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+                                    className="h-8 w-8 rounded-full flex items-center justify-center transition-colors"
                                     style={{
                                         color: isDark ? "#9ca3af" : "#6b7280",
                                     }}
@@ -1323,7 +1241,7 @@ const FlowHeaderWithDialogs = ({
                                 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={onOpenBot}
-                                className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
+                                className="h-8 w-8 rounded-full flex items-center justify-center transition-all"
                                 style={{
                                     background: isDark
                                         ? `linear-gradient(135deg, ${accentColor}, ${secondaryColor})`
@@ -1342,7 +1260,7 @@ const FlowHeaderWithDialogs = ({
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={onLoad}
-                                className="w-9 h-9 rounded-lg flex items-center justify-center transition-all"
+                                className="h-8 w-8 rounded-lg flex items-center justify-center transition-all"
                                 style={{
                                     color: isDark ? "#60a5fa" : "#3b82f6",
                                     background: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)",
@@ -1357,7 +1275,7 @@ const FlowHeaderWithDialogs = ({
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={onDownload}
-                                className="w-9 h-9 rounded-lg flex items-center justify-center transition-all"
+                                className="h-8 w-8 rounded-lg flex items-center justify-center transition-all"
                                 style={{
                                     color: isDark ? "#60a5fa" : "#3b82f6",
                                     background: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)",
@@ -1371,10 +1289,10 @@ const FlowHeaderWithDialogs = ({
                     </div>
 
                     {/* Center Section: Search + Status */}
-                    <div className="flex-1 flex flex-col gap-4 px-3 max-w-5xl md:flex-row md:items-stretch md:justify-center">
-                        <form onSubmit={handleSearch} className="flex-1 max-w-xl">
+                    <div className="flex min-w-0 flex-1 flex-col gap-3 px-3 sm:flex-row sm:items-center sm:gap-4">
+                        <form onSubmit={handleSearch} className="flex-1 min-w-[220px] max-w-xl">
                             <div
-                                className="relative flex items-center gap-3 rounded-2xl px-4 py-2.5 transition-all duration-300"
+                                className="relative flex items-center gap-3 rounded-2xl px-4 py-2 transition-all duration-300"
                                 style={{
                                     background: isDark
                                         ? "linear-gradient(135deg, rgba(17,24,39,0.78), rgba(30,41,59,0.62))"
@@ -1434,7 +1352,7 @@ const FlowHeaderWithDialogs = ({
                             </div>
                         </form>
 
-                        <div className="flex-1 min-w-[260px]">
+                        <div className="mt-1 flex-1 min-w-[220px] sm:mt-0">
                             <FlowStatusIndicator
                                 startPosition={startPosition}
                                 mousePosition={mousePosition}
@@ -1446,7 +1364,7 @@ const FlowHeaderWithDialogs = ({
                     </div>
 
                     {/* Right Section: Utility Buttons + Save + Execute */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-3">
                         <motion.div
                             className="flex items-center gap-1 px-1 py-1 rounded-full"
                             style={{
@@ -1463,7 +1381,7 @@ const FlowHeaderWithDialogs = ({
                                 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => setShowImageMenu(true)}
-                                className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
+                                className="h-8 w-8 rounded-full flex items-center justify-center transition-all"
                                 style={{
                                     color: isDark ? "#9ca3af" : "#6b7280",
                                 }}
@@ -1479,7 +1397,7 @@ const FlowHeaderWithDialogs = ({
                                 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={onOpenColorPanel}
-                                className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
+                                className="h-8 w-8 rounded-full flex items-center justify-center transition-all"
                                 style={{
                                     color: isDark ? "#9ca3af" : "#6b7280",
                                 }}
@@ -1495,7 +1413,7 @@ const FlowHeaderWithDialogs = ({
                                 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={toggleTheme}
-                                className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
+                                className="h-8 w-8 rounded-full flex items-center justify-center transition-all"
                                 style={{
                                     color: isDark ? "#9ca3af" : "#6b7280",
                                 }}
@@ -1512,7 +1430,7 @@ const FlowHeaderWithDialogs = ({
                                 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={handleReset}
-                                className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
+                                className="h-8 w-8 rounded-full flex items-center justify-center transition-all"
                                 style={{
                                     color: isDark ? "#9ca3af" : "#6b7280",
                                 }}
@@ -1526,7 +1444,7 @@ const FlowHeaderWithDialogs = ({
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={handleSave}
-                            className="px-4 py-2 rounded-full flex items-center gap-2 transition-all"
+                            className="rounded-full px-3 py-1.5 flex items-center gap-2 transition-all"
                             style={{
                                 background: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
                                 border: `1px solid ${isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)"}`,
@@ -1542,7 +1460,7 @@ const FlowHeaderWithDialogs = ({
                             whileTap={isWorkflowSaved ? { scale: 0.95 } : {}}
                             onClick={handleExecute}
                             disabled={!isWorkflowSaved}
-                            className="px-4 py-2 rounded-full flex items-center gap-2 transition-all"
+                            className="rounded-full px-3 py-1.5 flex items-center gap-2 transition-all"
                             style={{
                                 background: isWorkflowSaved
                                     ? isDark

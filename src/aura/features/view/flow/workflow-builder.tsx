@@ -586,6 +586,18 @@ function WorkflowBuilderInner({
         setSelectedNode(node)
     }, [])
 
+    const onNodeDoubleClick = useCallback(
+        (event: React.MouseEvent, node: Node) => {
+            event.preventDefault()
+            event.stopPropagation()
+
+            if (node.type === "finalizar") {
+                setSelectedNode(node)
+            }
+        },
+        [setSelectedNode],
+    )
+
     const onPaneClick = useCallback(() => {
         setSelectedNode(null)
     }, [])
@@ -1205,6 +1217,7 @@ function WorkflowBuilderInner({
                         onDrop={onDrop}
                         onDragOver={onDragOver}
                         onNodeClick={onNodeClick}
+                        onNodeDoubleClick={onNodeDoubleClick}
                         onPaneClick={onPaneClick}
                         onMouseMove={handleMouseMove}
                         nodeTypes={nodeTypes}
