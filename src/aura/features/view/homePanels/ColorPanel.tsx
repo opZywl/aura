@@ -363,7 +363,7 @@ const ColorPanel: React.FC = () => {
                                     Dark Pure
                                 </div>
                                 <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} fade-text`}>
-                                    {currentGradient?.name === "Dark Pure" ? t("common.active") : t("colorPanel.clickToApply")}
+                                    {currentGradient?.name === "Dark Pure" ? ("Ativado") : ("Aplicado")}
                                 </div>
                             </div>
 
@@ -407,7 +407,7 @@ const ColorPanel: React.FC = () => {
                                     Dark Blue
                                 </div>
                                 <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} fade-text`}>
-                                    {currentGradient?.name === "Dark Blue" ? t("common.active") : t("colorPanelclickToApply")}
+                                    {currentGradient?.name === "Dark Blue" ? ("Ativado") : ("Aplicado")}
                                 </div>
                             </div>
 
