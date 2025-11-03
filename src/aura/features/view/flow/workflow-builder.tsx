@@ -30,13 +30,13 @@ import { ConditionalNode } from "./nodes/conditional-node"
 import { CodeNode } from "./nodes/code-node"
 import { StartNode } from "./nodes/start-node"
 import { FinalizarNode } from "./nodes/finalizar-node"
+import { AgendamentoNode } from "./nodes/agendamento-node" // Import AgendamentoNode
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode } from "@/lib/types"
 import { useTheme } from "../homePanels/ThemeContext"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useAuth } from "@/src/aura/contexts/AuthContext"
-import { BotIcon } from "lucide-react"
 
 const nodeTypes: NodeTypes = {
     sendMessage: (props) => (
@@ -48,6 +48,13 @@ const nodeTypes: NodeTypes = {
     ),
     options: (props) => (
         <OptionsNode
+            {...props}
+            onRemove={() => removeNodeById(props.id)}
+            onUpdateData={(data) => updateNodeDataById(props.id, data)}
+        />
+    ),
+    agendamento: (props) => (
+        <AgendamentoNode
             {...props}
             onRemove={() => removeNodeById(props.id)}
             onUpdateData={(data) => updateNodeDataById(props.id, data)}
@@ -583,7 +590,10 @@ function WorkflowBuilderInner({
         if (node.id === "start-node") {
             return
         }
-        setSelectedNode(node)
+        // Only open config panel for agendamento and finalizar nodes
+        if (node.type === "agendamento" || node.type === "finalizar") {
+            setSelectedNode(node)
+        }
     }, [])
 
     const onNodeDoubleClick = useCallback(
@@ -591,7 +601,8 @@ function WorkflowBuilderInner({
             event.preventDefault()
             event.stopPropagation()
 
-            if (node.type === "finalizar") {
+            // Only open modal on double-click for agendamento and finalizar only
+            if (node.type === "agendamento" || node.type === "finalizar") {
                 setSelectedNode(node)
             }
         },
@@ -1047,7 +1058,7 @@ function WorkflowBuilderInner({
                 type: edge.type,
             }))
 
-            const userNickname = user?.username === "Dev@1" ? "Lucas" : user?.username || "Usuario"
+            const userNickname = user?.username === "Dev@1" ? "Lucas" : user?.username || "Lucas"
 
             const workflowData = {
                 _id: `aura_flow_${Date.now()}`,
@@ -1181,21 +1192,17 @@ function WorkflowBuilderInner({
 
             {showSidebar && (
                 <div
-                    className={`w-64 border-r flex flex-col ${isDark ? "bg-black border-gray-800" : "bg-white border-gray-200"} transition-all duration-300`}
-                    style={{ height: "100%", maxHeight: "100vh" }}
+                    className={`w-64 border-r flex flex-col transition-all duration-300`}
+                    style={{
+                        height: "100%",
+                        maxHeight: "100vh",
+                        background: "transparent",
+                        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+                    }}
                 >
                     <div className="flex-shrink-0 px-4 pt-4 pb-2">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-center mb-4">
                             <h2 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>Componentes</h2>
-                            <button
-                                onClick={onOpenBot}
-                                className={`p-2 rounded-md transition-colors ${
-                                    isDark ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-600"
-                                }`}
-                                title="Aura Assistente de IA"
-                            >
-                                <BotIcon className="h-5 w-5" />
-                            </button>
                         </div>
                     </div>
 

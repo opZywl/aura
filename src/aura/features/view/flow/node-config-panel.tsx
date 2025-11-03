@@ -1,7 +1,20 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Copy, Trash2, Send, List, Settings, GitBranch, Code, CheckCircle, Upload, Download } from "lucide-react"
+import {
+    X,
+    Copy,
+    Trash2,
+    Send,
+    List,
+    Settings,
+    GitBranch,
+    Code,
+    CheckCircle,
+    Upload,
+    Download,
+    Calendar,
+} from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +48,8 @@ const toRgba = (hex: string, alpha: number) => {
 const typeIcons: Record<string, LucideIcon> = {
     sendMessage: Send,
     options: List,
+    agendamento: Calendar,
+    // </CHANGE>
     process: Settings,
     conditional: GitBranch,
     code: Code,
@@ -55,6 +70,7 @@ const getNodeTypeName = (type: string): string => {
     const typeNames: Record<string, string> = {
         sendMessage: "Enviar Mensagem",
         options: "Opções",
+        agendamento: "Agendamento",
         process: "Processar",
         conditional: "Condicional",
         code: "Código",
@@ -66,11 +82,11 @@ const getNodeTypeName = (type: string): string => {
 }
 
 export default function NodeConfigPanel({
-    node,
-    updateNodeDataAction,
-    onCloseAction,
-    onRemoveAction,
-}: NodeConfigPanelProps) {
+                                            node,
+                                            updateNodeDataAction,
+                                            onCloseAction,
+                                            onRemoveAction,
+                                        }: NodeConfigPanelProps) {
     const { theme, currentGradient } = useTheme()
     const [localData, setLocalData] = useState<NodeData>({ ...node.data })
     const isDark = theme === "dark"
@@ -80,9 +96,7 @@ export default function NodeConfigPanel({
     const helperTextColor = isDark ? "rgba(148,163,184,0.75)" : "rgba(100,116,139,0.85)"
 
     const getFieldStyles = (alpha = 0.55) => ({
-        background: isDark
-            ? `rgba(17, 24, 39, ${alpha})`
-            : `rgba(255, 255, 255, ${Math.min(0.96, 0.78 + alpha * 0.35)})`,
+        background: isDark ? `rgba(17, 24, 39, ${alpha})` : `rgba(255, 255, 255, ${Math.min(0.96, 0.78 + alpha * 0.35)})`,
         borderColor: toRgba(accentHex, isDark ? 0.32 : 0.18),
         color: isDark ? "#e2e8f0" : "#0f172a",
         boxShadow: `0 14px 28px ${toRgba(accentHex, isDark ? 0.22 : 0.14)}`,
@@ -321,10 +335,7 @@ export default function NodeConfigPanel({
 
                         <div className="space-y-2">
                             <Label htmlFor="code">Código</Label>
-                            <div
-                                className="rounded-xl border p-3"
-                                style={getFieldStyles(0.48)}
-                            >
+                            <div className="rounded-xl border p-3" style={getFieldStyles(0.48)}>
                                 <CodeEditor
                                     value={
                                         localData.code ||
@@ -356,100 +367,265 @@ export default function NodeConfigPanel({
                     </div>
                 )
 
-            case "options":
-                {
-                    const optionsToRender =
-                        localData.options && localData.options.length > 0
-                            ? localData.options
-                            : [{ text: "Opção 1", digit: "1" }]
+            case "options": {
+                const optionsToRender =
+                    localData.options && localData.options.length > 0 ? localData.options : [{ text: "Opção 1", digit: "1" }]
 
-                    return (
+                return (
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="message">Mensagem</Label>
+                            <Textarea
+                                id="message"
+                                value={localData.message || ""}
+                                onChange={(e) => handleChange("message", e.target.value)}
+                                className="h-36 resize-none rounded-xl border px-3 py-3 text-sm shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                style={getFieldStyles()}
+                                placeholder="Digite a mensagem que será exibida com as opções..."
+                            />
+                            <p className="text-xs" style={{ color: helperTextColor }}>
+                                Apresente instruções claras antes de listar as escolhas disponíveis.
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <Label>Configurar Opções</Label>
+                                <span className="text-xs" style={{ color: helperTextColor }}>
+                  Até 10 opções são suportadas
+                </span>
+                            </div>
+
+                            {optionsToRender.map((option, index) => (
+                                <div
+                                    key={index}
+                                    className="flex flex-col gap-3 rounded-xl border p-3 shadow-sm md:flex-row md:items-center"
+                                    style={getFieldStyles(0.48)}
+                                >
+                                    <div className="flex items-center gap-2">
+                    <span
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold"
+                        style={{
+                            background: toRgba(accentHex, isDark ? 0.28 : 0.15),
+                            color: isDark ? "#e0f2fe" : "#1f2937",
+                        }}
+                    >
+                      {index + 1}
+                    </span>
+                                        <Input
+                                            value={option.text || ""}
+                                            onChange={(e) => {
+                                                const newOptions = optionsToRender.map((existingOption, existingIndex) =>
+                                                    existingIndex === index ? { ...existingOption, text: e.target.value } : existingOption,
+                                                )
+                                                handleChange("options", newOptions)
+                                            }}
+                                            placeholder="Texto da opção"
+                                            className="flex-1 rounded-xl border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                            style={getFieldStyles(0.5)}
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center gap-2 md:w-32">
+                                        <Input
+                                            value={option.digit || ""}
+                                            onChange={(e) => {
+                                                const newOptions = optionsToRender.map((existingOption, existingIndex) =>
+                                                    existingIndex === index ? { ...existingOption, digit: e.target.value } : existingOption,
+                                                )
+                                                handleChange("options", newOptions)
+                                            }}
+                                            placeholder="Dígito"
+                                            className="w-full rounded-xl border px-3 py-2 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                            style={getFieldStyles(0.5)}
+                                        />
+
+                                        {index > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => {
+                                                    const newOptions = optionsToRender.filter((_, i) => i !== index)
+                                                    handleChange("options", newOptions)
+                                                }}
+                                                className="h-9 w-9 rounded-xl"
+                                                style={{
+                                                    background: isDark ? "rgba(239,68,68,0.15)" : "rgba(254,226,226,0.95)",
+                                                    color: "#ef4444",
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    const nextIndex = optionsToRender.length + 1
+                                    const newOptions = [
+                                        ...optionsToRender,
+                                        {
+                                            text: `Opção ${nextIndex}`,
+                                            digit: `${nextIndex}`,
+                                        },
+                                    ]
+                                    handleChange("options", newOptions)
+                                }}
+                                className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold shadow-lg transition-transform hover:scale-[1.01]"
+                                style={{
+                                    background: `linear-gradient(135deg, ${toRgba(accentHex, 0.6)}, ${toRgba(secondaryHex, 0.55)})`,
+                                    color: "#ffffff",
+                                    boxShadow: `0 18px 36px ${toRgba(accentHex, isDark ? 0.35 : 0.25)}`,
+                                }}
+                            >
+                                + Adicionar opção
+                            </Button>
+                        </div>
+                    </div>
+                )
+            }
+
+            case "agendamento": {
+                const slotsToRender =
+                    localData.availableSlots && localData.availableSlots.length > 0
+                        ? localData.availableSlots
+                        : [{ id: "slot-1", time: "09:00", date: "", available: true }]
+
+                return (
+                    <div className="space-y-5">
+                        <div className="space-y-3">
+                            <Label
+                                htmlFor="message"
+                                className="text-base font-semibold"
+                                style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+                            >
+                                Mensagem Inicial
+                            </Label>
+                            <Textarea
+                                id="message"
+                                value={localData.message || ""}
+                                onChange={(e) => handleChange("message", e.target.value)}
+                                className="h-28 resize-none rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                style={{
+                                    ...getFieldStyles(),
+                                    color: isDark ? "#f1f5f9" : "#0f172a",
+                                }}
+                                placeholder="Deseja agendar um horário?"
+                            />
+                            <p className="text-xs leading-relaxed" style={{ color: helperTextColor }}>
+                                Mensagem exibida ao usuário quando chegar neste nó.
+                            </p>
+                        </div>
+
                         <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="message">Mensagem</Label>
-                                <Textarea
-                                    id="message"
-                                    value={localData.message || ""}
-                                    onChange={(e) => handleChange("message", e.target.value)}
-                                    className="h-36 resize-none rounded-xl border px-3 py-3 text-sm shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
-                                    style={getFieldStyles()}
-                                    placeholder="Digite a mensagem que será exibida com as opções..."
-                                />
-                                <p className="text-xs" style={{ color: helperTextColor }}>
-                                    Apresente instruções claras antes de listar as escolhas disponíveis.
-                                </p>
+                            <div className="flex items-center justify-between">
+                                <Label className="text-base font-semibold" style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}>
+                                    Horários Disponíveis
+                                </Label>
+                                <span
+                                    className="text-xs font-medium px-3 py-1 rounded-full"
+                                    style={{
+                                        background: toRgba(accentHex, isDark ? 0.2 : 0.12),
+                                        color: isDark ? "#e0f2fe" : "#0f172a",
+                                    }}
+                                >
+                  Configure os horários
+                </span>
                             </div>
 
                             <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <Label>Configurar Opções</Label>
-                                    <span className="text-xs" style={{ color: helperTextColor }}>
-                                        Até 10 opções são suportadas
-                                    </span>
-                                </div>
-
-                                {optionsToRender.map((option, index) => (
+                                {slotsToRender.map((slot: any, index: number) => (
                                     <div
                                         key={index}
-                                        className="flex flex-col gap-3 rounded-xl border p-3 shadow-sm md:flex-row md:items-center"
-                                        style={getFieldStyles(0.48)}
+                                        className="flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
+                                        style={{
+                                            ...getFieldStyles(0.48),
+                                            borderWidth: "1.5px",
+                                        }}
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <span
-                                                className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold"
-                                                style={{
-                                                    background: toRgba(accentHex, isDark ? 0.28 : 0.15),
-                                                    color: isDark ? "#e0f2fe" : "#1f2937",
-                                                }}
-                                            >
-                                                {index + 1}
-                                            </span>
-                                            <Input
-                                                value={option.text || ""}
-                                                onChange={(e) => {
-                                                    const newOptions = optionsToRender.map((existingOption, existingIndex) =>
-                                                        existingIndex === index
-                                                            ? { ...existingOption, text: e.target.value }
-                                                            : existingOption,
-                                                    )
-                                                    handleChange("options", newOptions)
-                                                }}
-                                                placeholder="Texto da opção"
-                                                className="flex-1 rounded-xl border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
-                                                style={getFieldStyles(0.5)}
-                                            />
-                                        </div>
-
-                                        <div className="flex items-center gap-2 md:w-32">
-                                            <Input
-                                                value={option.digit || ""}
-                                                onChange={(e) => {
-                                                    const newOptions = optionsToRender.map((existingOption, existingIndex) =>
-                                                        existingIndex === index
-                                                            ? { ...existingOption, digit: e.target.value }
-                                                            : existingOption,
-                                                    )
-                                                    handleChange("options", newOptions)
-                                                }}
-                                                placeholder="Dígito"
-                                                className="w-full rounded-xl border px-3 py-2 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
-                                                style={getFieldStyles(0.5)}
-                                            />
+                                        <div className="flex items-center gap-3">
+                      <span
+                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-sm"
+                          style={{
+                              background: toRgba(accentHex, isDark ? 0.35 : 0.2),
+                              color: isDark ? "#f0f9ff" : "#0c4a6e",
+                          }}
+                      >
+                        {index + 1}
+                      </span>
+                                            <div className="flex flex-1 flex-col gap-3">
+                                                <div className="flex-1">
+                                                    <Label
+                                                        htmlFor={`time-${index}`}
+                                                        className="text-sm font-semibold mb-2 block"
+                                                        style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+                                                    >
+                                                        Horário
+                                                    </Label>
+                                                    <Input
+                                                        id={`time-${index}`}
+                                                        type="time"
+                                                        value={slot.time || ""}
+                                                        onChange={(e) => {
+                                                            const newSlots = slotsToRender.map((existingSlot: any, existingIndex: number) =>
+                                                                existingIndex === index ? { ...existingSlot, time: e.target.value } : existingSlot,
+                                                            )
+                                                            handleChange("availableSlots", newSlots)
+                                                        }}
+                                                        className="rounded-xl border px-4 py-3 text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 w-full"
+                                                        style={{
+                                                            ...getFieldStyles(0.5),
+                                                            color: isDark ? "#f1f5f9" : "#0f172a",
+                                                            fontSize: "16px",
+                                                            minHeight: "48px",
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <Label
+                                                        htmlFor={`date-${index}`}
+                                                        className="text-sm font-semibold mb-2 block"
+                                                        style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+                                                    >
+                                                        Data
+                                                    </Label>
+                                                    <Input
+                                                        id={`date-${index}`}
+                                                        type="date"
+                                                        value={slot.date || ""}
+                                                        onChange={(e) => {
+                                                            const newSlots = slotsToRender.map((existingSlot: any, existingIndex: number) =>
+                                                                existingIndex === index ? { ...existingSlot, date: e.target.value } : existingSlot,
+                                                            )
+                                                            handleChange("availableSlots", newSlots)
+                                                        }}
+                                                        className="rounded-xl border px-4 py-3 text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 w-full"
+                                                        style={{
+                                                            ...getFieldStyles(0.5),
+                                                            color: isDark ? "#f1f5f9" : "#0f172a",
+                                                            fontSize: "16px",
+                                                            minHeight: "48px",
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
 
                                             {index > 0 && (
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => {
-                                                        const newOptions = optionsToRender.filter((_, i) => i !== index)
-                                                        handleChange("options", newOptions)
+                                                        const newSlots = slotsToRender.filter((_: any, i: number) => i !== index)
+                                                        handleChange("availableSlots", newSlots)
                                                     }}
-                                                    className="h-9 w-9 rounded-xl"
+                                                    className="h-9 w-9 flex-shrink-0 rounded-xl transition-all hover:scale-105"
                                                     style={{
-                                                        background: isDark
-                                                            ? "rgba(239,68,68,0.15)"
-                                                            : "rgba(254,226,226,0.95)",
+                                                        background: isDark ? "rgba(239,68,68,0.2)" : "rgba(254,226,226,0.98)",
                                                         color: "#ef4444",
+                                                        border: "1.5px solid rgba(248,113,113,0.4)",
                                                     }}
                                                 >
                                                     <X className="h-4 w-4" />
@@ -458,33 +634,106 @@ export default function NodeConfigPanel({
                                         </div>
                                     </div>
                                 ))}
-
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => {
-                                        const nextIndex = optionsToRender.length + 1
-                                        const newOptions = [
-                                            ...optionsToRender,
-                                            {
-                                                text: `Opção ${nextIndex}`,
-                                                digit: `${nextIndex}`,
-                                            },
-                                        ]
-                                        handleChange("options", newOptions)
-                                    }}
-                                    className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold shadow-lg transition-transform hover:scale-[1.01]"
-                                    style={{
-                                        background: `linear-gradient(135deg, ${toRgba(accentHex, 0.6)}, ${toRgba(secondaryHex, 0.55)})`,
-                                        color: "#ffffff",
-                                        boxShadow: `0 18px 36px ${toRgba(accentHex, isDark ? 0.35 : 0.25)}`,
-                                    }}
-                                >
-                                    + Adicionar opção
-                                </Button>
                             </div>
+
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    const nextIndex = slotsToRender.length + 1
+                                    const newSlots = [
+                                        ...slotsToRender,
+                                        {
+                                            id: `slot-${nextIndex}`,
+                                            time: "09:00",
+                                            date: "",
+                                            available: true,
+                                        },
+                                    ]
+                                    handleChange("availableSlots", newSlots)
+                                }}
+                                className="w-full rounded-xl px-4 py-3 text-sm font-bold shadow-lg transition-all hover:scale-[1.02]"
+                                style={{
+                                    background: `linear-gradient(135deg, ${toRgba(accentHex, 0.7)}, ${toRgba(secondaryHex, 0.6)})`,
+                                    color: "#ffffff",
+                                    boxShadow: `0 20px 40px ${toRgba(accentHex, isDark ? 0.4 : 0.3)}`,
+                                }}
+                            >
+                                + Adicionar horário
+                            </Button>
                         </div>
-                    )
-                }
+
+                        <div className="space-y-3">
+                            <Label
+                                htmlFor="confirmationMessage"
+                                className="text-base font-semibold"
+                                style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+                            >
+                                Mensagem de Confirmação
+                            </Label>
+                            <Textarea
+                                id="confirmationMessage"
+                                value={localData.confirmationMessage || ""}
+                                onChange={(e) => handleChange("confirmationMessage", e.target.value)}
+                                className="h-24 resize-none rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                style={{
+                                    ...getFieldStyles(),
+                                    color: isDark ? "#f1f5f9" : "#0f172a",
+                                }}
+                                placeholder="Agendamento confirmado! Seu código é: {code}"
+                            />
+                            <p className="text-xs leading-relaxed" style={{ color: helperTextColor }}>
+                                Use{" "}
+                                <span className="font-mono font-semibold" style={{ color: isDark ? "#a5f3fc" : "#0e7490" }}>
+                  {"{code}"}
+                </span>{" "}
+                                para inserir o código de confirmação.
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label
+                                htmlFor="cancellationMessage"
+                                className="text-base font-semibold"
+                                style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+                            >
+                                Mensagem de Cancelamento
+                            </Label>
+                            <Textarea
+                                id="cancellationMessage"
+                                value={localData.cancellationMessage || ""}
+                                onChange={(e) => handleChange("cancellationMessage", e.target.value)}
+                                className="h-24 resize-none rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                style={{
+                                    ...getFieldStyles(),
+                                    color: isDark ? "#f1f5f9" : "#0f172a",
+                                }}
+                                placeholder="Agendamento cancelado com sucesso."
+                            />
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label
+                                htmlFor="noSlotsMessage"
+                                className="text-base font-semibold"
+                                style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+                            >
+                                Mensagem Sem Horários
+                            </Label>
+                            <Textarea
+                                id="noSlotsMessage"
+                                value={localData.noSlotsMessage || ""}
+                                onChange={(e) => handleChange("noSlotsMessage", e.target.value)}
+                                className="h-24 resize-none rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                style={{
+                                    ...getFieldStyles(),
+                                    color: isDark ? "#f1f5f9" : "#0f172a",
+                                }}
+                                placeholder="Desculpe, não há horários disponíveis no momento."
+                            />
+                        </div>
+                    </div>
+                )
+            }
 
             case "finalizar":
                 return (
@@ -617,8 +866,8 @@ export default function NodeConfigPanel({
                             ID do Componente
                         </Label>
                         <span className="text-xs" style={{ color: helperTextColor }}>
-                            Somente leitura
-                        </span>
+              Somente leitura
+            </span>
                     </div>
                     <div className="mt-3 flex items-center gap-2">
                         <Input

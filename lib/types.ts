@@ -37,6 +37,23 @@ export interface NodeData {
         digit?: string
     }>
 
+    /** Horários disponíveis para agendamento */
+    availableSlots?: Array<{
+        id: string
+        time: string
+        date?: string
+        available: boolean
+    }>
+
+    /** Mensagem de confirmação de agendamento */
+    confirmationMessage?: string
+
+    /** Mensagem de cancelamento */
+    cancellationMessage?: string
+
+    /** Mensagem quando não há horários disponíveis */
+    noSlotsMessage?: string
+
     /* -----------------------------------------------------
      * 🧠 Propriedades específicas por tipo de nó
      * --------------------------------------------------- */

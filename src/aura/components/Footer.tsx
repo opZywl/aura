@@ -27,7 +27,7 @@ const Footer = () => {
         { name: "Mateus Delucas Theobald", href: "https://mateustheobald.github.io/" },
         { name: "Rhyan Yassin Freitas Ahmad", href: "https://rhyan019.github.io/" },
         {
-            name: "Profa. Dra. Adriana Aparecida Carnevalli Demetrio",
+            name: "Adriana Aparecida Carnevalli Demetrio",
             role: "Orientadora",
         },
     ]

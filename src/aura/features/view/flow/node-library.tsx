@@ -9,10 +9,10 @@ import {
     GitBranch,
     Code,
     CheckCircle,
-    MousePointer2,
     Sparkles,
     HelpCircle,
     ExternalLink,
+    Calendar,
 } from "lucide-react"
 import { useTheme } from "../homePanels/ThemeContext"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -30,6 +30,12 @@ const nodeTypes = [
         label: "Opções",
         icon: List,
         description: "Apresenta opções ao usuário",
+    },
+    {
+        type: "agendamento",
+        label: "Agendamento",
+        icon: Calendar,
+        description: "Sistema de agendamento com códigos",
     },
     {
         type: "process",
@@ -172,26 +178,25 @@ export default function NodeLibrary() {
             <div
                 className="flex flex-col relative rounded-xl"
                 style={{
-                    background: isDark
-                        ? `linear-gradient(135deg, ${getPrimaryColor()}20 0%, ${getSecondaryColor()}15 50%, ${getPrimaryColor()}20 100%)`
-                        : `linear-gradient(135deg, ${getPrimaryColor()}10 0%, ${getSecondaryColor()}08 50%, ${getPrimaryColor()}10 100%)`,
-                    backdropFilter: "blur(20px)",
-                    ...getContainerGlowStyle(),
+                    background: "transparent",
+                    backdropFilter: "blur(10px)",
+                    border: isDark ? `1px solid ${getPrimaryColor()}20` : `1px solid ${getPrimaryColor()}15`,
+                    boxShadow: isDark ? `0 4px 12px ${getPrimaryColor()}10` : `0 4px 12px ${getPrimaryColor()}08`,
                 }}
             >
                 {/* Animated Background Gradient */}
                 <div
-                    className="absolute inset-0 opacity-20 animate-pulse rounded-xl"
+                    className="absolute inset-0 opacity-10 animate-pulse rounded-xl"
                     style={{
-                        background: `linear-gradient(135deg, ${getPrimaryColor()}40, ${getSecondaryColor()}40)`,
+                        background: `linear-gradient(135deg, ${getPrimaryColor()}20, ${getSecondaryColor()}20)`,
                         filter: "blur(40px)",
                     }}
                 />
 
                 {/* Header */}
                 <div className="relative z-10 px-4 py-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-center justify-center mb-3">
+                        <div className="flex items-center gap-3 mb-2">
                             <div
                                 className="p-2 rounded-xl transition-all duration-300"
                                 style={{
@@ -212,17 +217,10 @@ export default function NodeLibrary() {
                                 Componentes
                             </h3>
                         </div>
-                        <MousePointer2
-                            className={`h-4 w-4 animate-pulse`}
-                            style={{
-                                ...getGlowStyle(0.3),
-                                color: isDark ? `${getPrimaryColor()}80` : `${getPrimaryColor()}60`,
-                            }}
-                        />
                     </div>
 
                     <p
-                        className={`text-sm font-medium`}
+                        className={`text-sm font-medium text-center`}
                         style={{
                             ...getGlowStyle(0.2),
                             color: isDark ? `${getPrimaryColor()}cc` : `${getPrimaryColor()}99`,
@@ -230,6 +228,7 @@ export default function NodeLibrary() {
                     >
                         Arraste os componentes para o canvas
                     </p>
+                    {/* </CHANGE> */}
                 </div>
 
                 <div className="relative z-10 px-3 py-2">
