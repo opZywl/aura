@@ -14,6 +14,7 @@ import {
     Upload,
     Download,
     Calendar,
+    Users,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -49,7 +50,7 @@ const typeIcons: Record<string, LucideIcon> = {
     sendMessage: Send,
     options: List,
     agendamento: Calendar,
-    // </CHANGE>
+    agentes: Users,
     process: Settings,
     conditional: GitBranch,
     code: Code,
@@ -71,6 +72,7 @@ const getNodeTypeName = (type: string): string => {
         sendMessage: "Enviar Mensagem",
         options: "Opções",
         agendamento: "Agendamento",
+        agentes: "Agentes",
         process: "Processar",
         conditional: "Condicional",
         code: "Código",
@@ -734,6 +736,100 @@ export default function NodeConfigPanel({
                     </div>
                 )
             }
+
+            case "agentes":
+                return (
+                    <div className="space-y-5">
+                        <div className="space-y-3">
+                            <Label
+                                htmlFor="handoffMessage"
+                                className="text-base font-semibold"
+                                style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+                            >
+                                Mensagem de Transferência
+                            </Label>
+                            <Textarea
+                                id="handoffMessage"
+                                value={localData.handoffMessage || ""}
+                                onChange={(e) => handleChange("handoffMessage", e.target.value)}
+                                className="h-28 resize-none rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                style={{
+                                    ...getFieldStyles(),
+                                    color: isDark ? "#f1f5f9" : "#0f172a",
+                                }}
+                                placeholder="Encaminhando para o operador disponível... Por favor aguarde."
+                            />
+                            <p className="text-xs leading-relaxed" style={{ color: helperTextColor }}>
+                                Mensagem exibida ao usuário quando a conversa é transferida para um operador humano.
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label
+                                htmlFor="noAgentMessage"
+                                className="text-base font-semibold"
+                                style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+                            >
+                                Mensagem Sem Operador
+                            </Label>
+                            <Textarea
+                                id="noAgentMessage"
+                                value={localData.noAgentMessage || ""}
+                                onChange={(e) => handleChange("noAgentMessage", e.target.value)}
+                                className="h-24 resize-none rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                style={{
+                                    ...getFieldStyles(),
+                                    color: isDark ? "#f1f5f9" : "#0f172a",
+                                }}
+                                placeholder="Desculpe, nenhum operador está disponível no momento. Por favor, tente novamente mais tarde."
+                            />
+                            <p className="text-xs leading-relaxed" style={{ color: helperTextColor }}>
+                                Mensagem exibida quando não há operadores disponíveis para atender.
+                            </p>
+                        </div>
+
+                        <div
+                            className="p-4 rounded-xl border"
+                            style={{
+                                background: isDark ? "rgba(245,158,11,0.1)" : "rgba(245,158,11,0.05)",
+                                borderColor: isDark ? "rgba(245,158,11,0.3)" : "rgba(245,158,11,0.2)",
+                            }}
+                        >
+                            <div className="text-sm font-semibold mb-2" style={{ color: isDark ? "#fbbf24" : "#d97706" }}>
+                                Funcionamento do Nó Agentes:
+                            </div>
+                            <ul className="text-xs space-y-2" style={{ color: isDark ? "#d4d4d8" : "#52525b" }}>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-amber-500 font-bold">•</span>
+                                    <span>
+                    Todas as mensagens do operador aparecem em <strong>negrito</strong>
+                  </span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-amber-500 font-bold">•</span>
+                                    <span>O bot para de responder automaticamente</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-amber-500 font-bold">•</span>
+                                    <span>
+                    Operador digita{" "}
+                                        <code
+                                            className="px-1 py-0.5 rounded"
+                                            style={{ background: isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.1)" }}
+                                        >
+                      /finalizar
+                    </code>{" "}
+                                        para encerrar
+                  </span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-amber-500 font-bold">•</span>
+                                    <span>Após encerrar, o fluxo reinicia do início</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                )
 
             case "finalizar":
                 return (

@@ -31,6 +31,7 @@ import { CodeNode } from "./nodes/code-node"
 import { StartNode } from "./nodes/start-node"
 import { FinalizarNode } from "./nodes/finalizar-node"
 import { AgendamentoNode } from "./nodes/agendamento-node" // Import AgendamentoNode
+import { AgentesNode } from "./nodes/agentes-node" // Import AgentesNode
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode } from "@/lib/types"
 import { useTheme } from "../homePanels/ThemeContext"
@@ -55,6 +56,13 @@ const nodeTypes: NodeTypes = {
     ),
     agendamento: (props) => (
         <AgendamentoNode
+            {...props}
+            onRemove={() => removeNodeById(props.id)}
+            onUpdateData={(data) => updateNodeDataById(props.id, data)}
+        />
+    ),
+    agentes: (props) => (
+        <AgentesNode
             {...props}
             onRemove={() => removeNodeById(props.id)}
             onUpdateData={(data) => updateNodeDataById(props.id, data)}
@@ -591,7 +599,7 @@ function WorkflowBuilderInner({
             return
         }
         // Only open config panel for agendamento and finalizar nodes
-        if (node.type === "agendamento" || node.type === "finalizar") {
+        if (node.type === "agendamento" || node.type === "finalizar" || node.type === "agentes") {
             setSelectedNode(node)
         }
     }, [])
@@ -602,7 +610,7 @@ function WorkflowBuilderInner({
             event.stopPropagation()
 
             // Only open modal on double-click for agendamento and finalizar only
-            if (node.type === "agendamento" || node.type === "finalizar") {
+            if (node.type === "agendamento" || node.type === "finalizar" || node.type === "agentes") {
                 setSelectedNode(node)
             }
         },
@@ -1170,6 +1178,8 @@ function WorkflowBuilderInner({
                             return "#8B5CF6"
                         case "finalizar":
                             return "#EF4444"
+                        case "agentes":
+                            return "#F64F59"
                         default:
                             return currentGradient.secondary
                     }

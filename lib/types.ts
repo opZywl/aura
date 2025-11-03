@@ -54,6 +54,12 @@ export interface NodeData {
     /** Mensagem quando não há horários disponíveis */
     noSlotsMessage?: string
 
+    /** Mensagem de transferência para agente */
+    handoffMessage?: string
+
+    /** Mensagem quando nenhum agente está disponível */
+    noAgentMessage?: string
+
     /* -----------------------------------------------------
      * 🧠 Propriedades específicas por tipo de nó
      * --------------------------------------------------- */
@@ -99,7 +105,7 @@ export interface NodeData {
 export type WorkflowNode = Node<NodeData>
 
 /**
- * 📙 Workflow
+ * 📗 Workflow
  * Representa o estado completo de um fluxo (nós + conexões).
  */
 export interface Workflow {

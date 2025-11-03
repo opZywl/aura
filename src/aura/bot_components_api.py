@@ -12,6 +12,11 @@ from datetime import datetime, timezone, timedelta
 import random
 import string
 
+from src.aura.chatbot.agent_manager import agent_manager
+# The following imports are not directly used in this file but might be needed by other modules.
+# from src.aura.chatbot.chatbot import Chatbot
+# from src.aura.chatbot.booking_manager import BookingManager
+
 logger = logging.getLogger(__name__)
 
 # Timezone Brasil
@@ -31,6 +36,8 @@ class NodeData:
     confirmationMessage: Optional[str] = None
     cancellationMessage: Optional[str] = None
     noSlotsMessage: Optional[str] = None
+    agentId: Optional[str] = None
+    initialMessage: Optional[str] = None
 
 @dataclass
 class FlowNode:
@@ -98,7 +105,9 @@ def parse_workflow_data(workflow_data: Dict) -> Tuple[List[FlowNode], List[FlowE
                 availableSlots=node_raw.get("data", {}).get("availableSlots", []),
                 confirmationMessage=node_raw.get("data", {}).get("confirmationMessage"),
                 cancellationMessage=node_raw.get("data", {}).get("cancellationMessage"),
-                noSlotsMessage=node_raw.get("data", {}).get("noSlotsMessage")
+                noSlotsMessage=node_raw.get("data", {}).get("noSlotsMessage"),
+                agentId=node_raw.get("data", {}).get("agentId"),
+                initialMessage=node_raw.get("data", {}).get("initialMessage")
             )
 
             node = FlowNode(
@@ -308,9 +317,45 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
     Retorna uma lista de mensagens para enviar sequencialmente
     """
     try:
+        # from src.aura.chatbot.chatbot import Chatbot # Not used directly in this function
         from src.aura.chatbot.booking_manager import booking_manager
+        # from src.aura.chatbot.agent_manager import agent_manager # Already imported at the top
 
         logger.info(f"Processando mensagem de {user_id}: '{message}'")
+
+        if agent_manager.is_agent_session_active(user_id):
+            # Usuário está em atendimento com operador
+            # Verificar se é comando do operador
+            if message.strip().lower() == "/finalizar":
+                # Operador finalizou o atendimento
+                agent_manager.end_agent_session(user_id)
+
+                # Resetar o chatbot para começar do início
+                # Assuming chatbot instance is available globally or passed as parameter
+                # For now, we'll just reset the execution state
+                reset_conversation(user_id, workflow_id) # This effectively resets the bot's context
+
+                return {
+                    "success": True,
+                    "messages": [{
+                        "text": "Atendimento finalizado. Obrigado por entrar em contato!",
+                        "options": []
+                    }],
+                    "requires_input": False,
+                    "is_final": True
+                }
+            else:
+                # Mensagem do usuário durante atendimento com operador
+                # Não processar com bot, apenas retornar sucesso
+                # (o operador verá a mensagem e responderá manualmente)
+                # The message will be handled by the agent_manager directly.
+                # We just need to acknowledge receipt by the system.
+                return {
+                    "success": True,
+                    "messages": [], # No bot messages to send
+                    "requires_input": False, # Bot is not waiting for input
+                    "is_final": False
+                }
 
         # Verificar se há execução ativa
         execution = get_execution(user_id, workflow_id)
@@ -351,6 +396,170 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
         nodes: List[FlowNode] = workflow["nodes"]
         messages_to_send = []
+        requires_input = False
+        is_final = False
+        node_type = None # To keep track of current node type
+
+        if execution.current_node_id:
+            current_node = next((n for n in nodes if n.id == execution.current_node_id), None)
+            if current_node and current_node.type == "agent":
+                agent_id = current_node.data.agentId
+
+                if not agent_id:
+                    return {
+                        "success": False,
+                        "messages": [{
+                            "text": "Erro: Agente não configurado.",
+                            "options": []
+                        }],
+                        "requires_input": False,
+                        "is_final": True
+                    }
+
+                # Process message with agent
+                response = agent_manager.process_message(agent_id, user_id, message)
+
+                if not response.get("success"):
+                    error_msg = response.get("error", "Erro ao processar mensagem com agente")
+                    return {
+                        "success": True,
+                        "messages": [{
+                            "text": f"❌ {error_msg}",
+                            "options": []
+                        }],
+                        "requires_input": False, # Bot is not waiting, agent is
+                        "is_final": False
+                    }
+
+                agent_message = response.get("message", "")
+
+                messages_to_send.append({
+                    "text": agent_message,
+                    "options": []
+                })
+
+                execution.conversation_history.append({
+                    "role": "assistant",
+                    "content": agent_message,
+                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                })
+
+                # Check if agent conversation is complete
+                if response.get("is_complete"):
+                    execution.waiting_for_input = False
+
+                    # Move to next node
+                    next_node = find_next_node(workflow_id, current_node.id)
+                    if next_node:
+                        execution.current_node_id = next_node.id
+                        # Continue processing from next node
+                        current_node = next_node
+                        while current_node:
+                            logger.info(f"Processando nó: {current_node.id} ({current_node.type})")
+
+                            if current_node.type == "sendMessage":
+                                msg_text = current_node.data.message or "Mensagem não configurada"
+                                messages_to_send.append({
+                                    "text": msg_text,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": msg_text,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
+
+                            elif current_node.type == "options":
+                                msg_text = current_node.data.message or "Escolha uma opção:"
+                                options = current_node.data.options or []
+
+                                if options:
+                                    options_text = "\n\n" + "\n".join([f"{i+1}. {opt.get('text', '')}"for i, opt in enumerate(options)])
+                                    full_message = msg_text + options_text
+                                else:
+                                    full_message = msg_text
+
+                                messages_to_send.append({
+                                    "text": full_message,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": full_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                execution.current_node_id = current_node.id
+                                execution.waiting_for_input = True
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False
+                                }
+
+                            elif current_node.type == "finalizar":
+                                msg_text = current_node.data.finalMessage or current_node.data.message or ""
+
+                                if msg_text.strip():
+                                    messages_to_send.append({
+                                        "text": msg_text,
+                                        "options": []
+                                    })
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": msg_text,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                    })
+
+                                reset_conversation(user_id, workflow_id)
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": False,
+                                    "is_final": True,
+                                    "archive_conversation": True
+                                }
+
+                            else:
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
+
+                        # End of flow
+                        reset_conversation(user_id, workflow_id)
+                        return {
+                            "success": True,
+                            "messages": messages_to_send,
+                            "requires_input": False,
+                            "is_final": True,
+                            "archive_conversation": True
+                        }
+                    else:
+                        reset_conversation(user_id, workflow_id)
+                        return {
+                            "success": True,
+                            "messages": messages_to_send,
+                            "requires_input": False,
+                            "is_final": True,
+                            "archive_conversation": True
+                        }
+
+                # Continue agent conversation
+                return {
+                    "success": True,
+                    "messages": messages_to_send,
+                    "requires_input": True, # Bot is not waiting, agent is
+                    "is_final": False,
+                    "node_type": "agent"
+                }
 
         # Se não há nó atual, começar pelo START
         if not execution.current_node_id:
@@ -427,6 +636,60 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "messages": messages_to_send,
                         "requires_input": True,
                         "is_final": False
+                    }
+
+                elif current_node.type == "agent":
+                    agent_id = current_node.data.agentId
+                    initial_message = current_node.data.initialMessage or "Olá! Como posso ajudar você?"
+
+                    if not agent_id:
+                        messages_to_send.append({
+                            "text": "Erro: Agente não configurado.",
+                            "options": []
+                        })
+                        return {
+                            "success": False,
+                            "messages": messages_to_send,
+                            "requires_input": False,
+                            "is_final": True
+                        }
+
+                    # Initialize agent conversation
+                    init_response = agent_manager.initialize_conversation(agent_id, user_id)
+
+                    if not init_response.get("success"):
+                        error_msg = init_response.get("error", "Erro ao inicializar agente")
+                        messages_to_send.append({
+                            "text": f"❌ {error_msg}",
+                            "options": []
+                        })
+                        return {
+                            "success": False,
+                            "messages": messages_to_send,
+                            "requires_input": False,
+                            "is_final": True
+                        }
+
+                    messages_to_send.append({
+                        "text": initial_message,
+                        "options": []
+                    })
+
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": initial_message,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                    })
+
+                    execution.waiting_for_input = True
+                    logger.info(f"Aguardando input do usuário no nó de agente: {current_node.id}")
+
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": True,
+                        "is_final": False,
+                        "node_type": "agent"
                     }
 
                 elif current_node.type == "agendamento":
@@ -525,6 +788,33 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "requires_input": False,
                         "is_final": True,
                         "archive_conversation": True
+                    }
+
+                elif current_node.type == "agentes":
+                    initial_message = current_node.data.initialMessage or "Encaminhando para o operador disponível... Por favor aguarde."
+
+                    # Iniciar sessão de agente
+                    agent_manager.start_agent_session(user_id, current_node.id)
+
+                    # Enviar mensagem de transferência
+                    messages_to_send.append({
+                        "text": initial_message,
+                        "options": []
+                    })
+
+                    # Marcar que não requer mais input do bot (operador vai responder)
+                    execution.waiting_for_input = False # Bot is no longer waiting for user input
+                    is_final = False  # Not final, but bot stops processing user messages
+
+                    logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
+
+                    # Since the bot is done processing this turn and handing over to an agent,
+                    # we should return the current messages and indicate no further bot input is needed.
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": False, # Bot is not waiting for input from the user
+                        "is_final": False # The conversation is not over, but handed off.
                     }
 
                 else:
@@ -895,7 +1185,16 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     msg_text = current_node.data.message or "Deseja agendar um horário?"
                                     available_slots = current_node.data.availableSlots or []
 
-                                    if not available_slots:
+                                    # Filter out booked slots
+                                    filtered_slots = []
+                                    for slot in available_slots:
+                                        if slot.get("available", False):
+                                            time = slot.get("time", "")
+                                            date = slot.get("date", "")
+                                            if not booking_manager.is_slot_booked(time, date, workflow_id):
+                                                filtered_slots.append(slot)
+
+                                    if not filtered_slots:
                                         no_slots_msg = current_node.data.noSlotsMessage or "Não há horários disponíveis no momento."
                                         messages_to_send.append({
                                             "text": no_slots_msg,
@@ -916,7 +1215,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     slots_text = "\n\nHorários Disponíveis:\n"
                                     slot_number = 1
                                     for slot in available_slots:
-                                        if slot.get("available", False):
+                                        if slot.get("available", False): # Redundant check, but for clarity
                                             time = slot.get("time", "")
                                             date = slot.get("date", "")
                                             date_str = f" - {date}" if date else ""

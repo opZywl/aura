@@ -13,6 +13,7 @@ import {
     HelpCircle,
     ExternalLink,
     Calendar,
+    Users,
 } from "lucide-react"
 import { useTheme } from "../homePanels/ThemeContext"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -36,6 +37,12 @@ const nodeTypes = [
         label: "Agendamento",
         icon: Calendar,
         description: "Sistema de agendamento com códigos",
+    },
+    {
+        type: "agentes",
+        label: "Agentes",
+        icon: Users,
+        description: "Transfere para operador humano",
     },
     {
         type: "process",

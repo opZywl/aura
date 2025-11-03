@@ -190,6 +190,11 @@ class WorkflowManager:
             if state.waiting_options is None:
                 state.waiting_options = {}
 
+        if state.current_node:
+            current_node = nodes_by_id.get(state.current_node)
+            if current_node and current_node.get("type") == "agent":
+                return self._handle_agent_response(state, current_node, user_text, nodes_by_id, edges)
+
         if state.waiting_scheduling and state.scheduling_node_id:
             scheduling_node = nodes_by_id.get(state.scheduling_node_id)
             if scheduling_node:
@@ -219,6 +224,47 @@ class WorkflowManager:
 
         state.reset()
         return self._process_from_node(state, first_node, nodes_by_id, edges)
+
+    def _handle_agent_response(
+            self,
+            state: ChatState,
+            agent_node: Dict[str, Any],
+            user_text: str,
+            nodes_by_id: Dict[str, Dict[str, Any]],
+            edges: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Handle user response in agent node."""
+
+        from .agent_manager import agent_manager
+
+        node_data = agent_node.get("data", {}) or {}
+        agent_id = node_data.get("agentId")
+
+        if not agent_id:
+            logger.error("Agent node without agentId")
+            return [{"text": "Erro: Agente não configurado."}]
+
+        # Process message with agent
+        response = agent_manager.process_message(agent_id, user_text)
+
+        if not response.get("success"):
+            error_msg = response.get("error", "Erro ao processar mensagem com agente")
+            return [{"text": f"❌ {error_msg}"}]
+
+        # Check if agent conversation is complete
+        if response.get("is_complete"):
+            # Move to next node
+            state.current_node = None
+            next_node = self._next_node(agent_node.get("id"), nodes_by_id, edges)
+
+            if next_node:
+                return [{"text": response.get("message", "")}] + self._process_from_node(state, next_node, nodes_by_id, edges)
+            else:
+                state.reset()
+                return [{"text": response.get("message", ""), "reply_markup": {"remove_keyboard": True}}]
+
+        # Continue agent conversation
+        return [{"text": response.get("message", "")}]
 
     def _handle_scheduling_response(
             self,
@@ -381,6 +427,29 @@ class WorkflowManager:
                     responses.append({"text": message})
                 current = self._next_node(current.get("id"), nodes_by_id, edges)
                 continue
+
+            if node_type == "agent":
+                from .agent_manager import agent_manager
+
+                agent_id = node_data.get("agentId")
+                initial_message = node_data.get("initialMessage") or "Olá! Como posso ajudar você?"
+
+                if not agent_id:
+                    responses.append({"text": "Erro: Agente não configurado."})
+                    return responses
+
+                # Initialize agent conversation
+                init_response = agent_manager.initialize_conversation(agent_id)
+
+                if not init_response.get("success"):
+                    error_msg = init_response.get("error", "Erro ao inicializar agente")
+                    responses.append({"text": f"❌ {error_msg}"})
+                    return responses
+
+                responses.append({"text": initial_message, "reply_markup": {"remove_keyboard": True}})
+
+                state.current_node = current.get("id")
+                return responses
 
             if node_type == "options":
                 options = node_data.get("options", []) or []
