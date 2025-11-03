@@ -59,7 +59,7 @@ export default function TermsPage() {
                 </div>
 
                 <footer className="text-xs text-gray-500">
-                    Última revisão: alinhada à versão do artigo disponibilizada em 2024.
+                    Última revisão: alinhada à versão do artigo disponibilizada em 2025.
                 </footer>
             </div>
         </main>

@@ -20,7 +20,10 @@ type NavItem = {
     gradient: string
     color: string
     isLanguageSelector?: boolean
+    external?: boolean
 }
+
+const ARTICLE_LINK = "https://drive.google.com/drive/folders/aura-projeto"
 
 const navItems: NavItem[] = [
     {
@@ -38,11 +41,12 @@ const navItems: NavItem[] = [
         color: "text-purple-500",
     },
     {
-        name: "Contato",
-        href: "#contato", // garanta que exista <section id="contato" ...>
+        name: "Artigo",
+        href: ARTICLE_LINK,
         gradient:
             "radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(147,51,234,0.06) 50%, rgba(126,34,206,0) 100%)",
         color: "text-purple-500",
+        external: true,
     },
 ]
 
@@ -135,6 +139,8 @@ const Header = ({ onOpenGradientSelector }: HeaderProps) => {
                                         key={item.name}
                                         href={item.href}
                                         onClick={(e) => handleNavItemClick(item, e)}
+                                        target={item.external ? "_blank" : undefined}
+                                        rel={item.external ? "noopener noreferrer" : undefined}
                                         className="px-4 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 relative overflow-hidden group font-modernmono"
                                         whileHover={reducedMotion ? {} : { scale: 1.05 }}
                                     >
@@ -216,6 +222,8 @@ const Header = ({ onOpenGradientSelector }: HeaderProps) => {
                                         href={item.href}
                                         onClick={(e) => handleNavItemClick(item, e)}
                                         className="block py-2 text-gray-300 hover:text-white transition-colors cursor-pointer"
+                                        target={item.external ? "_blank" : undefined}
+                                        rel={item.external ? "noopener noreferrer" : undefined}
                                     >
                                         {item.name}
                                     </a>

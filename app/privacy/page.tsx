@@ -42,7 +42,7 @@ export default function PrivacyPage() {
                 </section>
 
                 <footer className="text-xs text-gray-500">
-                    Última revisão: 2024. Em caso de dúvidas, consulte o repositório público ou a orientadora do projeto.
+                    Última revisão: 2025. Em caso de dúvidas, consulte o repositório público ou a orientadora do projeto.
                 </footer>
             </div>
         </main>
