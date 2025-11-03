@@ -1188,6 +1188,99 @@ def test_archive():
         logger.error(f"Erro no teste de arquivamento: {e}")
         return jsonify({"erro": str(e)}), 500
 
+@app.route('/api/statistics/telegram', methods=['GET'])
+def get_telegram_statistics():
+    """Retorna estatísticas das conversas do Telegram"""
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        logger.info(f"Buscando estatísticas - Start: {start_date}, End: {end_date}")
+
+        # Carregar todas as conversas do disco
+        _load_all_conversations_from_disk()
+
+        statistics = {
+            'total_conversations': 0,
+            'total_messages': 0,
+            'conversations_by_date': {},
+            'messages_by_date': {},
+            'conversations': []
+        }
+
+        with _conversation_lock:
+            for conv_id, conv in _conversations.items():
+                # Filtrar apenas conversas reais (não de bot)
+                if conv.is_bot_conversation:
+                    continue
+
+                # Parse da data de criação
+                try:
+                    created_at = datetime.fromisoformat(conv.createdAt)
+                except:
+                    continue
+
+                # Aplicar filtros de data se fornecidos
+                if start_date:
+                    try:
+                        start_dt = datetime.fromisoformat(start_date)
+                        if created_at < start_dt:
+                            continue
+                    except:
+                        pass
+
+                if end_date:
+                    try:
+                        end_dt = datetime.fromisoformat(end_date)
+                        if created_at > end_dt:
+                            continue
+                    except:
+                        pass
+
+                # Contar conversa
+                statistics['total_conversations'] += 1
+
+                # Agrupar por data
+                date_key = created_at.strftime('%Y-%m-%d')
+                statistics['conversations_by_date'][date_key] = statistics['conversations_by_date'].get(date_key, 0) + 1
+
+                # Contar mensagens
+                message_count = len(conv.messages)
+                statistics['total_messages'] += message_count
+
+                # Agrupar mensagens por data
+                for msg in conv.messages:
+                    try:
+                        msg_date = datetime.fromisoformat(msg.timestamp)
+                        msg_date_key = msg_date.strftime('%Y-%m-%d')
+                        statistics['messages_by_date'][msg_date_key] = statistics['messages_by_date'].get(msg_date_key, 0) + 1
+                    except:
+                        continue
+
+                # Adicionar conversa aos detalhes
+                statistics['conversations'].append({
+                    'id': conv.id,
+                    'title': conv.title,
+                    'createdAt': conv.createdAt,
+                    'lastMessage': conv.lastMessage,
+                    'lastAt': conv.lastAt,
+                    'messageCount': message_count,
+                    'isArchived': conv.isArchived,
+                    'platform': conv.platform
+                })
+
+        # Ordenar conversas por data (mais recentes primeiro)
+        statistics['conversations'].sort(key=lambda x: x['lastAt'], reverse=True)
+
+        logger.info(f"Estatísticas calculadas: {statistics['total_conversations']} conversas, {statistics['total_messages']} mensagens")
+
+        return jsonify(statistics), 200
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar estatísticas: {e}")
+        logger.exception("Stack trace:")
+        return jsonify({"erro": str(e)}), 500
+
 # --- Inicialização ---
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3001))
