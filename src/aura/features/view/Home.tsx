@@ -17,7 +17,6 @@ import AuraFlowBot from "./flow/aura-flow-bot"
 function HomeContent() {
     const isMobile = useMobile()
     const [scrollY, setScrollY] = useState(0)
-    const [mounted, setMounted] = useState(false)
     const { highContrast, reducedMotion } = useSettings()
     const [isCalendarOpen, setIsCalendarOpen] = useState(false)
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
@@ -27,8 +26,30 @@ function HomeContent() {
     const [currentGradient, setCurrentGradient] = useState("url('/grad1.svg')")
 
     useEffect(() => {
-        setMounted(true)
+        if (typeof window === "undefined") {
+            return
+        }
+
+        const savedGradient = window.localStorage.getItem("aura-home-gradient")
+        const gradientToApply = savedGradient || "url('/grad1.svg')"
+
+        setCurrentGradient(gradientToApply)
+        document.documentElement.style.setProperty("--aura-home-gradient", gradientToApply)
     }, [])
+
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return
+        }
+
+        try {
+            window.localStorage.setItem("aura-home-gradient", currentGradient)
+        } catch (error) {
+            console.warn("Não foi possível salvar o gradiente selecionado:", error)
+        }
+
+        document.documentElement.style.setProperty("--aura-home-gradient", currentGradient)
+    }, [currentGradient])
 
     useEffect(() => {
         const handleScroll = () => {
@@ -118,7 +139,9 @@ function HomeContent() {
                 />
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-300"
-                    style={{ backgroundImage: currentGradient }}
+                    style={{
+                        backgroundImage: `var(--aura-home-gradient, ${currentGradient})`,
+                    }}
                 />
                 <div className="absolute inset-0 bg-black/60" />
             </div>
