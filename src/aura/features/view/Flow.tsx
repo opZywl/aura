@@ -35,6 +35,8 @@ import {
     FiFolder,
     FiTrash2,
     FiCamera,
+    FiMousePointer,
+    FiSearch,
 } from "react-icons/fi"
 import { BotIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -43,6 +45,25 @@ import { Avatar } from "@/components/ui/avatar"
 import { motion, AnimatePresence } from "framer-motion"
 import html2canvas from "html2canvas"
 import { toast } from "@/hooks/use-toast"
+
+const extractHexColor = (input?: string, fallback = "#6366f1") => {
+    if (!input) return fallback
+    const match = input.match(/#[0-9a-fA-F]{6}/)
+    return match ? match[0] : fallback
+}
+
+const hexToRgba = (hex: string, alpha = 1) => {
+    const sanitized = hex.replace("#", "")
+    if (sanitized.length !== 6) {
+        return `rgba(99, 102, 241, ${alpha})`
+    }
+
+    const r = Number.parseInt(sanitized.slice(0, 2), 16)
+    const g = Number.parseInt(sanitized.slice(2, 4), 16)
+    const b = Number.parseInt(sanitized.slice(4, 6), 16)
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
 
 // Componente da barra lateral elegante para o flow
 const FlowElegantSidebar = ({ currentGradient, theme }: { currentGradient: any; theme: string }) => {
@@ -94,7 +115,7 @@ const FlowElegantSidebar = ({ currentGradient, theme }: { currentGradient: any; 
 }
 
 // Componente do Indicador de Status com status de execução
-const FlowStatusIndicator = ({ startPosition, mousePosition, componentCount, theme }: any) => {
+const FlowStatusIndicator = ({ startPosition, mousePosition, componentCount, theme, currentGradient }: any) => {
     const isDark = theme === "dark"
     const [isExecuted, setIsExecuted] = useState(false)
 
@@ -103,7 +124,6 @@ const FlowStatusIndicator = ({ startPosition, mousePosition, componentCount, the
         setIsExecuted(executedFlow === "true")
     }, [])
 
-    // Escutar mudanças no localStorage
     useEffect(() => {
         const handleStorageChange = () => {
             const executedFlow = localStorage.getItem("executedFlow")
@@ -111,7 +131,6 @@ const FlowStatusIndicator = ({ startPosition, mousePosition, componentCount, the
         }
 
         window.addEventListener("storage", handleStorageChange)
-        // Também escutar mudanças internas
         const interval = setInterval(handleStorageChange, 1000)
 
         return () => {
@@ -120,96 +139,143 @@ const FlowStatusIndicator = ({ startPosition, mousePosition, componentCount, the
         }
     }, [])
 
+    const accentColor = extractHexColor(currentGradient?.primary, isDark ? "#6366f1" : "#4338ca")
+    const secondaryAccent = extractHexColor(currentGradient?.secondary, accentColor)
+
+    const containerStyle = {
+        background: isDark
+            ? "linear-gradient(140deg, rgba(13,16,24,0.9), rgba(17,23,36,0.82))"
+            : "linear-gradient(140deg, rgba(255,255,255,0.96), rgba(241,245,249,0.9))",
+        border: `1px solid ${hexToRgba(accentColor, isDark ? 0.4 : 0.25)}`,
+        boxShadow: `0 28px 60px ${hexToRgba(accentColor, 0.18)}`,
+        backdropFilter: "blur(18px)",
+        borderRadius: "24px",
+        padding: "18px 20px",
+    }
+
+    const statusCards = [
+        {
+            key: "status",
+            label: "Status do fluxo",
+            value: isExecuted ? "Executado" : "Não executado",
+            helper: isExecuted ? "Última execução sincronizada" : "Execute para habilitar o bot",
+            icon: isExecuted ? FiCheckCircle : FiXCircle,
+            iconColor: isExecuted ? "#22c55e" : "#f97316",
+            badge: isExecuted ? { text: "Pronto", color: "#22c55e" } : { text: "Pendente", color: "#f97316" },
+        },
+        {
+            key: "start",
+            label: "Início do fluxo",
+            value: `(${Math.round(startPosition.x)}, ${Math.round(startPosition.y)})`,
+            helper: "Coordenadas do nó INÍCIO",
+            icon: FiMapPin,
+            iconColor: secondaryAccent,
+        },
+        {
+            key: "cursor",
+            label: "Cursor em tempo real",
+            value: `(${Math.round(mousePosition.x)}, ${Math.round(mousePosition.y)})`,
+            helper: "Posição do mouse no canvas",
+            icon: FiMousePointer,
+            iconColor: "#a855f7",
+        },
+        {
+            key: "components",
+            label: "Componentes ativos",
+            value: componentCount.toString(),
+            helper: "Elementos configurados",
+            icon: FiLayers,
+            iconColor: "#f59e0b",
+            suffix: "itens",
+        },
+    ]
+
     return (
-        <div
-            className={`flex items-center gap-4 px-3 py-1.5 rounded-lg border text-xs transition-all duration-200 ${
-                isDark
-                    ? "bg-black hover:bg-gray-900 border border-gray-800 hover:border-gray-700 text-white"
-                    : "bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 text-gray-900"
-            }`}
-            style={{
-                boxShadow: isDark
-                    ? "0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 10px rgba(255, 255, 255, 0.1)"
-                    : "0 0 0 1px rgba(0, 0, 0, 0.05), 0 0 8px rgba(0, 0, 0, 0.05)",
-                filter: isDark ? "drop-shadow(0 0 5px rgba(255, 255, 255, 0.1))" : "drop-shadow(0 0 3px rgba(0, 0, 0, 0.1))",
-            }}
-        >
-            {/* Status de Execução */}
-            <div className="flex items-center gap-1">
-                {isExecuted ? (
-                    <FiCheckCircle
-                        className="h-3 w-3 text-green-500"
-                        style={{
-                            filter: isDark
-                                ? "drop-shadow(0 0 4px rgba(34, 197, 94, 0.5))"
-                                : "drop-shadow(0 0 2px rgba(34, 197, 94, 0.3))",
-                        }}
-                    />
-                ) : (
-                    <FiXCircle
-                        className="h-3 w-3 text-red-500"
-                        style={{
-                            filter: isDark
-                                ? "drop-shadow(0 0 4px rgba(239, 68, 68, 0.5))"
-                                : "drop-shadow(0 0 2px rgba(239, 68, 68, 0.3))",
-                        }}
-                    />
-                )}
-                <span
-                    className={`font-semibold ${
-                        isDark
-                            ? "text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.3)]"
-                            : "text-gray-900 drop-shadow-[0_0_2px_rgba(0,0,0,0.2)]"
-                    }`}
-                >
-          {isExecuted ? "EXECUTADO" : "NÃO EXECUTADO"}
-        </span>
-            </div>
-
-            {/* Separador */}
-            <div className={`w-px h-4 ${isDark ? "bg-gray-700" : "bg-gray-300"}`} />
-
-            {/* Posição do INÍCIO */}
-            <div className="flex items-center gap-1">
-                <FiMapPin
-                    className="h-3 w-3 text-blue-500"
+        <div className="w-full max-w-2xl">
+            <div className="relative overflow-hidden" style={containerStyle}>
+                <div
+                    className="pointer-events-none absolute inset-0 opacity-25"
                     style={{
-                        filter: isDark
-                            ? "drop-shadow(0 0 4px rgba(59, 130, 246, 0.5))"
-                            : "drop-shadow(0 0 2px rgba(59, 130, 246, 0.3))",
+                        background: `radial-gradient(circle at 0% 0%, ${hexToRgba(accentColor, 0.35)} 0%, transparent 55%), radial-gradient(circle at 100% 100%, ${hexToRgba(secondaryAccent, 0.3)} 0%, transparent 60%)`,
                     }}
                 />
-                <span
-                    className={`font-mono ${
-                        isDark
-                            ? "text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.3)]"
-                            : "text-gray-900 drop-shadow-[0_0_2px_rgba(0,0,0,0.2)]"
-                    }`}
-                >
-          INÍCIO: ({Math.round(startPosition.x)}, {Math.round(startPosition.y)})
-        </span>
-            </div>
+                <div className="relative grid gap-3 sm:grid-cols-2">
+                    {statusCards.map((card) => {
+                        const Icon = card.icon
+                        const iconColor = card.iconColor
+                        const baseTextColor = isDark ? "#f8fafc" : "#0f172a"
 
-            {/* Separador */}
-            <div className={`w-px h-4 ${isDark ? "bg-gray-700" : "bg-gray-300"}`} />
-
-            {/* Posição do Mouse */}
-            <div className="flex items-center gap-1">
-                <span className="text-purple-500">Cursor</span>
-                <span className={`font-mono ${isDark ? "text-white" : "text-gray-900"}`}>
-          Mouse: ({Math.round(mousePosition.x)}, {Math.round(mousePosition.y)})
-        </span>
-            </div>
-
-            {/* Separador */}
-            <div className={`w-px h-4 ${isDark ? "bg-gray-700" : "bg-gray-300"}`} />
-
-            {/* Contador de Componentes */}
-            <div className="flex items-center gap-1">
-                <FiLayers className="h-3 w-3 text-orange-500" />
-                <span className={isDark ? "text-white" : "text-gray-900"}>
-          <span className="font-semibold">{componentCount}</span> componentes
-        </span>
+                        return (
+                            <div
+                                key={card.key}
+                                className="group relative overflow-hidden rounded-2xl border p-4 transition-transform duration-300 hover:-translate-y-0.5"
+                                style={{
+                                    background: isDark
+                                        ? "linear-gradient(150deg, rgba(17,24,39,0.72), rgba(15,23,42,0.58))"
+                                        : "linear-gradient(150deg, rgba(255,255,255,0.95), rgba(248,250,252,0.9))",
+                                    borderColor: hexToRgba(iconColor, isDark ? 0.32 : 0.22),
+                                    boxShadow: `0 18px 36px ${hexToRgba(iconColor, isDark ? 0.22 : 0.18)}`,
+                                }}
+                            >
+                                <div
+                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                                    style={{ background: hexToRgba(iconColor, isDark ? 0.12 : 0.08) }}
+                                />
+                                <div className="relative flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div
+                                            className="flex h-10 w-10 items-center justify-center rounded-xl shadow-lg transition-transform duration-300 group-hover:scale-105"
+                                            style={{
+                                                background: hexToRgba(iconColor, isDark ? 0.2 : 0.14),
+                                                boxShadow: `0 12px 28px ${hexToRgba(iconColor, isDark ? 0.35 : 0.2)}`,
+                                            }}
+                                        >
+                                            <Icon className="h-5 w-5" style={{ color: iconColor }} />
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <span
+                                                className="text-[11px] font-semibold uppercase tracking-[0.22em]"
+                                                style={{ color: hexToRgba(iconColor, isDark ? 0.7 : 0.55) }}
+                                            >
+                                                {card.label}
+                                            </span>
+                                            <span className="text-lg font-semibold" style={{ color: baseTextColor }}>
+                                                {card.value}
+                                                {card.suffix && (
+                                                    <span
+                                                        className="ml-1 text-sm font-medium"
+                                                        style={{ color: hexToRgba(iconColor, isDark ? 0.7 : 0.6) }}
+                                                    >
+                                                        {card.suffix}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {card.badge && (
+                                        <span
+                                            className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                                            style={{
+                                                background: hexToRgba(card.badge.color, isDark ? 0.22 : 0.14),
+                                                color: card.badge.color,
+                                            }}
+                                        >
+                                            {card.badge.text}
+                                        </span>
+                                    )}
+                                </div>
+                                {card.helper && (
+                                    <p
+                                        className="relative mt-3 text-xs leading-relaxed"
+                                        style={{ color: isDark ? "rgba(226,232,240,0.72)" : "rgba(30,41,59,0.65)" }}
+                                    >
+                                        {card.helper}
+                                    </p>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
             </div>
         </div>
     )
@@ -665,6 +731,7 @@ const ImageMenu = ({ isOpen, onClose, onChangeBackground, onSaveImage, onResetBa
     const secondaryColor = currentGradient?.secondary || "#000000"
     const accentColor = currentGradient?.accent || "#000000"
     const glowColor = currentGradient?.glow || "#000000"
+    const accentHex = extractHexColor(currentGradient?.primary, isDark ? "#6366f1" : "#4338ca")
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -957,6 +1024,7 @@ const FlowHeaderWithDialogs = ({
     const glowColor = currentGradient?.glow || "#000000"
 
     const isDark = theme === "dark"
+    const accentHex = extractHexColor(currentGradient?.primary, isDark ? "#6366f1" : "#4338ca")
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
@@ -1303,38 +1371,78 @@ const FlowHeaderWithDialogs = ({
                     </div>
 
                     {/* Center Section: Search + Status */}
-                    <div className="flex-1 flex items-center justify-center gap-4 max-w-2xl">
-                        <form onSubmit={handleSearch} className="flex-1 max-w-md relative">
+                    <div className="flex-1 flex flex-col gap-4 px-3 max-w-5xl md:flex-row md:items-stretch md:justify-center">
+                        <form onSubmit={handleSearch} className="flex-1 max-w-xl">
                             <div
-                                className="relative rounded-full overflow-hidden transition-all"
+                                className="relative flex items-center gap-3 rounded-2xl px-4 py-2.5 transition-all duration-300"
                                 style={{
-                                    background: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)",
-                                    border: `1px solid ${isSearchFocused ? glowColor : isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)"}`,
-                                    boxShadow: isSearchFocused ? `0 0 20px ${glowColor}30` : "none",
+                                    background: isDark
+                                        ? "linear-gradient(135deg, rgba(17,24,39,0.78), rgba(30,41,59,0.62))"
+                                        : "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(241,245,249,0.9))",
+                                    border: `1px solid ${hexToRgba(accentHex, isSearchFocused ? (isDark ? 0.55 : 0.45) : (isDark ? 0.3 : 0.22))}`,
+                                    boxShadow: isSearchFocused
+                                        ? `0 22px 45px ${hexToRgba(accentHex, 0.28)}`
+                                        : `0 15px 32px ${hexToRgba(accentHex, 0.18)}`,
+                                    backdropFilter: "blur(18px)",
                                 }}
                             >
+                                <span
+                                    className="pointer-events-none absolute left-0 top-0 bottom-0 w-[2.5px] rounded-l-2xl"
+                                    style={{
+                                        background: `linear-gradient(180deg, transparent, ${hexToRgba(accentHex, 0.65)}, transparent)`
+                                    }}
+                                />
+                                <FiSearch
+                                    className="h-4 w-4 shrink-0"
+                                    style={{ color: isDark ? "#9ca3af" : "#6b7280" }}
+                                />
                                 <input
                                     type="text"
                                     value={searchValue}
                                     onChange={(e) => setSearchValue(e.target.value)}
                                     onFocus={() => setIsSearchFocused(true)}
                                     onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                                    placeholder="Procurar ID do Componente"
-                                    className="w-full px-4 py-2 bg-transparent outline-none text-sm"
+                                    placeholder="Procurar ID ou rótulo do componente"
+                                    aria-label="Pesquisar componente pelo identificador"
+                                    className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+                                    style={{ color: isDark ? "#e2e8f0" : "#1f2937" }}
+                                />
+                                {searchValue && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchValue("")}
+                                        className="group rounded-full p-1 transition-colors"
+                                        style={{
+                                            background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
+                                        }}
+                                        aria-label="Limpar pesquisa"
+                                    >
+                                        <FiX
+                                            className="h-3.5 w-3.5"
+                                            style={{ color: isDark ? "#cbd5f5" : "#475569" }}
+                                        />
+                                    </button>
+                                )}
+                                <div
+                                    className="pointer-events-none absolute inset-0 rounded-2xl"
                                     style={{
-                                        color: isDark ? "#e5e7eb" : "#1f2937",
+                                        boxShadow: isSearchFocused
+                                            ? `0 0 0 1px ${hexToRgba(accentHex, 0.55)}`
+                                            : `0 0 0 1px ${hexToRgba(accentHex, 0.16)}`,
                                     }}
                                 />
                             </div>
                         </form>
 
-                        <FlowStatusIndicator
-                            startPosition={startPosition}
-                            mousePosition={mousePosition}
-                            componentCount={componentCount}
-                            theme={theme}
-                            currentGradient={currentGradient}
-                        />
+                        <div className="flex-1 min-w-[260px]">
+                            <FlowStatusIndicator
+                                startPosition={startPosition}
+                                mousePosition={mousePosition}
+                                componentCount={componentCount}
+                                theme={theme}
+                                currentGradient={currentGradient}
+                            />
+                        </div>
                     </div>
 
                     {/* Right Section: Utility Buttons + Save + Execute */}
@@ -1597,18 +1705,20 @@ const FlowLayout = () => {
                 workflowContainerRef={workflowContainerRef}
             />
 
-            <main className="flex-1 overflow-hidden" ref={workflowContainerRef}>
-                <WorkflowBuilder
-                    onActionsReady={handleActionsReady}
-                    onStartPositionChange={setStartPosition}
-                    onMousePositionChange={setMousePosition}
-                    onComponentCountChange={setComponentCount}
-                    onNodesChange={setFlowNodes}
-                    onEdgesChange={setFlowEdges}
-                    showSidebar={showSidebar}
-                    onToggleSidebar={toggleSidebar}
-                    onOpenBot={openBot}
-                />
+            <main className="relative flex-1 overflow-hidden pt-24" ref={workflowContainerRef}>
+                <div className="h-full">
+                    <WorkflowBuilder
+                        onActionsReady={handleActionsReady}
+                        onStartPositionChange={setStartPosition}
+                        onMousePositionChange={setMousePosition}
+                        onComponentCountChange={setComponentCount}
+                        onNodesChange={setFlowNodes}
+                        onEdgesChange={setFlowEdges}
+                        showSidebar={showSidebar}
+                        onToggleSidebar={toggleSidebar}
+                        onOpenBot={openBot}
+                    />
+                </div>
             </main>
 
             <AuraFlowBot isOpen={showBot} onClose={closeBot} />
