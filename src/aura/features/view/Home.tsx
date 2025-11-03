@@ -18,7 +18,7 @@ function HomeContent() {
     const isMobile = useMobile()
     const [scrollY, setScrollY] = useState(0)
     const [mounted, setMounted] = useState(false)
-    const { highContrast, reducedMotion, fadeEffects } = useSettings()
+    const { highContrast, reducedMotion } = useSettings()
     const [isCalendarOpen, setIsCalendarOpen] = useState(false)
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
     const [showCarouselTooltip, setShowCarouselTooltip] = useState(false)
@@ -99,23 +99,13 @@ function HomeContent() {
         },
     ]
 
-    const getContrastClass = () => {
-        if (highContrast) {
-            return "text-white"
-        }
-        return "text-white"
-    }
-
-    const getSecondaryContrastClass = () => {
-        if (highContrast) {
-            return "text-gray-100"
-        }
-        return "text-gray-300"
-    }
+    const getContrastClass = () => (highContrast ? "text-white" : "text-white")
+    const getSecondaryContrastClass = () => (highContrast ? "text-gray-100" : "text-gray-300")
 
     return (
         <div className="min-h-screen overflow-hidden transition-colors duration-300 relative bg-black">
-            <div className="fixed inset-0 z-0">
+            {/* Fundo decorativo – não intercepta cliques */}
+            <div className="fixed inset-0 z-0 pointer-events-none">
                 <div
                     className="absolute inset-0 opacity-[0.03]"
                     style={{
@@ -128,16 +118,17 @@ function HomeContent() {
                 />
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-300"
-                    style={{
-                        backgroundImage: currentGradient,
-                    }}
+                    style={{ backgroundImage: currentGradient }}
                 />
                 <div className="absolute inset-0 bg-black/60" />
             </div>
 
             <div className="relative z-10">
+                {/* Header sempre clicável e acima das camadas */}
                 <div
-                    className={`transition-all duration-500 ${isInFooterSection ? "opacity-0 pointer-events-none -translate-y-4" : "opacity-100 pointer-events-auto translate-y-0"}`}
+                    className={`relative z-10 transition-all duration-500 ${
+                        isInFooterSection ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"
+                    }`}
                 >
                     <Header onOpenGradientSelector={() => setIsGradientSelectorOpen(true)} />
                 </div>
@@ -211,7 +202,10 @@ function HomeContent() {
                     </motion.div>
                 </section>
 
-                <section id="que-son" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative bg-black">
+                <section
+                    id="que-son"
+                    className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative bg-black"
+                >
                     <motion.div
                         initial={reducedMotion ? {} : { opacity: 0 }}
                         whileInView={{ opacity: 1 }}
@@ -249,7 +243,11 @@ function HomeContent() {
                     </motion.div>
                 </section>
 
-                <section id="o-que-fazemos" className="py-20 sm:py-32 lg:py-40 px-4 sm:px-6 lg:px-8 relative bg-black">
+                {/* alvo do menu: #o-que-fazemos */}
+                <section
+                    id="o-que-fazemos"
+                    className="scroll-mt-24 py-20 sm:py-32 lg:py-40 px-4 sm:px-6 lg:px-8 relative bg-black"
+                >
                     <div className="max-w-6xl mx-auto relative z-10">
                         <motion.div
                             initial={reducedMotion ? {} : { opacity: 0 }}
@@ -348,10 +346,16 @@ function HomeContent() {
                     </div>
                 </section>
 
+                {/* alvo do menu: #sobre-projeto */}
                 <div
-                    className={`transition-opacity duration-300 ${isInFooterSection ? "opacity-0 pointer-events-none h-0 overflow-hidden" : "opacity-100"}`}
+                    className={`transition-opacity duration-300 ${
+                        isInFooterSection ? "opacity-0 pointer-events-none h-0 overflow-hidden" : "opacity-100"
+                    }`}
                 >
-                    <section id="sobre-projeto" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative bg-black">
+                    <section
+                        id="sobre-projeto"
+                        className="scroll-mt-24 py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative bg-black"
+                    >
                         <div className="max-w-4xl mx-auto relative z-10">
                             <motion.div
                                 initial={reducedMotion ? {} : { opacity: 0 }}
@@ -459,9 +463,9 @@ function HomeContent() {
                             className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-8 text-white font-modernmono"
                             style={{ letterSpacing: "0.15em" }}
                         >
-                            LET'S GET
+                            TRANSFORME SUA
                             <br />
-                            IN TOUCH
+                            OFICINA HOJE
                         </h2>
                         <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-modernmono leading-relaxed">
                             Desenvolvido por estudantes apaixonados por tecnologia e inovação.
