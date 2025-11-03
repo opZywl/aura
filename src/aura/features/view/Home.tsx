@@ -46,27 +46,27 @@ function HomeContent() {
 
     const whatWeDoItems = [
         {
-            title: "WORKFLOW DE MENSAGENS",
+            title: "FLOW BUILDER VISUAL",
             description:
-                "Visualize e configure o fluxo completo de mensagens do chatbot. Crie workflows personalizados para automatizar respostas e ações baseadas nas interações dos clientes.",
+                "Modele diálogos arrastando componentes como mensagens, opções e processos. O fluxo orienta o chatbot a responder com precisão e encaminhar exceções para a equipe humana.",
             image: "/workflow-diagram-automation.jpg",
         },
         {
-            title: "CHAT INTELIGENTE",
+            title: "CHAT MULTICANAL",
             description:
-                "Interface de chat em tempo real integrada ao sistema. Acompanhe conversas, responda manualmente quando necessário e veja o histórico completo de interações.",
+                "Acompanhe atendimentos em tempo real, com histórico completo e monitoramento das conversas ativas, arquivadas e automatizadas.",
             image: "/chat-interface-messaging.jpg",
         },
         {
-            title: "GESTÃO DE CONTAS",
+            title: "GESTÃO OPERACIONAL",
             description:
-                "Sistema completo de gestão financeira e ordens de serviço. Controle pagamentos, visualize status de serviços e mantenha o histórico de todas as transações da oficina.",
+                "Consolide ordens de serviço, status de manutenção e registros financeiros em um painel integrado ao banco de dados da oficina.",
             image: "/financial-dashboard-accounts.jpg",
         },
         {
-            title: "PAINEL DE AGENDAMENTOS",
+            title: "AGENDAMENTO INTELIGENTE",
             description:
-                "Visualização completa de agendamentos confirmados e relatórios de conversas. Configure links de agendamento, horários disponíveis e acompanhe todo o histórico de interações dos clientes.",
+                "Configure disponibilidade, confirme horários e gere relatórios sobre o desempenho do chatbot nas interações com clientes.",
             image: "/appointment-calendar-dashboard.jpg",
         },
     ]
@@ -75,27 +75,27 @@ function HomeContent() {
         {
             question: "O QUE É O PROJETO AURA?",
             answer:
-                "AURA é um sistema de chatbot integrado desenvolvido por estudantes para automatizar o atendimento de oficinas mecânicas, incluindo agendamentos, consultas e gestão de processos.",
+                "Aura é um chatbot inteligente conectado aos sistemas internos da oficina para automatizar atendimento, agendamentos e consultas de ordens de serviço 24 horas por dia.",
         },
         {
             question: "QUAIS TECNOLOGIAS SÃO UTILIZADAS?",
             answer:
-                "O projeto utiliza Flask, React, PostgreSQL, TypeScript e Python, seguindo a arquitetura MVC para garantir escalabilidade e manutenibilidade.",
+                "Utilizamos Flask e Python no backend, React e TypeScript na interface e integração com PostgreSQL, seguindo a arquitetura MVC recomendada na pesquisa.",
         },
         {
             question: "COMO FUNCIONA A INTEGRAÇÃO?",
             answer:
-                "O AURA se integra aos sistemas internos da oficina através de APIs, permitindo acesso em tempo real a informações de agendamentos, ordens de serviço e disponibilidade.",
+                "O Aura consome APIs e conecta-se ao banco de dados da oficina para acessar ordens de serviço, estoque e disponibilidade em tempo real.",
         },
         {
             question: "O SISTEMA É PERSONALIZÁVEL?",
             answer:
-                "Sim! O AURA oferece fluxos personalizados que podem ser adaptados às necessidades específicas de cada oficina mecânica.",
+                "Sim. O flow builder visual permite ajustar mensagens, rotas de atendimento e regras de negócio sem exigir conhecimento avançado em programação.",
         },
         {
             question: "QUAL O DIFERENCIAL DO AURA?",
             answer:
-                "Diferente de soluções genéricas, o AURA foi desenvolvido especificamente para oficinas mecânicas, com funcionalidades direcionadas para este segmento e integração completa com sistemas internos.",
+                "A solução foi desenhada especificamente para oficinas automotivas, combinando automação e acompanhamento humano em um painel único de atendimento.",
         },
     ]
 
@@ -142,7 +142,7 @@ function HomeContent() {
                     >
                         <div className="mb-4 sm:mb-6">
                             <div className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-zinc-800/60 border border-zinc-700/40 rounded-full text-xs sm:text-sm text-white backdrop-blur-md shadow-lg relative overflow-hidden">
-                                <span className="relative z-10 font-modernmono">Chatbot pronto para sua oficina</span>
+                                <span className="relative z-10 font-modernmono">Chatbot integrado para oficinas mecânicas</span>
                             </div>
                         </div>
 
@@ -153,15 +153,15 @@ function HomeContent() {
                                 textShadow: "0 0 40px rgba(255, 255, 255, 0.5), 0 0 80px rgba(255, 255, 255, 0.3)",
                             }}
                         >
-                            AURA: chatbot com sistema integrado
+                            Aura: automação inteligente do atendimento
                         </h1>
 
                         <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-gray-200 font-medium">
-                            Automatize atendimento, agendamentos e operações da sua oficina mecânica.
+                            Centralize agendamentos, ordens de serviço e suporte 24h em um único fluxo orientado por dados.
                         </p>
 
                         <p className="text-sm sm:text-base text-gray-300 mb-6">
-                            Produzido por estudantes | Chatbot inteligente com integrações de sistemas
+                            Projeto acadêmico desenvolvido por estudantes com arquitetura MVC em Flask, React, PostgreSQL e TypeScript.
                         </p>
 
                         <div className="hidden">
