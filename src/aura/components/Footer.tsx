@@ -4,31 +4,27 @@ import Link from "next/link"
 import AnimatedFooterText from "./AnimatedFooterText"
 import AnimatedCopyrightText from "./AnimatedCopyrightText"
 import { useSettings } from "@/src/aura/features/view/lobby/contexts/SettingsContext"
-import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
 
 const Footer = () => {
     const { animationsEnabled } = useSettings()
-    const { theme } = useTheme()
-    const [mounted, setMounted] = useState(false)
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
-
-    const currentTheme = mounted ? theme : "dark"
-
     const contributorLinks = [
-        { name: "Lucas Lima", href: "https://lucas-lima.vercel.app/" },
-        { name: "Caio Gabriel", href: "https://caio-gabriel.vercel.app/" },
-        { name: "Matheus Theobald", href: "https://mateustheobald.github.io/" },
-        { name: "Rhyan Yassin", href: "https://rhyan019.github.io/" },
+        { name: "Lucas de Lima Almeida", href: "https://lucas-lima.vercel.app/" },
+        { name: "Caio Gabriel Pereira do Nascimento", href: "https://caio-gabriel.vercel.app/" },
+        { name: "Mateus Delucas Theobald", href: "https://mateustheobald.github.io/" },
+        { name: "Rhyan Yassin Freitas Ahmad", href: "https://rhyan019.github.io/" },
+    ]
+
+    const mentors = [
+        {
+            name: "Profa. Dra. Adriana Aparecida Carnevalli Demetrio",
+            role: "Orientadora",
+        },
     ]
 
     const legalLinks = [
         { name: "Código Fonte", href: "https://github.com/opzywl/aura", external: true },
-        { name: "Terms", href: "/terms", external: true },
-        { name: "Privacy", href: "/privacy" },
+        { name: "Termos de Uso", href: "/terms" },
+        { name: "Privacidade", href: "/privacy" },
         { name: "Feedback", href: "/feedback" },
     ]
 
@@ -49,28 +45,28 @@ const Footer = () => {
 
                     <div>
                         <h4 className="text-xs font-bold mb-4 text-gray-200 uppercase tracking-wider font-modernmono">
-                            {animationsEnabled ? <AnimatedFooterText text="PRODUTO" delay={0} /> : "PRODUTO"}
+                            {animationsEnabled ? <AnimatedFooterText text="PROJETO" delay={0} /> : "PROJETO"}
                         </h4>
                         <ul className="space-y-2">
                             <li>
-                                <Link href="#" className="text-gray-300 hover:text-white transition-colors text-xs">
-                                    Artigo
+                                <Link href="/" className="text-gray-300 hover:text-white transition-colors text-xs">
+                                    Visão geral
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/technology" className="text-gray-300 hover:text-white transition-colors text-xs">
-                                    Tecnologia
+                                    Tecnologias
                                 </Link>
                             </li>
                             <li>
-                                <Link href="#" className="text-gray-300 hover:text-white transition-colors text-xs">
-                                    Orientadores
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="text-gray-300 hover:text-white transition-colors text-xs">
-                                    Home
-                                </Link>
+                                <a
+                                    href="https://github.com/opzywl/aura"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gray-300 hover:text-white transition-colors text-xs"
+                                >
+                                    Artigo & Código
+                                </a>
                             </li>
                         </ul>
                     </div>
@@ -90,6 +86,20 @@ const Footer = () => {
                                     >
                                         {contributor.name}
                                     </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 className="text-xs font-bold mb-4 text-gray-200 uppercase tracking-wider font-modernmono">
+                            {animationsEnabled ? <AnimatedFooterText text="ORIENTAÇÃO" delay={1500} /> : "ORIENTAÇÃO"}
+                        </h4>
+                        <ul className="space-y-2">
+                            {mentors.map((mentor) => (
+                                <li key={mentor.name} className="text-gray-300 text-xs">
+                                    <span className="block font-semibold text-white">{mentor.name}</span>
+                                    <span className="text-gray-400">{mentor.role}</span>
                                 </li>
                             ))}
                         </ul>
