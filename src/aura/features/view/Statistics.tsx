@@ -26,6 +26,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
 export default function Statistics() {
     const { theme } = useTheme()
+    const isDark = theme === "dark"
 
     const [stats, setStats] = useState<StatsData>({ today: 0, week: 0, month: 0, total: 0 })
     const [conversations, setConversations] = useState<ConversationData[]>([])
@@ -443,7 +444,16 @@ export default function Statistics() {
                             ) : (
                                 <div className="space-y-4">
                                     {conversationHistory.map((message, index) => {
-                                        const isBot = message.sender === "bot" || message.sender === "operator"
+                                        const senderRaw = typeof message.sender === "string" ? message.sender : ""
+                                        const senderType = senderRaw.toLowerCase()
+                                        const isOperator = [
+                                            "operator",
+                                            "attendant",
+                                            "agent",
+                                            "human",
+                                            "atendente",
+                                        ].includes(senderType)
+                                        const isBot = ["bot", "assistant", "system", "fluxo", "flow"].includes(senderType)
                                         const timestamp = new Date(message.timestamp).toLocaleString("pt-BR", {
                                             year: "numeric",
                                             month: "2-digit",
@@ -453,19 +463,89 @@ export default function Statistics() {
                                         })
 
                                         return (
-                                            <div key={message.id || index} className={`flex ${isBot ? "justify-end" : "justify-start"}`}>
-                                                <div className={`max-w-[80%] ${isBot ? "items-end" : "items-start"} flex flex-col gap-1`}>
+                                            <div
+                                                key={message.id || index}
+                                                className={`flex ${isBot || isOperator ? "justify-end" : "justify-start"}`}
+                                            >
+                                                <div
+                                                    className={`max-w-[80%] ${
+                                                        isBot || isOperator ? "items-end" : "items-start"
+                                                    } flex flex-col gap-1`}
+                                                >
                                                     <div
-                                                        className={`rounded-2xl px-4 py-3 ${
-                                                            isBot
-                                                                ? "bg-blue-500 text-white"
-                                                                : theme === "dark"
-                                                                    ? "bg-[#1f1f1f] text-gray-100"
-                                                                    : "bg-gray-100 text-gray-900"
-                                                        }`}
+                                                        className="rounded-2xl px-4 py-3 border shadow-sm backdrop-blur-sm transition-transform"
+                                                        style={{
+                                                            background: isBot
+                                                                ? "linear-gradient(135deg, rgba(59,130,246,0.95), rgba(59,130,246,0.8))"
+                                                                : isOperator
+                                                                    ? isDark
+                                                                        ? "rgba(16,185,129,0.18)"
+                                                                        : "rgba(16,185,129,0.12)"
+                                                                    : isDark
+                                                                        ? "rgba(31,31,31,0.92)"
+                                                                        : "rgba(241,245,249,0.95)",
+                                                            color: isBot
+                                                                ? "#ffffff"
+                                                                : isOperator
+                                                                    ? isDark
+                                                                        ? "#d1fae5"
+                                                                        : "#065f46"
+                                                                    : isDark
+                                                                        ? "#f1f5f9"
+                                                                        : "#111827",
+                                                            borderColor: isBot
+                                                                ? "rgba(96,165,250,0.45)"
+                                                                : isOperator
+                                                                    ? isDark
+                                                                        ? "rgba(74,222,128,0.45)"
+                                                                        : "rgba(16,185,129,0.45)"
+                                                                    : isDark
+                                                                        ? "rgba(255,255,255,0.06)"
+                                                                        : "rgba(15,23,42,0.08)",
+                                                            boxShadow: isBot
+                                                                ? "0 18px 35px rgba(59,130,246,0.25)"
+                                                                : isOperator
+                                                                    ? "0 16px 32px rgba(16,185,129,0.22)"
+                                                                    : isDark
+                                                                        ? "0 12px 24px rgba(15,15,20,0.45)"
+                                                                        : "0 10px 20px rgba(15,23,42,0.1)",
+                                                        }}
                                                     >
-                                                        <p className="text-xs font-medium mb-1 opacity-80">{isBot ? "Bot" : "Cliente"}</p>
-                                                        <p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
+                                                        <p
+                                                            className="text-[11px] font-semibold uppercase tracking-[0.18em] mb-1 flex items-center gap-2"
+                                                            style={{
+                                                                color: isBot
+                                                                    ? "#cbd5f5"
+                                                                    : isOperator
+                                                                        ? isDark
+                                                                            ? "#34d399"
+                                                                            : "#047857"
+                                                                        : isDark
+                                                                            ? "#94a3b8"
+                                                                            : "#475569",
+                                                                letterSpacing: "0.2em",
+                                                            }}
+                                                        >
+                                                            {isBot
+                                                                ? "Fluxo automatizado"
+                                                                : isOperator
+                                                                    ? "Operador"
+                                                                    : "Cliente"}
+                                                            {isOperator && (
+                                                                <span
+                                                                    className="inline-flex h-2.5 w-2.5 rounded-full"
+                                                                    style={{
+                                                                        background: isDark ? "rgba(74,222,128,0.8)" : "rgba(16,185,129,0.8)",
+                                                                        boxShadow: isDark
+                                                                            ? "0 0 10px rgba(74,222,128,0.8)"
+                                                                            : "0 0 8px rgba(16,185,129,0.6)",
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </p>
+                                                        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+                                                            {message.text}
+                                                        </p>
                                                     </div>
                                                     <span className={`text-xs px-2 ${themedMutedText}`}>{timestamp}</span>
                                                 </div>
