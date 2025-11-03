@@ -128,12 +128,18 @@ class ChatState:
     waiting_options: Dict[str, str] = None
     waiting_scheduling: bool = False
     scheduling_node_id: Optional[str] = None
+    waiting_cancellation_code: bool = False
+    waiting_cancellation_reason: bool = False
+    cancellation_code: Optional[str] = None
 
     def reset(self) -> None:
         self.current_node = None
         self.waiting_options = {}
         self.waiting_scheduling = False
         self.scheduling_node_id = None
+        self.waiting_cancellation_code = False
+        self.waiting_cancellation_reason = False
+        self.cancellation_code = None
 
 
 class WorkflowManager:
@@ -224,57 +230,131 @@ class WorkflowManager:
     ) -> List[Dict[str, Any]]:
         """Handle user response to scheduling prompt."""
 
+        from .booking_manager import booking_manager
+
         node_data = scheduling_node.get("data", {}) or {}
         user_input = user_text.strip().lower()
 
-        # Check if user wants to cancel
-        if user_input in ["cancelar", "cancel", "não", "nao", "no", "n"]:
-            cancellation_msg = node_data.get("cancellationMessage") or "Agendamento cancelado com sucesso."
-            state.waiting_scheduling = False
-            state.scheduling_node_id = None
+        if state.waiting_cancellation_code:
+            code = user_text.strip().upper()
 
-            # Move to next node
-            next_node = self._next_node(scheduling_node.get("id"), nodes_by_id, edges)
-            if next_node:
-                return [{"text": cancellation_msg}] + self._process_from_node(state, next_node, nodes_by_id, edges)
+            # Get user_id from chat_id (assuming chat_id is the user_id)
+            # In a real implementation, you'd extract this from the context
+            user_id = "user_placeholder"  # This should be passed from handle_message
+
+            booking = booking_manager.get_booking_by_code(code, user_id)
+
+            if booking:
+                state.cancellation_code = code
+                state.waiting_cancellation_code = False
+                state.waiting_cancellation_reason = True
+
+                return [{
+                    "text": f"✅ Código validado com sucesso!\n\n📋 Agendamento encontrado:\n⏰ Horário: {booking['time']}\n📅 Data: {booking['date']}\n\nPor favor, descreva com detalhes o motivo do cancelamento:"
+                }]
             else:
+                return [{
+                    "text": "❌ Código inválido ou agendamento não encontrado.\n\nPor favor, verifique o código e tente novamente, ou digite 'voltar' para retornar ao menu:"
+                }]
+
+        if state.waiting_cancellation_reason:
+            if user_input == "voltar":
                 state.reset()
-                return [{"text": cancellation_msg, "reply_markup": {"remove_keyboard": True}}]
+                # Restart flow
+                start_node = next((node for node in nodes_by_id.values() if node.get("type") == "start"), None)
+                if start_node:
+                    next_node = self._next_node(start_node.get("id"), nodes_by_id, edges)
+                    if next_node:
+                        return self._process_from_node(state, next_node, nodes_by_id, edges)
+                return [{"text": "Atendimento finalizado.", "reply_markup": {"remove_keyboard": True}}]
+
+            reason = user_text.strip()
+
+            if len(reason) < 10:
+                return [{
+                    "text": "Por favor, forneça uma descrição mais detalhada do motivo do cancelamento (mínimo 10 caracteres):"
+                }]
+
+            # Cancel the booking
+            user_id = "user_placeholder"  # This should be passed from handle_message
+            success = booking_manager.cancel_booking(state.cancellation_code, user_id, reason)
+
+            if success:
+                state.waiting_scheduling = False
+                state.scheduling_node_id = None
+                state.waiting_cancellation_reason = False
+                state.cancellation_code = None
+
+                cancellation_msg = "✅ Cancelamento concluído com sucesso!\n\nSeu agendamento foi cancelado e o horário está novamente disponível."
+
+                # Move to next node
+                next_node = self._next_node(scheduling_node.get("id"), nodes_by_id, edges)
+                if next_node:
+                    return [{"text": cancellation_msg}] + self._process_from_node(state, next_node, nodes_by_id, edges)
+                else:
+                    state.reset()
+                    return [{"text": cancellation_msg, "reply_markup": {"remove_keyboard": True}}]
+            else:
+                return [{
+                    "text": "❌ Erro ao processar o cancelamento. Por favor, tente novamente mais tarde."
+                }]
+
+        if user_input in ["cancelar", "cancel", "não", "nao", "no", "n"]:
+            state.waiting_cancellation_code = True
+            return [{
+                "text": "🔐 Para cancelar seu agendamento, por favor informe o código de confirmação que você recebeu:"
+            }]
 
         # Check if user selected a time slot
         available_slots = node_data.get("availableSlots", []) or []
 
+        workflow_id = "default_workflow"  # This should be passed from context
+        filtered_slots = []
+        for slot in available_slots:
+            if slot.get("available", False):
+                time = slot.get("time", "")
+                date = slot.get("date", "")
+                if not booking_manager.is_slot_booked(time, date, workflow_id):
+                    filtered_slots.append(slot)
+
         # Try to match by slot number
         if user_input.isdigit():
             slot_index = int(user_input) - 1
-            if 0 <= slot_index < len(available_slots):
-                slot = available_slots[slot_index]
-                if slot.get("available", False):
-                    # Generate confirmation code
-                    import random
-                    import string
-                    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            if 0 <= slot_index < len(filtered_slots):
+                slot = filtered_slots[slot_index]
 
-                    confirmation_msg = node_data.get("confirmationMessage") or "Agendamento confirmado! Seu código é: {code}"
-                    confirmation_msg = confirmation_msg.replace("{code}", code)
-                    confirmation_msg = confirmation_msg.replace("{time}", slot.get("time", ""))
-                    confirmation_msg = confirmation_msg.replace("{date}", slot.get("date", ""))
+                # Generate confirmation code
+                import random
+                import string
+                code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-                    state.waiting_scheduling = False
-                    state.scheduling_node_id = None
+                user_id = "user_placeholder"  # This should be passed from handle_message
+                booking_manager.create_booking(
+                    user_id=user_id,
+                    code=code,
+                    time=slot.get("time", ""),
+                    date=slot.get("date", ""),
+                    workflow_id=workflow_id
+                )
 
-                    # Move to next node
-                    next_node = self._next_node(scheduling_node.get("id"), nodes_by_id, edges)
-                    if next_node:
-                        return [{"text": confirmation_msg}] + self._process_from_node(state, next_node, nodes_by_id, edges)
-                    else:
-                        state.reset()
-                        return [{"text": confirmation_msg, "reply_markup": {"remove_keyboard": True}}]
+                confirmation_msg = node_data.get("confirmationMessage") or "✅ Agendamento confirmado!\n\n🎫 Seu código é: {code}\n⏰ Horário: {time}\n📅 Data: {date}\n\n⚠️ Guarde este código para cancelamentos futuros!"
+                confirmation_msg = confirmation_msg.replace("{code}", code)
+                confirmation_msg = confirmation_msg.replace("{time}", slot.get("time", ""))
+                confirmation_msg = confirmation_msg.replace("{date}", slot.get("date", ""))
+
+                state.waiting_scheduling = False
+                state.scheduling_node_id = None
+
+                # Move to next node
+                next_node = self._next_node(scheduling_node.get("id"), nodes_by_id, edges)
+                if next_node:
+                    return [{"text": confirmation_msg}] + self._process_from_node(state, next_node, nodes_by_id, edges)
                 else:
-                    return [{"text": "Este horário não está mais disponível. Por favor, escolha outro horário."}]
+                    state.reset()
+                    return [{"text": confirmation_msg, "reply_markup": {"remove_keyboard": True}}]
 
         # Invalid input
-        return [{"text": "Opção inválida. Por favor, digite o número do horário desejado ou 'cancelar' para cancelar."}]
+        return [{"text": "❌ Opção inválida.\n\nPor favor, digite o número do horário desejado ou 'cancelar' para cancelar."}]
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -323,28 +403,46 @@ class WorkflowManager:
                 return responses
 
             if node_type == "agendamento":
-                message = node_data.get("message") or "Deseja agendar um horário?"
+                from .booking_manager import booking_manager
+
+                message = node_data.get("message") or "📅 Deseja agendar um horário?"
                 available_slots = node_data.get("availableSlots", []) or []
 
-                if not available_slots:
-                    no_slots_msg = node_data.get("noSlotsMessage") or "Não há horários disponíveis no momento."
+                workflow_id = "default_workflow"  # This should be passed from context
+                filtered_slots = []
+                for slot in available_slots:
+                    if slot.get("available", False):
+                        time = slot.get("time", "")
+                        date = slot.get("date", "")
+                        if not booking_manager.is_slot_booked(time, date, workflow_id):
+                            filtered_slots.append(slot)
+
+                if not filtered_slots:
+                    no_slots_msg = node_data.get("noSlotsMessage") or "😔 Não há horários disponíveis no momento.\n\nPor favor, tente novamente mais tarde."
                     responses.append({"text": no_slots_msg})
                     # Move to next node
                     current = self._next_node(current.get("id"), nodes_by_id, edges)
                     continue
 
-                # Build message with available slots
-                slots_text = "\n\nHorários Disponíveis:\n"
-                slot_number = 1
-                for slot in available_slots:
-                    if slot.get("available", False):
-                        time = slot.get("time", "")
-                        date = slot.get("date", "")
-                        date_str = f" - {date}" if date else ""
-                        slots_text += f"{slot_number}. {time}{date_str}\n"
-                        slot_number += 1
+                slots_text = "\n\n━━━━━━━━━━━━━━━━━━━━\n📋 *Horários Disponíveis:*\n━━━━━━━━━━━━━━━━━━━━\n\n"
 
-                full_message = message + slots_text + "\nDigite o número do horário desejado ou 'cancelar' para cancelar."
+                for idx, slot in enumerate(filtered_slots, start=1):
+                    time = slot.get("time", "")
+                    date = slot.get("date", "")
+
+                    # Format date nicely
+                    try:
+                        from datetime import datetime
+                        date_obj = datetime.strptime(date, "%Y-%m-%d")
+                        date_formatted = date_obj.strftime("%d/%m/%Y")
+                    except:
+                        date_formatted = date
+
+                    slots_text += f"⏰ *{idx}.* {time} - 📅 {date_formatted}\n"
+
+                slots_text += "\n━━━━━━━━━━━━━━━━━━━━\n\n💡 Digite o *número* do horário desejado\n❌ Digite *'cancelar'* para cancelar um agendamento"
+
+                full_message = message + slots_text
 
                 responses.append({"text": full_message, "reply_markup": {"remove_keyboard": True}})
 
