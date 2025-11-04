@@ -215,5 +215,94 @@ class BookingManager:
                 "cancelled_by_date": {}
             }
 
+    def get_all_bookings(self, status: Optional[str] = None, start_date: Optional[str] = None, end_date: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get all bookings with optional filters."""
+        try:
+            data = self._read_file()
+
+            bookings = []
+            for booking in data["bookings"]:
+                # Apply status filter
+                if status and booking.get("status") != status:
+                    continue
+
+                # Apply date filters
+                if start_date:
+                    try:
+                        booking_date = datetime.fromisoformat(booking.get("created_at", ""))
+                        start_dt = datetime.fromisoformat(start_date)
+                        if booking_date < start_dt:
+                            continue
+                    except:
+                        pass
+
+                if end_date:
+                    try:
+                        booking_date = datetime.fromisoformat(booking.get("created_at", ""))
+                        end_dt = datetime.fromisoformat(end_date)
+                        if booking_date > end_dt:
+                            continue
+                    except:
+                        pass
+
+                bookings.append(booking)
+
+            # Sort by date and time (most recent first)
+            bookings.sort(key=lambda x: (x.get("date", ""), x.get("time", "")), reverse=True)
+
+            return bookings
+
+        except Exception as e:
+            logger.error(f"Error getting all bookings: {e}")
+            return []
+
+    def update_booking(self, code: str, user_id: str, new_time: Optional[str] = None, new_date: Optional[str] = None) -> bool:
+        """Update a booking's time or date."""
+        try:
+            data = self._read_file()
+
+            for booking in data["bookings"]:
+                if (booking["code"] == code and
+                        booking["user_id"] == user_id and
+                        booking["status"] == "active"):
+
+                    if new_time:
+                        booking["time"] = new_time
+                    if new_date:
+                        booking["date"] = new_date
+
+                    booking["updated_at"] = datetime.now(BRASIL_TZ).isoformat()
+
+                    self._write_file(data)
+                    logger.info(f"Booking updated: {code}")
+                    return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Error updating booking: {e}")
+            return False
+
+    def admin_cancel_booking(self, code: str) -> bool:
+        """Admin cancels a booking without requiring user_id."""
+        try:
+            data = self._read_file()
+
+            for booking in data["bookings"]:
+                if booking["code"] == code and booking["status"] == "active":
+                    booking["status"] = "cancelled"
+                    booking["cancelled_at"] = datetime.now(BRASIL_TZ).isoformat()
+                    booking["cancellation_reason"] = "Cancelado pelo administrador"
+
+                    self._write_file(data)
+                    logger.info(f"Booking cancelled by admin: {code}")
+                    return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Error cancelling booking (admin): {e}")
+            return False
+
 # Global instance
 booking_manager = BookingManager()

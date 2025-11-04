@@ -229,7 +229,6 @@ def _load_all_conversations_from_disk():
         except Exception as error:
             logger.error(f"Erro ao carregar histórico em {file_path}: {error}")
 
-
 def _save_conversation_history(conv: Conversation):
     try:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -573,7 +572,7 @@ def obter_accounts():
         return jsonify(response_data), 200
     except Exception as e:
         logger.error(f"Erro ao listar contas Telegram: {e}")
-        return jsonify({"erro": str(e)}), 500
+        return jsonify({"erro": str(e)}), 400
 
 # --- Criar conta Telegram ---
 @app.route('/api/accounts', methods=['POST'])
@@ -892,8 +891,6 @@ def enviar_mensagem(conversation_id):
                             return jsonify(nova_mensagem.to_dict()), 201
                         else:
                             return jsonify({"erro": "Falha ao enviar mensagem via Telegram"}), 500
-                    else:
-                        return jsonify({"erro": "Conta Telegram não encontrada para esta conversa"}), 404
 
             logger.warning(f"Conversa não encontrada: {conversation_id}")
             return jsonify({"erro": "Conversa não encontrada"}), 404
@@ -1394,6 +1391,95 @@ def get_telegram_statistics():
         logger.error(f"Erro ao buscar estatísticas: {e}")
         logger.exception("Stack trace:")
         return jsonify({"erro": str(e)}), 500
+
+# --- Bookings Endpoints ---
+@app.route('/api/bookings', methods=['GET'])
+def get_all_bookings():
+    """Get all bookings with optional filters"""
+    try:
+        from src.aura.chatbot.booking_manager import booking_manager
+
+        status = request.args.get('status')  # 'active' or 'cancelled'
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        logger.info(f"Fetching bookings - Status: {status}, Start: {start_date}, End: {end_date}")
+
+        bookings = booking_manager.get_all_bookings(status, start_date, end_date)
+
+        logger.info(f"Returning {len(bookings)} bookings")
+
+        return jsonify({
+            "success": True,
+            "bookings": bookings,
+            "total": len(bookings)
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching bookings: {e}")
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/bookings/<code>', methods=['DELETE'])
+def cancel_booking_admin(code):
+    """Admin endpoint to cancel a booking"""
+    try:
+        from src.aura.chatbot.booking_manager import booking_manager
+
+        logger.info(f"Admin cancelling booking: {code}")
+
+        success = booking_manager.admin_cancel_booking(code)
+
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Agendamento cancelado com sucesso"
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Agendamento não encontrado ou já cancelado"
+            }), 404
+
+    except Exception as e:
+        logger.error(f"Error cancelling booking: {e}")
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/bookings/<code>', methods=['PATCH'])
+def update_booking_admin(code):
+    """Admin endpoint to update a booking"""
+    try:
+        from src.aura.chatbot.booking_manager import booking_manager
+
+        if not request.is_json:
+            return jsonify({"erro": "Content-Type deve ser application/json"}), 415
+
+        data = request.get_json()
+        new_time = data.get('time')
+        new_date = data.get('date')
+        user_id = data.get('user_id')
+
+        if not user_id:
+            return jsonify({"erro": "user_id é obrigatório"}), 400
+
+        logger.info(f"Admin updating booking: {code}")
+
+        success = booking_manager.update_booking(code, user_id, new_time, new_date)
+
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Agendamento atualizado com sucesso"
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Agendamento não encontrado"
+            }), 404
+
+    except Exception as e:
+        logger.error(f"Error updating booking: {e}")
+        return jsonify({"erro": str(e)}), 500
+
 
 # --- Inicialização ---
 if __name__ == '__main__':

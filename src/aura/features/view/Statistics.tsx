@@ -1,7 +1,18 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { BarChart3, Calendar, MessageSquare, RefreshCw, TrendingUp, History, X } from "lucide-react"
+import {
+    BarChart3,
+    Calendar,
+    MessageSquare,
+    RefreshCw,
+    TrendingUp,
+    History,
+    X,
+    Clock,
+    User,
+    Trash2,
+} from "lucide-react"
 import { useTheme } from "@/src/aura/features/view/homePanels/ThemeContext"
 
 interface ConversationData {
@@ -29,6 +40,18 @@ interface BookingStatsData {
     month_cancelled: number
 }
 
+interface BookingData {
+    user_id: string
+    code: string
+    time: string
+    date: string
+    workflow_id: string
+    status: string
+    created_at: string
+    cancelled_at: string | null
+    cancellation_reason: string | null
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
 export default function Statistics() {
@@ -48,6 +71,9 @@ export default function Statistics() {
     const [selectedConversation, setSelectedConversation] = useState<ConversationData | null>(null)
     const [conversationHistory, setConversationHistory] = useState<any[]>([])
     const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+    const [bookings, setBookings] = useState<BookingData[]>([])
+    const [isLoadingBookings, setIsLoadingBookings] = useState(false)
+    const [bookingsFilter, setBookingsFilter] = useState<"all" | "active" | "cancelled">("active")
 
     const themedCard = useMemo(
         () =>
@@ -154,6 +180,52 @@ export default function Statistics() {
         }
     }
 
+    const fetchBookings = async () => {
+        setIsLoadingBookings(true)
+        try {
+            const params = new URLSearchParams()
+            if (bookingsFilter !== "all") {
+                params.append("status", bookingsFilter)
+            }
+
+            const response = await fetch(`${API_BASE_URL}/api/bookings?${params.toString()}`, {
+                cache: "no-store",
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                setBookings(data.bookings || [])
+            }
+        } catch (error) {
+            console.error("Erro ao carregar agendamentos:", error)
+        } finally {
+            setIsLoadingBookings(false)
+        }
+    }
+
+    const cancelBooking = async (code: string) => {
+        if (!confirm("Tem certeza que deseja cancelar este agendamento?")) {
+            return
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/bookings/${code}`, {
+                method: "DELETE",
+            })
+
+            if (response.ok) {
+                alert("Agendamento cancelado com sucesso!")
+                fetchBookings()
+                fetchStats()
+            } else {
+                alert("Erro ao cancelar agendamento")
+            }
+        } catch (error) {
+            console.error("Erro ao cancelar agendamento:", error)
+            alert("Erro ao cancelar agendamento")
+        }
+    }
+
     const openHistoryModal = (conversation: ConversationData) => {
         setSelectedConversation(conversation)
         fetchConversationHistory(conversation.id)
@@ -164,17 +236,29 @@ export default function Statistics() {
         setConversationHistory([])
     }
 
-    useEffect(() => {
-        fetchStats()
-        fetchConversations()
-    }, [filter])
-
-    const handleRefresh = () => {
-        fetchStats()
-        fetchConversations()
+    const formatDate = (dateStr: string) => {
+        try {
+            const [year, month, day] = dateStr.split("-")
+            return `${day}/${month}/${year}`
+        } catch {
+            return dateStr
+        }
     }
 
-    const percentage = stats.total > 0 ? Math.round((stats.today / stats.total) * 100) : 0
+    const formatDateTime = (isoString: string) => {
+        try {
+            const date = new Date(isoString)
+            return date.toLocaleString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+            })
+        } catch {
+            return "Data inválida"
+        }
+    }
 
     const formatTimestamp = (timestamp: string) => {
         try {
@@ -206,6 +290,20 @@ export default function Statistics() {
         } catch {
             return "Data inválida"
         }
+    }
+
+    const percentage = stats.total > 0 ? Math.round((stats.today / stats.total) * 100) : 0
+
+    useEffect(() => {
+        fetchStats()
+        fetchConversations()
+        fetchBookings()
+    }, [filter, bookingsFilter])
+
+    const handleRefresh = () => {
+        fetchStats()
+        fetchConversations()
+        fetchBookings()
     }
 
     return (
@@ -478,6 +576,174 @@ export default function Statistics() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+                </section>
+
+                <section className={`rounded-xl p-6 ${themedCard}`}>
+                    <div className="mb-6 flex items-center justify-between">
+                        <div>
+                            <h2 className="text-lg font-semibold">Gerenciar Agendamentos</h2>
+                            <p className={`mt-1 text-sm ${themedMutedText}`}>
+                                Visualize e gerencie todos os agendamentos confirmados e cancelados
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setBookingsFilter("active")}
+                                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
+                                    bookingsFilter === "active"
+                                        ? "bg-emerald-500 text-white"
+                                        : theme === "dark"
+                                            ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
+                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                }`}
+                            >
+                                Ativos
+                            </button>
+                            <button
+                                onClick={() => setBookingsFilter("cancelled")}
+                                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
+                                    bookingsFilter === "cancelled"
+                                        ? "bg-red-500 text-white"
+                                        : theme === "dark"
+                                            ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
+                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                }`}
+                            >
+                                Cancelados
+                            </button>
+                            <button
+                                onClick={() => setBookingsFilter("all")}
+                                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
+                                    bookingsFilter === "all"
+                                        ? "bg-blue-500 text-white"
+                                        : theme === "dark"
+                                            ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
+                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                }`}
+                            >
+                                Todos
+                            </button>
+                        </div>
+                    </div>
+
+                    {isLoadingBookings ? (
+                        <div className="flex items-center gap-3 rounded-lg border border-dashed border-blue-400/50 px-4 py-6 text-blue-400">
+                            <RefreshCw className="h-5 w-5 animate-spin" />
+                            <span>Carregando agendamentos...</span>
+                        </div>
+                    ) : bookings.length === 0 ? (
+                        <div
+                            className={`flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-6 py-10 ${
+                                theme === "dark" ? "border-[#2a2a2a]" : "border-gray-300"
+                            }`}
+                        >
+                            <Calendar className={`h-12 w-12 ${themedMutedText}`} />
+                            <p className="text-sm font-medium">Nenhum agendamento encontrado</p>
+                            <p className={`text-xs ${themedMutedText}`}>
+                                {bookingsFilter === "active"
+                                    ? "Não há agendamentos ativos no momento"
+                                    : bookingsFilter === "cancelled"
+                                        ? "Não há agendamentos cancelados"
+                                        : "Nenhum agendamento registrado"}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                <tr
+                                    className={`border-b text-left text-sm ${
+                                        theme === "dark" ? "border-[#1f1f1f]" : "border-gray-200"
+                                    }`}
+                                >
+                                    <th className="pb-3 font-semibold">Cliente</th>
+                                    <th className="pb-3 font-semibold">Data</th>
+                                    <th className="pb-3 font-semibold">Horário</th>
+                                    <th className="pb-3 font-semibold">Código</th>
+                                    <th className="pb-3 font-semibold">Status</th>
+                                    <th className="pb-3 font-semibold">Criado em</th>
+                                    <th className="pb-3 font-semibold text-right">Ações</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {bookings.map((booking, index) => (
+                                    <tr
+                                        key={booking.code}
+                                        className={`border-b transition-colors ${
+                                            theme === "dark" ? "border-[#1f1f1f] hover:bg-[#0b0b0f]" : "border-gray-100 hover:bg-gray-50"
+                                        }`}
+                                    >
+                                        <td className="py-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`rounded-full p-2 ${theme === "dark" ? "bg-blue-500/10" : "bg-blue-100"}`}>
+                                                    <User className="h-4 w-4 text-blue-500" />
+                                                </div>
+                                                <span className="text-sm font-medium">{booking.user_id}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className={`h-4 w-4 ${themedMutedText}`} />
+                                                <span className="text-sm">{formatDate(booking.date)}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4">
+                                            <div className="flex items-center gap-2">
+                                                <Clock className={`h-4 w-4 ${themedMutedText}`} />
+                                                <span className="text-sm font-medium">{booking.time}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4">
+                                            <code
+                                                className={`rounded px-2 py-1 text-xs font-mono ${
+                                                    theme === "dark" ? "bg-[#1f1f1f] text-gray-300" : "bg-gray-100 text-gray-700"
+                                                }`}
+                                            >
+                                                {booking.code}
+                                            </code>
+                                        </td>
+                                        <td className="py-4">
+                        <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
+                                booking.status === "active"
+                                    ? theme === "dark"
+                                        ? "bg-emerald-500/20 text-emerald-400"
+                                        : "bg-emerald-100 text-emerald-700"
+                                    : theme === "dark"
+                                        ? "bg-red-500/20 text-red-400"
+                                        : "bg-red-100 text-red-700"
+                            }`}
+                        >
+                          <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                  booking.status === "active" ? "bg-emerald-500" : "bg-red-500"
+                              }`}
+                          />
+                            {booking.status === "active" ? "Ativo" : "Cancelado"}
+                        </span>
+                                        </td>
+                                        <td className="py-4">
+                                            <span className={`text-xs ${themedMutedText}`}>{formatDateTime(booking.created_at)}</span>
+                                        </td>
+                                        <td className="py-4 text-right">
+                                            {booking.status === "active" && (
+                                                <button
+                                                    onClick={() => cancelBooking(booking.code)}
+                                                    className={`rounded-lg p-2 transition-colors ${
+                                                        theme === "dark" ? "hover:bg-red-500/20 text-red-400" : "hover:bg-red-100 text-red-600"
+                                                    }`}
+                                                    title="Cancelar agendamento"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </section>
