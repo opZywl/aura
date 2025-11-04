@@ -414,16 +414,26 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
         is_final = False
         node_type = None # To keep track of current node type
 
-        if hasattr(execution, 'survey_state') and execution.survey_state.get('waiting_response'):
+        if hasattr(execution, 'survey_state') and execution.survey_state and execution.survey_state.get('waiting_response'):
             user_input = message.strip()
+
+            logger.info(f"[SURVEY] Processando resposta da pesquisa: '{user_input}'")
 
             # Check if it's a valid rating (0-5)
             if user_input.isdigit() and 0 <= int(user_input) <= 5:
                 rating = int(user_input)
                 question = execution.survey_state.get('question', '')
 
+                logger.info(f"[SURVEY] Nota válida recebida: {rating}")
+                logger.info(f"[SURVEY] Salvando resposta no survey_manager...")
+
                 # Save survey response
-                survey_manager.save_response(user_id, workflow_id, rating, question)
+                success = survey_manager.save_response(user_id, workflow_id, rating, question)
+
+                if success:
+                    logger.info(f"[SURVEY] ✅ Resposta salva com sucesso! User: {user_id}, Nota: {rating}")
+                else:
+                    logger.error(f"[SURVEY] ❌ ERRO ao salvar resposta!")
 
                 # Thank you message
                 thank_you_msg = "✅ Obrigado pelo seu feedback! Sua opinião é muito importante para nós."
@@ -443,8 +453,12 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 execution.survey_state = {}
                 execution.waiting_for_input = False
 
+                logger.info(f"[SURVEY] Estado da pesquisa limpo. Resetando conversa...")
+
                 # Reset conversation
                 reset_conversation(user_id, workflow_id)
+
+                logger.info(f"[SURVEY] Processo de pesquisa finalizado com sucesso!")
 
                 return {
                     "success": True,
@@ -455,7 +469,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 }
             else:
                 # Invalid rating
-                error_msg = "Por favor, digite apenas um número de 0 a 5 para avaliar o atendimento."
+                logger.warning(f"[SURVEY] Nota inválida recebida: '{user_input}'")
+                error_msg = "❌ Por favor, digite apenas um número de 0 a 5 para avaliar o atendimento."
 
                 return {
                     "success": True,
@@ -573,9 +588,14 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                 }
 
                             elif current_node.type == "finalizar":
+                                logger.info(f"[SURVEY] ========================================")
+                                logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO: {current_node.id}")
+                                logger.info(f"[SURVEY] ========================================")
+
                                 msg_text = current_node.data.finalMessage or current_node.data.message or ""
 
                                 if msg_text.strip():
+                                    logger.info(f"[SURVEY] Adicionando mensagem final: {msg_text[:50]}...")
                                     messages_to_send.append({
                                         "text": msg_text,
                                         "options": []
@@ -586,9 +606,12 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                         "content": msg_text,
                                         "timestamp": datetime.now(BRASIL_TZ).isoformat()
                                     })
+                                else:
+                                    logger.info(f"[SURVEY] Nenhuma mensagem final configurada")
 
-                                logger.info(f"[SURVEY] Nó finalizar processado: {current_node.id}")
-                                logger.info(f"[SURVEY] SEMPRE enviando pesquisa de satisfação (forçado)")
+                                # SEMPRE enviar pesquisa de satisfação
+                                logger.info(f"[SURVEY] Preparando pesquisa de satisfação...")
+                                logger.info(f"[SURVEY] enableSatisfactionSurvey: {current_node.data.enableSatisfactionSurvey}")
 
                                 # Get survey configuration or use defaults
                                 survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
@@ -602,17 +625,18 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                 ]
 
                                 logger.info(f"[SURVEY] Pergunta: {survey_question}")
-                                logger.info(f"[SURVEY] Labels: {rating_labels}")
+                                logger.info(f"[SURVEY] Labels configurados: {len(rating_labels)} labels")
 
                                 # Build survey message with better formatting
-                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 Pesquisa de Satisfação\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
 
                                 for i, label in enumerate(rating_labels):
                                     survey_text += f"*{i}* - {label}\n"
 
                                 survey_text += "\n💡 Digite o número correspondente à sua avaliação"
 
-                                logger.info(f"[SURVEY] Texto da pesquisa montado: {survey_text[:100]}...")
+                                logger.info(f"[SURVEY] Texto da pesquisa montado ({len(survey_text)} caracteres)")
+                                logger.info(f"[SURVEY] Preview: {survey_text[:100]}...")
 
                                 messages_to_send.append({
                                     "text": survey_text,
@@ -629,12 +653,15 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                 # Set survey state to wait for user response
                                 execution.survey_state = {
                                     'waiting_response': True,
-                                    'question': survey_question
+                                    'question': survey_question,
+                                    'timestamp': datetime.now(BRASIL_TZ).isoformat()
                                 }
                                 execution.waiting_for_input = True
 
-                                logger.info(f"[SURVEY] Pesquisa ADICIONADA às mensagens - Total: {len(messages_to_send)}")
-                                logger.info(f"[SURVEY] Estado de espera configurado: waiting_response=True")
+                                logger.info(f"[SURVEY] ✅ Pesquisa ADICIONADA às mensagens!")
+                                logger.info(f"[SURVEY] Total de mensagens a enviar: {len(messages_to_send)}")
+                                logger.info(f"[SURVEY] Estado configurado: waiting_response=True")
+                                logger.info(f"[SURVEY] ========================================")
 
                                 return {
                                     "success": True,
@@ -668,7 +695,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                                 logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
 
-                                # Return immediately - don't process next nodes or archive
+                                # Return immediately - don't process next nodes
                                 return {
                                     "success": True,
                                     "messages": messages_to_send,
@@ -775,6 +802,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "timestamp": datetime.now(BRASIL_TZ).isoformat()
                     })
 
+                    execution.current_node_id = current_node.id
                     execution.waiting_for_input = True
                     logger.info(f"Aguardando input do usuário no nó: {current_node.id}")
 
@@ -911,9 +939,14 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     }
 
                 elif current_node.type == "finalizar":
+                    logger.info(f"[SURVEY] ========================================")
+                    logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO: {current_node.id}")
+                    logger.info(f"[SURVEY] ========================================")
+
                     msg_text = current_node.data.finalMessage or current_node.data.message or ""
 
                     if msg_text.strip():
+                        logger.info(f"[SURVEY] Adicionando mensagem final: {msg_text[:50]}...")
                         messages_to_send.append({
                             "text": msg_text,
                             "options": []
@@ -924,9 +957,12 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                             "content": msg_text,
                             "timestamp": datetime.now(BRASIL_TZ).isoformat()
                         })
+                    else:
+                        logger.info(f"[SURVEY] Nenhuma mensagem final configurada")
 
-                    logger.info(f"[SURVEY] Nó finalizar processado: {current_node.id}")
-                    logger.info(f"[SURVEY] SEMPRE enviando pesquisa de satisfação (forçado)")
+                    # SEMPRE enviar pesquisa de satisfação
+                    logger.info(f"[SURVEY] Preparando pesquisa de satisfação...")
+                    logger.info(f"[SURVEY] enableSatisfactionSurvey: {current_node.data.enableSatisfactionSurvey}")
 
                     # Get survey configuration or use defaults
                     survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
@@ -940,7 +976,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     ]
 
                     logger.info(f"[SURVEY] Pergunta: {survey_question}")
-                    logger.info(f"[SURVEY] Labels: {rating_labels}")
+                    logger.info(f"[SURVEY] Labels configurados: {len(rating_labels)} labels")
 
                     # Build survey message with better formatting
                     survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
@@ -950,7 +986,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                     survey_text += "\n💡 Digite o número correspondente à sua avaliação"
 
-                    logger.info(f"[SURVEY] Texto da pesquisa montado: {survey_text[:100]}...")
+                    logger.info(f"[SURVEY] Texto da pesquisa montado ({len(survey_text)} caracteres)")
+                    logger.info(f"[SURVEY] Preview: {survey_text[:100]}...")
 
                     messages_to_send.append({
                         "text": survey_text,
@@ -967,12 +1004,15 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     # Set survey state to wait for user response
                     execution.survey_state = {
                         'waiting_response': True,
-                        'question': survey_question
+                        'question': survey_question,
+                        'timestamp': datetime.now(BRASIL_TZ).isoformat()
                     }
                     execution.waiting_for_input = True
 
-                    logger.info(f"[SURVEY] Pesquisa ADICIONADA às mensagens - Total: {len(messages_to_send)}")
-                    logger.info(f"[SURVEY] Estado de espera configurado: waiting_response=True")
+                    logger.info(f"[SURVEY] ✅ Pesquisa ADICIONADA às mensagens!")
+                    logger.info(f"[SURVEY] Total de mensagens a enviar: {len(messages_to_send)}")
+                    logger.info(f"[SURVEY] Estado configurado: waiting_response=True")
+                    logger.info(f"[SURVEY] ========================================")
 
                     return {
                         "success": True,
@@ -1217,9 +1257,14 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     }
 
                                 elif current_node.type == "finalizar":
+                                    logger.info(f"[SURVEY] ========================================")
+                                    logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO (APÓS OPÇÕES): {current_node.id}")
+                                    logger.info(f"[SURVEY] ========================================")
+
                                     msg_text = current_node.data.finalMessage or current_node.data.message or ""
 
                                     if msg_text.strip():
+                                        logger.info(f"[SURVEY] Adicionando mensagem final: {msg_text[:50]}...")
                                         messages_to_send.append({
                                             "text": msg_text,
                                             "options": []
@@ -1230,16 +1275,70 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                             "content": msg_text,
                                             "timestamp": datetime.now(BRASIL_TZ).isoformat()
                                         })
+                                    else:
+                                        logger.info(f"[SURVEY] Nenhuma mensagem final configurada")
 
-                                    reset_conversation(user_id, workflow_id)
+                                    # SEMPRE enviar pesquisa de satisfação
+                                    logger.info(f"[SURVEY] Preparando pesquisa de satisfação...")
+                                    logger.info(f"[SURVEY] enableSatisfactionSurvey: {current_node.data.enableSatisfactionSurvey}")
+
+                                    # Get survey configuration or use defaults
+                                    survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
+                                    rating_labels = current_node.data.surveyRatingLabels or [
+                                        "Péssimo",
+                                        "Ruim",
+                                        "Regular",
+                                        "Bom",
+                                        "Excelente",
+                                        "Extremamente Satisfeito"
+                                    ]
+
+                                    logger.info(f"[SURVEY] Pergunta: {survey_question}")
+                                    logger.info(f"[SURVEY] Labels configurados: {len(rating_labels)} labels")
+
+                                    # Build survey message with better formatting
+                                    survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+
+                                    for i, label in enumerate(rating_labels):
+                                        survey_text += f"*{i}* - {label}\n"
+
+                                    survey_text += "\n💡 Digite o número correspondente à sua avaliação"
+
+                                    logger.info(f"[SURVEY] Texto da pesquisa montado ({len(survey_text)} caracteres)")
+                                    logger.info(f"[SURVEY] Preview: {survey_text[:100]}...")
+
+                                    messages_to_send.append({
+                                        "text": survey_text,
+                                        "options": [],
+                                        "delay": 2000  # 2 seconds delay
+                                    })
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": survey_text,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                    })
+
+                                    # Set survey state to wait for user response
+                                    execution.survey_state = {
+                                        'waiting_response': True,
+                                        'question': survey_question,
+                                        'timestamp': datetime.now(BRASIL_TZ).isoformat()
+                                    }
+                                    execution.waiting_for_input = True
+
+                                    logger.info(f"[SURVEY] ✅ Pesquisa ADICIONADA às mensagens!")
+                                    logger.info(f"[SURVEY] Total de mensagens a enviar: {len(messages_to_send)}")
+                                    logger.info(f"[SURVEY] Estado configurado: waiting_response=True")
+                                    logger.info(f"[SURVEY] ========================================")
 
                                     return {
                                         "success": True,
                                         "messages": messages_to_send,
-                                        "requires_input": False,
-                                        "is_final": True,
-                                        "archive_conversation": True
+                                        "requires_input": True,
+                                        "is_final": False
                                     }
+                                    # </CHANGE>
 
                                 elif current_node.type == "agentes":
                                     initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
@@ -1478,9 +1577,14 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     }
 
                                 elif current_node.type == "finalizar":
+                                    logger.info(f"[SURVEY] ========================================")
+                                    logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO (APÓS OPÇÕES): {current_node.id}")
+                                    logger.info(f"[SURVEY] ========================================")
+
                                     msg_text = current_node.data.finalMessage or current_node.data.message or ""
 
                                     if msg_text.strip():
+                                        logger.info(f"[SURVEY] Adicionando mensagem final: {msg_text[:50]}...")
                                         messages_to_send.append({
                                             "text": msg_text,
                                             "options": []
@@ -1491,46 +1595,67 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                             "content": msg_text,
                                             "timestamp": datetime.now(BRASIL_TZ).isoformat()
                                         })
+                                    else:
+                                        logger.info(f"[SURVEY] Nenhuma mensagem final configurada")
 
-                                    reset_conversation(user_id, workflow_id)
+                                    # SEMPRE enviar pesquisa de satisfação
+                                    logger.info(f"[SURVEY] Preparando pesquisa de satisfação...")
+                                    logger.info(f"[SURVEY] enableSatisfactionSurvey: {current_node.data.enableSatisfactionSurvey}")
 
-                                    return {
-                                        "success": True,
-                                        "messages": messages_to_send,
-                                        "requires_input": False,
-                                        "is_final": True,
-                                        "archive_conversation": True
-                                    }
+                                    # Get survey configuration or use defaults
+                                    survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
+                                    rating_labels = current_node.data.surveyRatingLabels or [
+                                        "Péssimo",
+                                        "Ruim",
+                                        "Regular",
+                                        "Bom",
+                                        "Excelente",
+                                        "Extremamente Satisfeito"
+                                    ]
 
-                                elif current_node.type == "agentes":
-                                    initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+                                    logger.info(f"[SURVEY] Pergunta: {survey_question}")
+                                    logger.info(f"[SURVEY] Labels configurados: {len(rating_labels)} labels")
 
-                                    # Enviar mensagem de transferência
+                                    # Build survey message with better formatting
+                                    survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 Pesquisa de Satisfação\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+
+                                    for i, label in enumerate(rating_labels):
+                                        survey_text += f"{i} - {label}\n"
+
+                                    survey_text += "\n💡 Digite o número correspondente à sua avaliação"
+
+                                    logger.info(f"[SURVEY] Texto da pesquisa montado ({len(survey_text)} caracteres)")
+                                    logger.info(f"[SURVEY] Preview: {survey_text[:100]}...")
+
                                     messages_to_send.append({
-                                        "text": initial_message,
-                                        "options": []
+                                        "text": survey_text,
+                                        "options": [],
+                                        "delay": 2000  # 2 seconds delay
                                     })
 
                                     execution.conversation_history.append({
                                         "role": "assistant",
-                                        "content": initial_message,
+                                        "content": survey_text,
                                         "timestamp": datetime.now(BRASIL_TZ).isoformat()
                                     })
 
-                                    # Iniciar sessão de agente
-                                    agent_manager.start_agent_session(user_id, current_node.id)
+                                    # Set survey state to wait for user response
+                                    execution.survey_state = {
+                                        'waiting_response': True,
+                                        'question': survey_question,
+                                        'timestamp': datetime.now(BRASIL_TZ).isoformat()
+                                    }
+                                    execution.waiting_for_input = True
 
-                                    # Marcar que não requer mais input do bot (operador vai responder)
-                                    execution.waiting_for_input = False
-                                    execution.current_node_id = current_node.id
+                                    logger.info(f"[SURVEY] ✅ Pesquisa ADICIONADA às mensagens!")
+                                    logger.info(f"[SURVEY] Total de mensagens a enviar: {len(messages_to_send)}")
+                                    logger.info(f"[SURVEY] Estado configurado: waiting_response=True")
+                                    logger.info(f"[SURVEY] ========================================")
 
-                                    logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
-
-                                    # Return immediately - don't process next nodes or archive
                                     return {
                                         "success": True,
                                         "messages": messages_to_send,
-                                        "requires_input": False,
+                                        "requires_input": True,
                                         "is_final": False
                                     }
 
@@ -1539,15 +1664,6 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     current_node = find_next_node(workflow_id, current_node.id)
 
                             # End of flow
-                            reset_conversation(user_id, workflow_id)
-                            return {
-                                "success": True,
-                                "messages": messages_to_send,
-                                "requires_input": False,
-                                "is_final": True,
-                                "archive_conversation": True
-                            }
-                        else:
                             reset_conversation(user_id, workflow_id)
                             return {
                                 "success": True,
@@ -1713,9 +1829,14 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                 }
 
                             elif current_node.type == "finalizar":
+                                logger.info(f"[SURVEY] ========================================")
+                                logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO (APÓS OPÇÕES): {current_node.id}")
+                                logger.info(f"[SURVEY] ========================================")
+
                                 msg_text = current_node.data.finalMessage or current_node.data.message or ""
 
                                 if msg_text.strip():
+                                    logger.info(f"[SURVEY] Adicionando mensagem final: {msg_text[:50]}...")
                                     messages_to_send.append({
                                         "text": msg_text,
                                         "options": []
@@ -1726,46 +1847,67 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                         "content": msg_text,
                                         "timestamp": datetime.now(BRASIL_TZ).isoformat()
                                     })
+                                else:
+                                    logger.info(f"[SURVEY] Nenhuma mensagem final configurada")
 
-                                reset_conversation(user_id, workflow_id)
+                                # SEMPRE enviar pesquisa de satisfação
+                                logger.info(f"[SURVEY] Preparando pesquisa de satisfação...")
+                                logger.info(f"[SURVEY] enableSatisfactionSurvey: {current_node.data.enableSatisfactionSurvey}")
 
-                                return {
-                                    "success": True,
-                                    "messages": messages_to_send,
-                                    "requires_input": False,
-                                    "is_final": True,
-                                    "archive_conversation": True
-                                }
+                                # Get survey configuration or use defaults
+                                survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
+                                rating_labels = current_node.data.surveyRatingLabels or [
+                                    "Péssimo",
+                                    "Ruim",
+                                    "Regular",
+                                    "Bom",
+                                    "Excelente",
+                                    "Extremamente Satisfeito"
+                                ]
 
-                            elif current_node.type == "agentes":
-                                initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+                                logger.info(f"[SURVEY] Pergunta: {survey_question}")
+                                logger.info(f"[SURVEY] Labels configurados: {len(rating_labels)} labels")
 
-                                # Enviar mensagem de transferência
+                                # Build survey message with better formatting
+                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+
+                                for i, label in enumerate(rating_labels):
+                                    survey_text += f"*{i}* - {label}\n"
+
+                                survey_text += "\n💡 Digite o número correspondente à sua avaliação"
+
+                                logger.info(f"[SURVEY] Texto da pesquisa montado ({len(survey_text)} caracteres)")
+                                logger.info(f"[SURVEY] Preview: {survey_text[:100]}...")
+
                                 messages_to_send.append({
-                                    "text": initial_message,
-                                    "options": []
+                                    "text": survey_text,
+                                    "options": [],
+                                    "delay": 2000  # 2 seconds delay
                                 })
 
                                 execution.conversation_history.append({
                                     "role": "assistant",
-                                    "content": initial_message,
+                                    "content": survey_text,
                                     "timestamp": datetime.now(BRASIL_TZ).isoformat()
                                 })
 
-                                # Iniciar sessão de agente
-                                agent_manager.start_agent_session(user_id, current_node.id)
+                                # Set survey state to wait for user response
+                                execution.survey_state = {
+                                    'waiting_response': True,
+                                    'question': survey_question,
+                                    'timestamp': datetime.now(BRASIL_TZ).isoformat()
+                                }
+                                execution.waiting_for_input = True
 
-                                # Marcar que não requer mais input do bot (operador vai responder)
-                                execution.waiting_for_input = False
-                                execution.current_node_id = current_node.id
+                                logger.info(f"[SURVEY] ✅ Pesquisa ADICIONADA às mensagens!")
+                                logger.info(f"[SURVEY] Total de mensagens a enviar: {len(messages_to_send)}")
+                                logger.info(f"[SURVEY] Estado configurado: waiting_response=True")
+                                logger.info(f"[SURVEY] ========================================")
 
-                                logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
-
-                                # Return immediately - don't process next nodes or archive
                                 return {
                                     "success": True,
                                     "messages": messages_to_send,
-                                    "requires_input": False,
+                                    "requires_input": True,
                                     "is_final": False
                                 }
 
@@ -1820,7 +1962,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
         }
 
     except Exception as e:
-        logger.error(f"Erro ao processar mensagem: {e}")
+        logger.error(f"[SURVEY] ❌ ERRO CRÍTICO ao processar mensagem: {e}")
         logger.exception("Stack trace:")
         return {
             "success": False,

@@ -1148,29 +1148,42 @@ def webhook_telegram(account_id):
         if bot_response.get('success'):
             messages_to_send = bot_response.get('messages', [])
 
-            logger.info(f"Total de mensagens para enviar: {len(messages_to_send)}")
+            logger.info(f"[WEBHOOK] ========================================")
+            logger.info(f"[WEBHOOK] Bot retornou {len(messages_to_send)} mensagens para enviar")
+            logger.info(f"[WEBHOOK] requires_input: {bot_response.get('requires_input')}")
+            logger.info(f"[WEBHOOK] is_final: {bot_response.get('is_final')}")
+            logger.info(f"[WEBHOOK] ========================================")
+            # </CHANGE>
 
             for idx, msg_data in enumerate(messages_to_send):
                 response_text = msg_data.get('text', '')
                 response_options = msg_data.get('options', [])
                 delay = msg_data.get('delay', 0)
+
+                logger.info(f"[WEBHOOK] Processando mensagem #{idx + 1}/{len(messages_to_send)}")
+                logger.info(f"[WEBHOOK]   - Tamanho do texto: {len(response_text)} caracteres")
+                logger.info(f"[WEBHOOK]   - Delay: {delay}ms")
+                logger.info(f"[WEBHOOK]   - Preview: {response_text[:100]}...")
                 # </CHANGE>
 
                 if not response_text.strip():
-                    logger.info(f"Pulando mensagem vazia #{idx + 1}")
+                    logger.warning(f"[WEBHOOK] ⚠️ Pulando mensagem vazia #{idx + 1}")
                     continue
 
-                logger.info(f"Enviando mensagem #{idx + 1}/{len(messages_to_send)}: {response_text[:50]}...")
-
                 if delay > 0:
-                    logger.info(f"Aguardando {delay}ms antes de enviar pesquisa...")
+                    logger.info(f"[WEBHOOK] ⏳ Aguardando {delay}ms antes de enviar...")
                     import time
                     time.sleep(delay / 1000.0)
+                    logger.info(f"[WEBHOOK] ✅ Delay concluído, enviando agora...")
                 # </CHANGE>
 
+                logger.info(f"[WEBHOOK] 📤 Enviando mensagem #{idx + 1} para Telegram...")
                 success = send_telegram_message(chat_id, response_text, account_id, response_options)
 
                 if success:
+                    logger.info(f"[WEBHOOK] ✅ Mensagem #{idx + 1} enviada com SUCESSO via Telegram!")
+                    # </CHANGE>
+
                     # Adicionar resposta do bot à conversa
                     with _conversation_lock:
                         bot_message = Message(
@@ -1188,22 +1201,30 @@ def webhook_telegram(account_id):
 
                         broadcast_to_subscribers(chat_id, bot_message.to_dict())
 
-                    logger.info(f"Mensagem #{idx + 1} enviada e salva na conversa")
+                    logger.info(f"[WEBHOOK] Mensagem #{idx + 1} salva na conversa")
 
-                    if idx < len(messages_to_send) - 1:
+                    if idx < len(messages_to_send) - 1 and delay == 0:
                         import time
                         time.sleep(0.5)
+                    # </CHANGE>
                 else:
-                    logger.error(f"Falha ao enviar mensagem #{idx + 1} via Telegram API")
+                    logger.error(f"[WEBHOOK] ❌ FALHA ao enviar mensagem #{idx + 1} via Telegram API!")
+                    logger.error(f"[WEBHOOK] Texto que falhou: {response_text[:200]}...")
+                    # </CHANGE>
+
+            logger.info(f"[WEBHOOK] ========================================")
+            logger.info(f"[WEBHOOK] Processamento concluído: {len(messages_to_send)} mensagens processadas")
+            logger.info(f"[WEBHOOK] ========================================")
+            # </CHANGE>
 
             if bot_response.get('archive_conversation'):
-                logger.info(f"Arquivando conversa {chat_id} após finalização do fluxo")
+                logger.info(f"[WEBHOOK] 📦 Arquivando conversa {chat_id} após finalização do fluxo")
                 with _conversation_lock:
                     if chat_id in _conversations:
                         _conversations[chat_id].isArchived = True
         else:
             error_message = bot_response.get('messages', [{}])[0].get('text', 'Erro ao processar mensagem')
-            logger.error(f"INTERNO: Erro no processamento do bot: {error_message}")
+            logger.error(f"[WEBHOOK] ❌ ERRO no processamento do bot: {error_message}")
 
         # Limpar cache
         _cache['conversations_last_update'] = 0
