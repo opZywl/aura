@@ -1,18 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import {
-    BarChart3,
-    Calendar,
-    MessageSquare,
-    RefreshCw,
-    TrendingUp,
-    History,
-    X,
-    Clock,
-    User,
-    Trash2,
-} from "lucide-react"
+import { BarChart3, Calendar, MessageSquare, RefreshCw, TrendingUp, History, X, Clock, Trash2 } from "lucide-react"
 import { useTheme } from "@/src/aura/features/view/homePanels/ThemeContext"
 
 interface ConversationData {
@@ -308,7 +297,7 @@ export default function Statistics() {
 
     return (
         <div className={`min-h-screen w-full ${theme === "dark" ? "bg-[#050505] text-white" : "bg-gray-50 text-gray-900"}`}>
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
                 <header className={`flex flex-col gap-2 rounded-xl p-6 ${themedCard}`}>
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
@@ -328,425 +317,363 @@ export default function Statistics() {
                     </div>
                 </header>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className={`rounded-xl p-4 ${themedCard}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-blue-500/10 p-2">
-                                <MessageSquare className="h-5 w-5 text-blue-500" />
-                            </div>
-                            <div>
-                                <p className={`text-xs ${themedMutedText}`}>Hoje</p>
-                                <p className="text-2xl font-semibold">{stats.today}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={`rounded-xl p-4 ${themedCard}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-purple-500/10 p-2">
-                                <Calendar className="h-5 w-5 text-purple-500" />
-                            </div>
-                            <div>
-                                <p className={`text-xs ${themedMutedText}`}>Esta Semana</p>
-                                <p className="text-2xl font-semibold">{stats.week}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={`rounded-xl p-4 ${themedCard}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-green-500/10 p-2">
-                                <TrendingUp className="h-5 w-5 text-green-500" />
-                            </div>
-                            <div>
-                                <p className={`text-xs ${themedMutedText}`}>Este Mês</p>
-                                <p className="text-2xl font-semibold">{stats.month}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={`rounded-xl p-4 ${themedCard}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-orange-500/10 p-2">
-                                <BarChart3 className="h-5 w-5 text-orange-500" />
-                            </div>
-                            <div>
-                                <p className={`text-xs ${themedMutedText}`}>Total</p>
-                                <p className="text-2xl font-semibold">{stats.total}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <section className={`rounded-xl p-6 ${themedCard}`}>
-                    <h2 className="mb-6 text-lg font-semibold">Estatísticas de Agendamentos</h2>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <div
-                            className={`rounded-xl p-4 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-emerald-500/10 p-2">
-                                    <Calendar className="h-5 w-5 text-emerald-500" />
+                <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Left column - Stats and bookings */}
+                    <div className="flex flex-col gap-6">
+                        {/* Conversation stats */}
+                        <div className="grid gap-4 grid-cols-2">
+                            <div className={`rounded-xl p-4 ${themedCard}`}>
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-blue-500/10 p-2">
+                                        <MessageSquare className="h-5 w-5 text-blue-500" />
+                                    </div>
+                                    <div>
+                                        <p className={`text-xs ${themedMutedText}`}>Hoje</p>
+                                        <p className="text-2xl font-semibold">{stats.today}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className={`text-xs ${themedMutedText}`}>Confirmados Hoje</p>
-                                    <p className="text-2xl font-semibold text-emerald-500">{bookingStats.today_confirmed}</p>
+                            </div>
+
+                            <div className={`rounded-xl p-4 ${themedCard}`}>
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-purple-500/10 p-2">
+                                        <Calendar className="h-5 w-5 text-purple-500" />
+                                    </div>
+                                    <div>
+                                        <p className={`text-xs ${themedMutedText}`}>Semana</p>
+                                        <p className="text-2xl font-semibold">{stats.week}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={`rounded-xl p-4 ${themedCard}`}>
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-green-500/10 p-2">
+                                        <TrendingUp className="h-5 w-5 text-green-500" />
+                                    </div>
+                                    <div>
+                                        <p className={`text-xs ${themedMutedText}`}>Mês</p>
+                                        <p className="text-2xl font-semibold">{stats.month}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={`rounded-xl p-4 ${themedCard}`}>
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-orange-500/10 p-2">
+                                        <BarChart3 className="h-5 w-5 text-orange-500" />
+                                    </div>
+                                    <div>
+                                        <p className={`text-xs ${themedMutedText}`}>Total</p>
+                                        <p className="text-2xl font-semibold">{stats.total}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div
-                            className={`rounded-xl p-4 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-red-500/10 p-2">
-                                    <X className="h-5 w-5 text-red-500" />
-                                </div>
-                                <div>
-                                    <p className={`text-xs ${themedMutedText}`}>Cancelados Hoje</p>
-                                    <p className="text-2xl font-semibold text-red-500">{bookingStats.today_cancelled}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            className={`rounded-xl p-4 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-emerald-500/10 p-2">
-                                    <Calendar className="h-5 w-5 text-emerald-500" />
-                                </div>
-                                <div>
-                                    <p className={`text-xs ${themedMutedText}`}>Confirmados no Mês</p>
-                                    <p className="text-2xl font-semibold text-emerald-500">{bookingStats.month_confirmed}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            className={`rounded-xl p-4 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-red-500/10 p-2">
-                                    <X className="h-5 w-5 text-red-500" />
-                                </div>
-                                <div>
-                                    <p className={`text-xs ${themedMutedText}`}>Cancelados no Mês</p>
-                                    <p className="text-2xl font-semibold text-red-500">{bookingStats.month_cancelled}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section className={`rounded-xl p-6 ${themedCard}`}>
-                    <h2 className="mb-6 text-lg font-semibold">Visão Geral</h2>
-                    <div className="flex items-center justify-center py-8">
-                        <div className="relative h-48 w-48">
-                            <svg className="h-full w-full -rotate-90 transform">
-                                <circle
-                                    cx="96"
-                                    cy="96"
-                                    r="80"
-                                    stroke={theme === "dark" ? "#1f1f1f" : "#e5e7eb"}
-                                    strokeWidth="16"
-                                    fill="none"
-                                />
-                                <circle
-                                    cx="96"
-                                    cy="96"
-                                    r="80"
-                                    stroke="url(#gradient)"
-                                    strokeWidth="16"
-                                    fill="none"
-                                    strokeDasharray={`${(percentage / 100) * 502.4} 502.4`}
-                                    strokeLinecap="round"
-                                    className="transition-all duration-1000"
-                                />
-                                <defs>
-                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor="#3b82f6" />
-                                        <stop offset="100%" stopColor="#8b5cf6" />
-                                    </linearGradient>
-                                </defs>
-                            </svg>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-3xl font-bold">{percentage}%</span>
-                                <span className={`text-xs ${themedMutedText}`}>Hoje</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section className={`rounded-xl p-6 ${themedCard}`}>
-                    <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-lg font-semibold">Relatório de Conversas</h2>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setFilter("today")}
-                                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
-                                    filter === "today"
-                                        ? "bg-blue-500 text-white"
-                                        : theme === "dark"
-                                            ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
-                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                }`}
-                            >
-                                Hoje
-                            </button>
-                            <button
-                                onClick={() => setFilter("month")}
-                                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
-                                    filter === "month"
-                                        ? "bg-blue-500 text-white"
-                                        : theme === "dark"
-                                            ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
-                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                }`}
-                            >
-                                Mês
-                            </button>
-                        </div>
-                    </div>
-
-                    {isLoading ? (
-                        <div className="flex items-center gap-3 rounded-lg border border-dashed border-blue-400/50 px-4 py-6 text-blue-400">
-                            <RefreshCw className="h-5 w-5 animate-spin" />
-                            <span>Carregando conversas...</span>
-                        </div>
-                    ) : conversations.length === 0 ? (
-                        <div
-                            className={`flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-6 py-10 ${
-                                theme === "dark" ? "border-[#2a2a2a]" : "border-gray-300"
-                            }`}
-                        >
-                            <MessageSquare className={`h-12 w-12 ${themedMutedText}`} />
-                            <p className="text-sm font-medium">Nenhuma conversa encontrada</p>
-                            <p className={`text-xs ${themedMutedText}`}>As conversas aparecerão aqui quando disponíveis</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {conversations.map((conv) => (
+                        {/* Booking stats */}
+                        <section className={`rounded-xl p-6 ${themedCard}`}>
+                            <h2 className="mb-4 text-lg font-semibold">Agendamentos</h2>
+                            <div className="grid gap-3 grid-cols-2">
                                 <div
-                                    key={conv.id}
-                                    className={`rounded-lg border p-4 transition-colors ${
-                                        theme === "dark"
-                                            ? "border-[#1f1f1f] bg-[#0b0b0f] hover:bg-[#121218]"
-                                            : "border-gray-200 bg-gray-50 hover:bg-gray-100"
-                                    }`}
+                                    className={`rounded-xl p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
                                 >
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold">{conv.title}</h3>
-                                                <span
-                                                    className={`rounded-full px-2 py-0.5 text-xs ${
-                                                        theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
-                                                    }`}
-                                                >
-                          {conv.platform}
-                        </span>
-                                            </div>
-                                            <p className={`mt-1 text-sm ${themedMutedText}`}>
-                                                {conv.lastMessage.length > 60 ? `${conv.lastMessage.substring(0, 60)}...` : conv.lastMessage}
-                                            </p>
-                                            <div className={`mt-2 flex items-center gap-3 text-xs ${themedMutedText}`}>
-                                                <span>Início: {formatFullDate(conv.createdAt)}</span>
-                                                <span>•</span>
-                                                <span>Última msg: {formatFullDate(conv.lastAt)}</span>
-                                            </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="rounded-lg bg-emerald-500/10 p-1.5">
+                                            <Calendar className="h-4 w-4 text-emerald-500" />
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-right">
-                                                <p className="text-sm font-medium">{conv.messageCount} msgs</p>
-                                                <p className={`text-xs ${themedMutedText}`}>{formatTimestamp(conv.lastAt)}</p>
-                                            </div>
-                                            <button
-                                                onClick={() => openHistoryModal(conv)}
-                                                className={`rounded-lg p-2 transition-colors ${
-                                                    theme === "dark"
-                                                        ? "bg-[#1f1f1f] hover:bg-[#2a2a2a] text-gray-400 hover:text-blue-400"
-                                                        : "bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-blue-600"
-                                                }`}
-                                                title="Ver histórico de mensagens"
-                                            >
-                                                <History className="h-4 w-4" />
-                                            </button>
+                                        <div>
+                                            <p className={`text-[10px] ${themedMutedText}`}>Hoje</p>
+                                            <p className="text-lg font-semibold text-emerald-500">{bookingStats.today_confirmed}</p>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </section>
 
-                <section className={`rounded-xl p-6 ${themedCard}`}>
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <h2 className="text-lg font-semibold">Gerenciar Agendamentos</h2>
-                            <p className={`mt-1 text-sm ${themedMutedText}`}>
-                                Visualize e gerencie todos os agendamentos confirmados e cancelados
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setBookingsFilter("active")}
-                                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
-                                    bookingsFilter === "active"
-                                        ? "bg-emerald-500 text-white"
-                                        : theme === "dark"
-                                            ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
-                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                }`}
-                            >
-                                Ativos
-                            </button>
-                            <button
-                                onClick={() => setBookingsFilter("cancelled")}
-                                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
-                                    bookingsFilter === "cancelled"
-                                        ? "bg-red-500 text-white"
-                                        : theme === "dark"
-                                            ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
-                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                }`}
-                            >
-                                Cancelados
-                            </button>
-                            <button
-                                onClick={() => setBookingsFilter("all")}
-                                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
-                                    bookingsFilter === "all"
-                                        ? "bg-blue-500 text-white"
-                                        : theme === "dark"
-                                            ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
-                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                }`}
-                            >
-                                Todos
-                            </button>
-                        </div>
+                                <div
+                                    className={`rounded-xl p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <div className="rounded-lg bg-red-500/10 p-1.5">
+                                            <X className="h-4 w-4 text-red-500" />
+                                        </div>
+                                        <div>
+                                            <p className={`text-[10px] ${themedMutedText}`}>Cancelados</p>
+                                            <p className="text-lg font-semibold text-red-500">{bookingStats.today_cancelled}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    className={`rounded-xl p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <div className="rounded-lg bg-emerald-500/10 p-1.5">
+                                            <Calendar className="h-4 w-4 text-emerald-500" />
+                                        </div>
+                                        <div>
+                                            <p className={`text-[10px] ${themedMutedText}`}>Mês</p>
+                                            <p className="text-lg font-semibold text-emerald-500">{bookingStats.month_confirmed}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    className={`rounded-xl p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <div className="rounded-lg bg-red-500/10 p-1.5">
+                                            <X className="h-4 w-4 text-red-500" />
+                                        </div>
+                                        <div>
+                                            <p className={`text-[10px] ${themedMutedText}`}>Cancelados</p>
+                                            <p className="text-lg font-semibold text-red-500">{bookingStats.month_cancelled}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Circular progress */}
+                        <section className={`rounded-xl p-6 ${themedCard}`}>
+                            <h2 className="mb-4 text-lg font-semibold">Visão Geral</h2>
+                            <div className="flex items-center justify-center py-4">
+                                <div className="relative h-40 w-40">
+                                    <svg className="h-full w-full -rotate-90 transform">
+                                        <circle
+                                            cx="80"
+                                            cy="80"
+                                            r="70"
+                                            stroke={theme === "dark" ? "#1f1f1f" : "#e5e7eb"}
+                                            strokeWidth="12"
+                                            fill="none"
+                                        />
+                                        <circle
+                                            cx="80"
+                                            cy="80"
+                                            r="70"
+                                            stroke="url(#gradient)"
+                                            strokeWidth="12"
+                                            fill="none"
+                                            strokeDasharray={`${(percentage / 100) * 439.6} 439.6`}
+                                            strokeLinecap="round"
+                                            className="transition-all duration-1000"
+                                        />
+                                        <defs>
+                                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stopColor="#3b82f6" />
+                                                <stop offset="100%" stopColor="#8b5cf6" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span className="text-2xl font-bold">{percentage}%</span>
+                                        <span className={`text-xs ${themedMutedText}`}>Hoje</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
 
-                    {isLoadingBookings ? (
-                        <div className="flex items-center gap-3 rounded-lg border border-dashed border-blue-400/50 px-4 py-6 text-blue-400">
-                            <RefreshCw className="h-5 w-5 animate-spin" />
-                            <span>Carregando agendamentos...</span>
-                        </div>
-                    ) : bookings.length === 0 ? (
-                        <div
-                            className={`flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-6 py-10 ${
-                                theme === "dark" ? "border-[#2a2a2a]" : "border-gray-300"
-                            }`}
-                        >
-                            <Calendar className={`h-12 w-12 ${themedMutedText}`} />
-                            <p className="text-sm font-medium">Nenhum agendamento encontrado</p>
-                            <p className={`text-xs ${themedMutedText}`}>
-                                {bookingsFilter === "active"
-                                    ? "Não há agendamentos ativos no momento"
-                                    : bookingsFilter === "cancelled"
-                                        ? "Não há agendamentos cancelados"
-                                        : "Nenhum agendamento registrado"}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                <tr
-                                    className={`border-b text-left text-sm ${
-                                        theme === "dark" ? "border-[#1f1f1f]" : "border-gray-200"
-                                    }`}
-                                >
-                                    <th className="pb-3 font-semibold">Cliente</th>
-                                    <th className="pb-3 font-semibold">Data</th>
-                                    <th className="pb-3 font-semibold">Horário</th>
-                                    <th className="pb-3 font-semibold">Código</th>
-                                    <th className="pb-3 font-semibold">Status</th>
-                                    <th className="pb-3 font-semibold">Criado em</th>
-                                    <th className="pb-3 font-semibold text-right">Ações</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {bookings.map((booking, index) => (
-                                    <tr
-                                        key={booking.code}
-                                        className={`border-b transition-colors ${
-                                            theme === "dark" ? "border-[#1f1f1f] hover:bg-[#0b0b0f]" : "border-gray-100 hover:bg-gray-50"
+                    {/* Right column - Conversations and bookings management */}
+                    <div className="flex flex-col gap-6">
+                        {/* Conversations */}
+                        <section className={`rounded-xl p-6 ${themedCard}`}>
+                            <div className="mb-4 flex items-center justify-between">
+                                <h2 className="text-lg font-semibold">Conversas</h2>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setFilter("today")}
+                                        className={`rounded-lg px-3 py-1 text-sm transition-colors ${
+                                            filter === "today"
+                                                ? "bg-blue-500 text-white"
+                                                : theme === "dark"
+                                                    ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
+                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                         }`}
                                     >
-                                        <td className="py-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`rounded-full p-2 ${theme === "dark" ? "bg-blue-500/10" : "bg-blue-100"}`}>
-                                                    <User className="h-4 w-4 text-blue-500" />
+                                        Hoje
+                                    </button>
+                                    <button
+                                        onClick={() => setFilter("month")}
+                                        className={`rounded-lg px-3 py-1 text-sm transition-colors ${
+                                            filter === "month"
+                                                ? "bg-blue-500 text-white"
+                                                : theme === "dark"
+                                                    ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
+                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        }`}
+                                    >
+                                        Mês
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="max-h-[400px] overflow-y-auto space-y-2">
+                                {isLoading ? (
+                                    <div className="flex items-center gap-3 rounded-lg border border-dashed border-blue-400/50 px-4 py-6 text-blue-400">
+                                        <RefreshCw className="h-5 w-5 animate-spin" />
+                                        <span>Carregando...</span>
+                                    </div>
+                                ) : conversations.length === 0 ? (
+                                    <div
+                                        className={`flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-6 py-10 ${
+                                            theme === "dark" ? "border-[#2a2a2a]" : "border-gray-300"
+                                        }`}
+                                    >
+                                        <MessageSquare className={`h-12 w-12 ${themedMutedText}`} />
+                                        <p className="text-sm font-medium">Nenhuma conversa</p>
+                                    </div>
+                                ) : (
+                                    conversations.map((conv) => (
+                                        <div
+                                            key={conv.id}
+                                            className={`rounded-lg border p-3 transition-colors ${
+                                                theme === "dark"
+                                                    ? "border-[#1f1f1f] bg-[#0b0b0f] hover:bg-[#121218]"
+                                                    : "border-gray-200 bg-gray-50 hover:bg-gray-100"
+                                            }`}
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="font-semibold text-sm truncate">{conv.title}</h3>
+                                                        <span
+                                                            className={`rounded-full px-2 py-0.5 text-xs ${
+                                                                theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600"
+                                                            }`}
+                                                        >
+                              {conv.platform}
+                            </span>
+                                                    </div>
+                                                    <p className={`mt-1 text-xs ${themedMutedText} truncate`}>{conv.lastMessage}</p>
+                                                    <div className={`mt-1 flex items-center gap-2 text-xs ${themedMutedText}`}>
+                                                        <span>{conv.messageCount} msgs</span>
+                                                        <span>•</span>
+                                                        <span>{formatTimestamp(conv.lastAt)}</span>
+                                                    </div>
                                                 </div>
-                                                <span className="text-sm font-medium">{booking.user_id}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className={`h-4 w-4 ${themedMutedText}`} />
-                                                <span className="text-sm">{formatDate(booking.date)}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4">
-                                            <div className="flex items-center gap-2">
-                                                <Clock className={`h-4 w-4 ${themedMutedText}`} />
-                                                <span className="text-sm font-medium">{booking.time}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4">
-                                            <code
-                                                className={`rounded px-2 py-1 text-xs font-mono ${
-                                                    theme === "dark" ? "bg-[#1f1f1f] text-gray-300" : "bg-gray-100 text-gray-700"
-                                                }`}
-                                            >
-                                                {booking.code}
-                                            </code>
-                                        </td>
-                                        <td className="py-4">
-                        <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
-                                booking.status === "active"
-                                    ? theme === "dark"
-                                        ? "bg-emerald-500/20 text-emerald-400"
-                                        : "bg-emerald-100 text-emerald-700"
-                                    : theme === "dark"
-                                        ? "bg-red-500/20 text-red-400"
-                                        : "bg-red-100 text-red-700"
-                            }`}
-                        >
-                          <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                  booking.status === "active" ? "bg-emerald-500" : "bg-red-500"
-                              }`}
-                          />
-                            {booking.status === "active" ? "Ativo" : "Cancelado"}
-                        </span>
-                                        </td>
-                                        <td className="py-4">
-                                            <span className={`text-xs ${themedMutedText}`}>{formatDateTime(booking.created_at)}</span>
-                                        </td>
-                                        <td className="py-4 text-right">
-                                            {booking.status === "active" && (
                                                 <button
-                                                    onClick={() => cancelBooking(booking.code)}
-                                                    className={`rounded-lg p-2 transition-colors ${
-                                                        theme === "dark" ? "hover:bg-red-500/20 text-red-400" : "hover:bg-red-100 text-red-600"
+                                                    onClick={() => openHistoryModal(conv)}
+                                                    className={`rounded-lg p-2 transition-colors flex-shrink-0 ${
+                                                        theme === "dark"
+                                                            ? "bg-[#1f1f1f] hover:bg-[#2a2a2a] text-gray-400 hover:text-blue-400"
+                                                            : "bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-blue-600"
                                                     }`}
-                                                    title="Cancelar agendamento"
                                                 >
-                                                    <Trash2 className="h-4 w-4" />
+                                                    <History className="h-4 w-4" />
                                                 </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </section>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </section>
+
+                        {/* Bookings management */}
+                        <section className={`rounded-xl p-6 ${themedCard}`}>
+                            <div className="mb-4 flex items-center justify-between">
+                                <h2 className="text-lg font-semibold">Agendamentos</h2>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setBookingsFilter("active")}
+                                        className={`rounded-lg px-2 py-1 text-xs transition-colors ${
+                                            bookingsFilter === "active"
+                                                ? "bg-emerald-500 text-white"
+                                                : theme === "dark"
+                                                    ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
+                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        }`}
+                                    >
+                                        Ativos
+                                    </button>
+                                    <button
+                                        onClick={() => setBookingsFilter("cancelled")}
+                                        className={`rounded-lg px-2 py-1 text-xs transition-colors ${
+                                            bookingsFilter === "cancelled"
+                                                ? "bg-red-500 text-white"
+                                                : theme === "dark"
+                                                    ? "bg-[#1f1f1f] text-gray-400 hover:bg-[#2a2a2a]"
+                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        }`}
+                                    >
+                                        Cancelados
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="max-h-[400px] overflow-y-auto space-y-2">
+                                {isLoadingBookings ? (
+                                    <div className="flex items-center gap-3 rounded-lg border border-dashed border-blue-400/50 px-4 py-6 text-blue-400">
+                                        <RefreshCw className="h-5 w-5 animate-spin" />
+                                        <span>Carregando...</span>
+                                    </div>
+                                ) : bookings.length === 0 ? (
+                                    <div
+                                        className={`flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-6 py-10 ${
+                                            theme === "dark" ? "border-[#2a2a2a]" : "border-gray-300"
+                                        }`}
+                                    >
+                                        <Calendar className={`h-12 w-12 ${themedMutedText}`} />
+                                        <p className="text-sm font-medium">Nenhum agendamento</p>
+                                    </div>
+                                ) : (
+                                    bookings.map((booking) => (
+                                        <div
+                                            key={booking.code}
+                                            className={`rounded-lg border p-3 transition-colors ${
+                                                theme === "dark"
+                                                    ? "border-[#1f1f1f] bg-[#0b0b0f] hover:bg-[#121218]"
+                                                    : "border-gray-200 bg-gray-50 hover:bg-gray-100"
+                                            }`}
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock className={`h-3 w-3 ${themedMutedText}`} />
+                                                        <span className="text-sm font-medium">{booking.time}</span>
+                                                        <span className={`text-xs ${themedMutedText}`}>-</span>
+                                                        <span className={`text-xs ${themedMutedText}`}>{formatDate(booking.date)}</span>
+                                                    </div>
+                                                    <div className="mt-1 flex items-center gap-2">
+                                                        <code
+                                                            className={`text-xs font-mono ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                                                        >
+                                                            {booking.code}
+                                                        </code>
+                                                        <span
+                                                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
+                                                                booking.status === "active"
+                                                                    ? theme === "dark"
+                                                                        ? "bg-emerald-500/20 text-emerald-400"
+                                                                        : "bg-emerald-100 text-emerald-700"
+                                                                    : theme === "dark"
+                                                                        ? "bg-red-500/20 text-red-400"
+                                                                        : "bg-red-100 text-red-700"
+                                                            }`}
+                                                        >
+                              {booking.status === "active" ? "Ativo" : "Cancelado"}
+                            </span>
+                                                    </div>
+                                                </div>
+                                                {booking.status === "active" && (
+                                                    <button
+                                                        onClick={() => cancelBooking(booking.code)}
+                                                        className={`rounded-lg p-2 transition-colors flex-shrink-0 ${
+                                                            theme === "dark" ? "hover:bg-red-500/20 text-red-400" : "hover:bg-red-100 text-red-600"
+                                                        }`}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+                {/* </CHANGE> */}
             </div>
 
             {selectedConversation && (
@@ -814,69 +741,39 @@ export default function Statistics() {
                                                     } flex flex-col gap-1`}
                                                 >
                                                     <div
-                                                        className="rounded-2xl px-4 py-3 border shadow-sm backdrop-blur-sm transition-transform"
-                                                        style={{
-                                                            background: isBot
-                                                                ? "linear-gradient(135deg, rgba(59,130,246,0.95), rgba(59,130,246,0.8))"
+                                                        className={`rounded-2xl px-4 py-3 border transition-all ${
+                                                            isBot
+                                                                ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white border-blue-400/50 shadow-lg shadow-blue-500/25"
                                                                 : isOperator
                                                                     ? isDark
-                                                                        ? "rgba(16,185,129,0.18)"
-                                                                        : "rgba(16,185,129,0.12)"
+                                                                        ? "bg-emerald-500/15 text-emerald-100 border-emerald-500/30 shadow-md"
+                                                                        : "bg-emerald-50 text-emerald-900 border-emerald-200 shadow-md"
                                                                     : isDark
-                                                                        ? "rgba(31,31,31,0.92)"
-                                                                        : "rgba(241,245,249,0.95)",
-                                                            color: isBot
-                                                                ? "#ffffff"
-                                                                : isOperator
-                                                                    ? isDark
-                                                                        ? "#d1fae5"
-                                                                        : "#065f46"
-                                                                    : isDark
-                                                                        ? "#f1f5f9"
-                                                                        : "#111827",
-                                                            borderColor: isBot
-                                                                ? "rgba(96,165,250,0.45)"
-                                                                : isOperator
-                                                                    ? isDark
-                                                                        ? "rgba(74,222,128,0.45)"
-                                                                        : "rgba(16,185,129,0.45)"
-                                                                    : isDark
-                                                                        ? "rgba(255,255,255,0.06)"
-                                                                        : "rgba(15,23,42,0.08)",
-                                                            boxShadow: isBot
-                                                                ? "0 18px 35px rgba(59,130,246,0.25)"
-                                                                : isOperator
-                                                                    ? "0 16px 32px rgba(16,185,129,0.22)"
-                                                                    : isDark
-                                                                        ? "0 12px 24px rgba(15,15,20,0.45)"
-                                                                        : "0 10px 20px rgba(15,23,42,0.1)",
-                                                        }}
+                                                                        ? "bg-[#1a1a1a] text-gray-100 border-[#2a2a2a] shadow-md"
+                                                                        : "bg-gray-100 text-gray-900 border-gray-200 shadow-sm"
+                                                        }`}
                                                     >
                                                         <p
-                                                            className="text-[11px] font-semibold uppercase tracking-[0.18em] mb-1 flex items-center gap-2"
-                                                            style={{
-                                                                color: isBot
-                                                                    ? "#cbd5f5"
+                                                            className={`text-[10px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5 ${
+                                                                isBot
+                                                                    ? "text-blue-100"
                                                                     : isOperator
                                                                         ? isDark
-                                                                            ? "#34d399"
-                                                                            : "#047857"
+                                                                            ? "text-emerald-300"
+                                                                            : "text-emerald-700"
                                                                         : isDark
-                                                                            ? "#94a3b8"
-                                                                            : "#475569",
-                                                                letterSpacing: "0.2em",
-                                                            }}
+                                                                            ? "text-gray-400"
+                                                                            : "text-gray-600"
+                                                            }`}
                                                         >
                                                             {isBot ? "Fluxo automatizado" : isOperator ? "Operador" : "Cliente"}
                                                             {isOperator && (
                                                                 <span
-                                                                    className="inline-flex h-2.5 w-2.5 rounded-full"
-                                                                    style={{
-                                                                        background: isDark ? "rgba(74,222,128,0.8)" : "rgba(16,185,129,0.8)",
-                                                                        boxShadow: isDark
-                                                                            ? "0 0 10px rgba(74,222,128,0.8)"
-                                                                            : "0 0 8px rgba(16,185,129,0.6)",
-                                                                    }}
+                                                                    className={`inline-flex h-2 w-2 rounded-full ${
+                                                                        isDark
+                                                                            ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"
+                                                                            : "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]"
+                                                                    }`}
                                                                 />
                                                             )}
                                                         </p>

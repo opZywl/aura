@@ -21,6 +21,15 @@ export interface NodeData {
     /** Tipo de finalização do nó finalizar */
     finalizationType?: "success" | "error" | "timeout" | "cancel"
 
+    /** Habilitar pesquisa de satisfação após finalizar */
+    enableSatisfactionSurvey?: boolean
+
+    /** Pergunta da pesquisa de satisfação */
+    surveyQuestion?: string
+
+    /** Rótulos das notas de satisfação (0-5) */
+    surveyRatingLabels?: string[]
+
     /** ID customizado, exibido no nó */
     customId?: string
 

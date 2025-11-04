@@ -870,6 +870,85 @@ export default function NodeConfigPanel({
                                 Personalize a despedida que será enviada ao usuário no encerramento do atendimento.
                             </p>
                         </div>
+
+                        <div className="space-y-4 rounded-xl border p-4" style={getFieldStyles(0.4)}>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="enableSatisfactionSurvey" className="text-base font-semibold">
+                                    Pesquisa de Satisfação
+                                </Label>
+                                <input
+                                    type="checkbox"
+                                    id="enableSatisfactionSurvey"
+                                    checked={localData.enableSatisfactionSurvey || false}
+                                    onChange={(e) => handleChange("enableSatisfactionSurvey", e.target.checked)}
+                                    className="h-5 w-5 rounded"
+                                />
+                            </div>
+
+                            {localData.enableSatisfactionSurvey && (
+                                <>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="surveyQuestion">Pergunta da Pesquisa</Label>
+                                        <Textarea
+                                            id="surveyQuestion"
+                                            value={localData.surveyQuestion || ""}
+                                            onChange={(e) => handleChange("surveyQuestion", e.target.value)}
+                                            className="h-20 resize-none rounded-xl border px-3 py-3 text-sm shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                            style={getFieldStyles()}
+                                            placeholder="Olá, diga de 1 a 5, qual é a nota do atendimento?"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-semibold">Rótulos das Notas (0-5)</Label>
+                                        {[0, 1, 2, 3, 4, 5].map((rating) => {
+                                            const labels = localData.surveyRatingLabels || [
+                                                "Péssimo",
+                                                "Ruim",
+                                                "Regular",
+                                                "Bom",
+                                                "Excelente",
+                                                "Extremamente Satisfeito",
+                                            ]
+                                            return (
+                                                <div key={rating} className="flex items-center gap-3">
+                          <span
+                              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                              style={{
+                                  background: toRgba(accentHex, isDark ? 0.28 : 0.15),
+                                  color: isDark ? "#e0f2fe" : "#1f2937",
+                              }}
+                          >
+                            {rating}
+                          </span>
+                                                    <Input
+                                                        value={labels[rating] || ""}
+                                                        onChange={(e) => {
+                                                            const newLabels = [...labels]
+                                                            newLabels[rating] = e.target.value
+                                                            handleChange("surveyRatingLabels", newLabels)
+                                                        }}
+                                                        placeholder={`Rótulo para nota ${rating}`}
+                                                        className="flex-1 rounded-xl border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0"
+                                                        style={getFieldStyles(0.5)}
+                                                    />
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+
+                                    <div
+                                        className="p-3 rounded-lg text-xs"
+                                        style={{
+                                            background: isDark ? "rgba(59,130,246,0.1)" : "rgba(59,130,246,0.05)",
+                                            color: isDark ? "#93c5fd" : "#1e40af",
+                                        }}
+                                    >
+                                        A pesquisa será enviada automaticamente 2 segundos após a mensagem final.
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 )
 

@@ -1153,12 +1153,20 @@ def webhook_telegram(account_id):
             for idx, msg_data in enumerate(messages_to_send):
                 response_text = msg_data.get('text', '')
                 response_options = msg_data.get('options', [])
+                delay = msg_data.get('delay', 0)
+                # </CHANGE>
 
                 if not response_text.strip():
                     logger.info(f"Pulando mensagem vazia #{idx + 1}")
                     continue
 
                 logger.info(f"Enviando mensagem #{idx + 1}/{len(messages_to_send)}: {response_text[:50]}...")
+
+                if delay > 0:
+                    logger.info(f"Aguardando {delay}ms antes de enviar pesquisa...")
+                    import time
+                    time.sleep(delay / 1000.0)
+                # </CHANGE>
 
                 success = send_telegram_message(chat_id, response_text, account_id, response_options)
 

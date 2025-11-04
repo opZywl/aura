@@ -105,7 +105,7 @@ class AgentManager:
                     "session_ended": False
                 }
 
-        formatted_message = f"**Operador:** {message}"
+        formatted_message = f"Operador: {message}"
 
         return {
             "success": True,

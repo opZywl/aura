@@ -15,7 +15,9 @@ import string
 from src.aura.chatbot.agent_manager import agent_manager
 # The following imports are not directly used in this file but might be needed by other modules.
 # from src.aura.chatbot.chatbot import Chatbot
-# from src.aura.chatbot.booking_manager import BookingManager
+from src.aura.chatbot.booking_manager import booking_manager
+from src.aura.chatbot.survey_manager import survey_manager
+# </CHANGE>
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,10 @@ class NodeData:
     noSlotsMessage: Optional[str] = None
     agentId: Optional[str] = None
     initialMessage: Optional[str] = None
+    enableSatisfactionSurvey: bool = False
+    surveyQuestion: Optional[str] = None
+    surveyRatingLabels: List[str] = field(default_factory=list)
+    # </CHANGE>
 
 @dataclass
 class FlowNode:
@@ -66,6 +72,8 @@ class WorkflowExecution:
     waiting_for_input: bool
     created_at: str
     cancellation_state: Optional[Dict[str, Any]] = field(default_factory=dict) # Add cancellation_state
+    survey_state: Optional[Dict[str, Any]] = field(default_factory=dict)
+    # </CHANGE>
 
     def to_dict(self) -> Dict:
         return {
@@ -75,7 +83,9 @@ class WorkflowExecution:
             "conversation_history": self.conversation_history,
             "waiting_for_input": self.waiting_for_input,
             "created_at": self.created_at,
-            "cancellation_state": self.cancellation_state # Include cancellation_state
+            "cancellation_state": self.cancellation_state, # Include cancellation_state
+            "survey_state": self.survey_state
+            # </CHANGE>
         }
 
 # Armazenamento em memória (dados REAIS do JSON)
@@ -107,7 +117,11 @@ def parse_workflow_data(workflow_data: Dict) -> Tuple[List[FlowNode], List[FlowE
                 cancellationMessage=node_raw.get("data", {}).get("cancellationMessage"),
                 noSlotsMessage=node_raw.get("data", {}).get("noSlotsMessage"),
                 agentId=node_raw.get("data", {}).get("agentId"),
-                initialMessage=node_raw.get("data", {}).get("initialMessage")
+                initialMessage=node_raw.get("data", {}).get("initialMessage"),
+                enableSatisfactionSurvey=node_raw.get("data", {}).get("enableSatisfactionSurvey", False),
+                surveyQuestion=node_raw.get("data", {}).get("surveyQuestion"),
+                surveyRatingLabels=node_raw.get("data", {}).get("surveyRatingLabels", [])
+                # </CHANGE>
             )
 
             node = FlowNode(
@@ -318,7 +332,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
     """
     try:
         # from src.aura.chatbot.chatbot import Chatbot # Not used directly in this function
-        from src.aura.chatbot.booking_manager import booking_manager
+        # from src.aura.chatbot.booking_manager import booking_manager # Already imported at the top
         # from src.aura.chatbot.agent_manager import agent_manager # Already imported at the top
 
         logger.info(f"Processando mensagem de {user_id}: '{message}'")
@@ -399,6 +413,60 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
         requires_input = False
         is_final = False
         node_type = None # To keep track of current node type
+
+        if hasattr(execution, 'survey_state') and execution.survey_state.get('waiting_response'):
+            user_input = message.strip()
+
+            # Check if it's a valid rating (0-5)
+            if user_input.isdigit() and 0 <= int(user_input) <= 5:
+                rating = int(user_input)
+                question = execution.survey_state.get('question', '')
+
+                # Save survey response
+                survey_manager.save_response(user_id, workflow_id, rating, question)
+
+                # Thank you message
+                thank_you_msg = "✅ Obrigado pelo seu feedback! Sua opinião é muito importante para nós."
+
+                messages_to_send.append({
+                    "text": thank_you_msg,
+                    "options": []
+                })
+
+                execution.conversation_history.append({
+                    "role": "assistant",
+                    "content": thank_you_msg,
+                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                })
+
+                # Clear survey state
+                execution.survey_state = {}
+                execution.waiting_for_input = False
+
+                # Reset conversation
+                reset_conversation(user_id, workflow_id)
+
+                return {
+                    "success": True,
+                    "messages": messages_to_send,
+                    "requires_input": False,
+                    "is_final": True,
+                    "archive_conversation": True
+                }
+            else:
+                # Invalid rating
+                error_msg = "Por favor, digite apenas um número de 0 a 5 para avaliar o atendimento."
+
+                return {
+                    "success": True,
+                    "messages": [{
+                        "text": error_msg,
+                        "options": []
+                    }],
+                    "requires_input": True,
+                    "is_final": False
+                }
+        # </CHANGE>
 
         if execution.current_node_id:
             current_node = next((n for n in nodes if n.id == execution.current_node_id), None)
@@ -519,15 +587,62 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                         "timestamp": datetime.now(BRASIL_TZ).isoformat()
                                     })
 
-                                reset_conversation(user_id, workflow_id)
+                                logger.info(f"[SURVEY] Nó finalizar processado: {current_node.id}")
+                                logger.info(f"[SURVEY] SEMPRE enviando pesquisa de satisfação (forçado)")
+
+                                # Get survey configuration or use defaults
+                                survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
+                                rating_labels = current_node.data.surveyRatingLabels or [
+                                    "Péssimo",
+                                    "Ruim",
+                                    "Regular",
+                                    "Bom",
+                                    "Excelente",
+                                    "Extremamente Satisfeito"
+                                ]
+
+                                logger.info(f"[SURVEY] Pergunta: {survey_question}")
+                                logger.info(f"[SURVEY] Labels: {rating_labels}")
+
+                                # Build survey message with better formatting
+                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+
+                                for i, label in enumerate(rating_labels):
+                                    survey_text += f"*{i}* - {label}\n"
+
+                                survey_text += "\n💡 Digite o número correspondente à sua avaliação"
+
+                                logger.info(f"[SURVEY] Texto da pesquisa montado: {survey_text[:100]}...")
+
+                                messages_to_send.append({
+                                    "text": survey_text,
+                                    "options": [],
+                                    "delay": 2000  # 2 seconds delay
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": survey_text,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                # Set survey state to wait for user response
+                                execution.survey_state = {
+                                    'waiting_response': True,
+                                    'question': survey_question
+                                }
+                                execution.waiting_for_input = True
+
+                                logger.info(f"[SURVEY] Pesquisa ADICIONADA às mensagens - Total: {len(messages_to_send)}")
+                                logger.info(f"[SURVEY] Estado de espera configurado: waiting_response=True")
 
                                 return {
                                     "success": True,
                                     "messages": messages_to_send,
-                                    "requires_input": False,
-                                    "is_final": True,
-                                    "archive_conversation": True
+                                    "requires_input": True,
+                                    "is_final": False
                                 }
+                                # </CHANGE>
 
                             elif current_node.type == "agentes":
                                 initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
@@ -798,7 +913,6 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 elif current_node.type == "finalizar":
                     msg_text = current_node.data.finalMessage or current_node.data.message or ""
 
-                    # Só adicionar mensagem se houver texto
                     if msg_text.strip():
                         messages_to_send.append({
                             "text": msg_text,
@@ -811,16 +925,62 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                             "timestamp": datetime.now(BRASIL_TZ).isoformat()
                         })
 
-                    logger.info(f"Fluxo finalizado no nó: {current_node.id}")
-                    reset_conversation(user_id, workflow_id)
+                    logger.info(f"[SURVEY] Nó finalizar processado: {current_node.id}")
+                    logger.info(f"[SURVEY] SEMPRE enviando pesquisa de satisfação (forçado)")
+
+                    # Get survey configuration or use defaults
+                    survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
+                    rating_labels = current_node.data.surveyRatingLabels or [
+                        "Péssimo",
+                        "Ruim",
+                        "Regular",
+                        "Bom",
+                        "Excelente",
+                        "Extremamente Satisfeito"
+                    ]
+
+                    logger.info(f"[SURVEY] Pergunta: {survey_question}")
+                    logger.info(f"[SURVEY] Labels: {rating_labels}")
+
+                    # Build survey message with better formatting
+                    survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+
+                    for i, label in enumerate(rating_labels):
+                        survey_text += f"*{i}* - {label}\n"
+
+                    survey_text += "\n💡 Digite o número correspondente à sua avaliação"
+
+                    logger.info(f"[SURVEY] Texto da pesquisa montado: {survey_text[:100]}...")
+
+                    messages_to_send.append({
+                        "text": survey_text,
+                        "options": [],
+                        "delay": 2000  # 2 seconds delay
+                    })
+
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": survey_text,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                    })
+
+                    # Set survey state to wait for user response
+                    execution.survey_state = {
+                        'waiting_response': True,
+                        'question': survey_question
+                    }
+                    execution.waiting_for_input = True
+
+                    logger.info(f"[SURVEY] Pesquisa ADICIONADA às mensagens - Total: {len(messages_to_send)}")
+                    logger.info(f"[SURVEY] Estado de espera configurado: waiting_response=True")
 
                     return {
                         "success": True,
                         "messages": messages_to_send,
-                        "requires_input": False,
-                        "is_final": True,
-                        "archive_conversation": True
+                        "requires_input": True,
+                        "is_final": False
                     }
+                    # </CHANGE>
 
                 # START: Code added from updates
                 elif current_node.type == "agentes":
@@ -1285,7 +1445,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     # Build message with available slots
                                     slots_text = "\n\nHorários Disponíveis:\n"
                                     slot_number = 1
-                                    for slot in available_slots:
+                                    for slot in filtered_slots:
                                         if slot.get("available", False): # Redundant check, but for clarity
                                             time = slot.get("time", "")
                                             date = slot.get("date", "")
