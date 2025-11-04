@@ -1509,6 +1509,31 @@ def update_booking_admin(code):
         logger.error(f"Error updating booking: {e}")
         return jsonify({"erro": str(e)}), 500
 
+@app.route('/api/statistics/survey', methods=['GET'])
+def get_survey_statistics():
+    """Retorna estatísticas das pesquisas de satisfação"""
+    try:
+        from src.aura.chatbot.survey_manager import survey_manager
+
+        workflow_id = request.args.get('workflow_id')
+        start_date = request.args.get('start_date')
+
+        logger.info(f"Buscando estatísticas de pesquisa - Workflow: {workflow_id}, Start: {start_date}")
+
+        stats = survey_manager.get_statistics(workflow_id, start_date)
+
+        logger.info(f"Estatísticas de pesquisa calculadas: {stats['total_responses']} respostas")
+
+        return jsonify({
+            "success": True,
+            "statistics": stats
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar estatísticas de pesquisa: {e}")
+        logger.exception("Stack trace:")
+        return jsonify({"erro": str(e)}), 500
+# </CHANGE>
 
 # --- Inicialização ---
 if __name__ == '__main__':

@@ -17,10 +17,10 @@
       "time": "09:00",
       "date": "2025-11-03",
       "workflow_id": "aura_flow_1762211165137",
-      "status": "active",
+      "status": "cancelled",
       "created_at": "2025-11-03T20:07:49.036163-03:00",
-      "cancelled_at": null,
-      "cancellation_reason": null
+      "cancelled_at": "2025-11-03T22:32:50.212283-03:00",
+      "cancellation_reason": "Cancelado pelo administrador"
     },
     {
       "user_id": "7614226942",
@@ -28,10 +28,10 @@
       "time": "12:00",
       "date": "2025-11-03",
       "workflow_id": "aura_flow_1762211165137",
-      "status": "active",
+      "status": "cancelled",
       "created_at": "2025-11-03T20:08:05.018357-03:00",
-      "cancelled_at": null,
-      "cancellation_reason": null
+      "cancelled_at": "2025-11-03T22:32:34.163656-03:00",
+      "cancellation_reason": "Cancelado pelo administrador"
     },
     {
       "user_id": "7614226942",
@@ -50,10 +50,10 @@
       "time": "10:00",
       "date": "2025-11-03",
       "workflow_id": "aura_flow_1762212888000",
-      "status": "active",
+      "status": "cancelled",
       "created_at": "2025-11-03T20:39:59.555353-03:00",
-      "cancelled_at": null,
-      "cancellation_reason": null
+      "cancelled_at": "2025-11-03T22:32:36.989145-03:00",
+      "cancellation_reason": "Cancelado pelo administrador"
     },
     {
       "user_id": "7614226942",

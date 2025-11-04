@@ -1,7 +1,20 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { BarChart3, Calendar, MessageSquare, RefreshCw, TrendingUp, History, X, Clock, Trash2 } from "lucide-react"
+import {
+    BarChart3,
+    Calendar,
+    MessageSquare,
+    RefreshCw,
+    TrendingUp,
+    History,
+    X,
+    Clock,
+    Trash2,
+    Info,
+    Star,
+    ThumbsUp,
+} from "lucide-react"
 import { useTheme } from "@/src/aura/features/view/homePanels/ThemeContext"
 
 interface ConversationData {
@@ -41,6 +54,13 @@ interface BookingData {
     cancellation_reason: string | null
 }
 
+interface SurveyStatsData {
+    total_responses: number
+    average_rating: number
+    rating_distribution: { [key: string]: number }
+    satisfaction_percentage: number
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
 export default function Statistics() {
@@ -54,6 +74,18 @@ export default function Statistics() {
         month_confirmed: 0,
         month_cancelled: 0,
     })
+    const [surveyStats, setSurveyStats] = useState<SurveyStatsData>({
+        total_responses: 0,
+        average_rating: 0,
+        rating_distribution: {},
+        satisfaction_percentage: 0,
+    })
+    const [surveyStatsToday, setSurveyStatsToday] = useState<SurveyStatsData>({
+        total_responses: 0,
+        average_rating: 0,
+        rating_distribution: {},
+        satisfaction_percentage: 0,
+    })
     const [conversations, setConversations] = useState<ConversationData[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [filter, setFilter] = useState<"today" | "month">("today")
@@ -63,6 +95,7 @@ export default function Statistics() {
     const [bookings, setBookings] = useState<BookingData[]>([])
     const [isLoadingBookings, setIsLoadingBookings] = useState(false)
     const [bookingsFilter, setBookingsFilter] = useState<"all" | "active" | "cancelled">("active")
+    const [showTooltip, setShowTooltip] = useState<string | null>(null)
 
     const themedCard = useMemo(
         () =>
@@ -116,6 +149,35 @@ export default function Statistics() {
                 month_confirmed: monthData.bookings?.total_confirmed || 0,
                 month_cancelled: monthData.bookings?.total_cancelled || 0,
             })
+
+            const surveyTotalResponse = await fetch(`${API_BASE_URL}/api/statistics/survey`, { cache: "no-store" })
+            if (surveyTotalResponse.ok) {
+                const surveyTotalData = await surveyTotalResponse.json()
+                setSurveyStats(
+                    surveyTotalData.statistics || {
+                        total_responses: 0,
+                        average_rating: 0,
+                        rating_distribution: {},
+                        satisfaction_percentage: 0,
+                    },
+                )
+            }
+
+            const surveyTodayResponse = await fetch(
+                `${API_BASE_URL}/api/statistics/survey?start_date=${startOfDay.toISOString()}`,
+                { cache: "no-store" },
+            )
+            if (surveyTodayResponse.ok) {
+                const surveyTodayData = await surveyTodayResponse.json()
+                setSurveyStatsToday(
+                    surveyTodayData.statistics || {
+                        total_responses: 0,
+                        average_rating: 0,
+                        rating_distribution: {},
+                        satisfaction_percentage: 0,
+                    },
+                )
+            }
         } catch (error) {
             console.error("Erro ao carregar estatísticas:", error)
         } finally {
@@ -295,6 +357,31 @@ export default function Statistics() {
         fetchBookings()
     }
 
+    const InfoTooltip = ({ id, title, content }: { id: string; title: string; content: string }) => (
+        <div className="relative inline-block">
+            <button
+                onMouseEnter={() => setShowTooltip(id)}
+                onMouseLeave={() => setShowTooltip(null)}
+                className={`rounded-full p-1 transition-colors ${
+                    theme === "dark" ? "hover:bg-[#2a2a2a] text-gray-400" : "hover:bg-gray-200 text-gray-500"
+                }`}
+            >
+                <Info className="h-3 w-3" />
+            </button>
+            {showTooltip === id && (
+                <div
+                    className={`absolute z-50 w-64 rounded-lg border p-3 shadow-lg ${
+                        theme === "dark" ? "border-[#2a2a2a] bg-[#1a1a1a] text-gray-100" : "border-gray-200 bg-white text-gray-900"
+                    }`}
+                    style={{ bottom: "100%", left: "50%", transform: "translateX(-50%)", marginBottom: "8px" }}
+                >
+                    <p className="mb-1 text-xs font-semibold">{title}</p>
+                    <p className={`text-xs ${themedMutedText}`}>{content}</p>
+                </div>
+            )}
+        </div>
+    )
+
     return (
         <div className={`min-h-screen w-full ${theme === "dark" ? "bg-[#050505] text-white" : "bg-gray-50 text-gray-900"}`}>
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
@@ -320,15 +407,21 @@ export default function Statistics() {
                 <div className="grid gap-6 lg:grid-cols-2">
                     {/* Left column - Stats and bookings */}
                     <div className="flex flex-col gap-6">
-                        {/* Conversation stats */}
                         <div className="grid gap-4 grid-cols-2">
                             <div className={`rounded-xl p-4 ${themedCard}`}>
                                 <div className="flex items-center gap-3">
                                     <div className="rounded-lg bg-blue-500/10 p-2">
                                         <MessageSquare className="h-5 w-5 text-blue-500" />
                                     </div>
-                                    <div>
-                                        <p className={`text-xs ${themedMutedText}`}>Hoje</p>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-1">
+                                            <p className={`text-xs ${themedMutedText}`}>Hoje</p>
+                                            <InfoTooltip
+                                                id="today"
+                                                title="Conversas de Hoje"
+                                                content="Total de conversas iniciadas desde 00:00 de hoje. Inclui todas as novas conversas do Telegram."
+                                            />
+                                        </div>
                                         <p className="text-2xl font-semibold">{stats.today}</p>
                                     </div>
                                 </div>
@@ -339,8 +432,15 @@ export default function Statistics() {
                                     <div className="rounded-lg bg-purple-500/10 p-2">
                                         <Calendar className="h-5 w-5 text-purple-500" />
                                     </div>
-                                    <div>
-                                        <p className={`text-xs ${themedMutedText}`}>Semana</p>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-1">
+                                            <p className={`text-xs ${themedMutedText}`}>Semana</p>
+                                            <InfoTooltip
+                                                id="week"
+                                                title="Conversas da Semana"
+                                                content="Total de conversas nos últimos 7 dias. Calculado desde esta data há 7 dias atrás."
+                                            />
+                                        </div>
                                         <p className="text-2xl font-semibold">{stats.week}</p>
                                     </div>
                                 </div>
@@ -351,8 +451,15 @@ export default function Statistics() {
                                     <div className="rounded-lg bg-green-500/10 p-2">
                                         <TrendingUp className="h-5 w-5 text-green-500" />
                                     </div>
-                                    <div>
-                                        <p className={`text-xs ${themedMutedText}`}>Mês</p>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-1">
+                                            <p className={`text-xs ${themedMutedText}`}>Mês</p>
+                                            <InfoTooltip
+                                                id="month"
+                                                title="Conversas do Mês"
+                                                content="Total de conversas desde o dia 1 do mês atual. Resetado automaticamente no início de cada mês."
+                                            />
+                                        </div>
                                         <p className="text-2xl font-semibold">{stats.month}</p>
                                     </div>
                                 </div>
@@ -363,8 +470,15 @@ export default function Statistics() {
                                     <div className="rounded-lg bg-orange-500/10 p-2">
                                         <BarChart3 className="h-5 w-5 text-orange-500" />
                                     </div>
-                                    <div>
-                                        <p className={`text-xs ${themedMutedText}`}>Total</p>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-1">
+                                            <p className={`text-xs ${themedMutedText}`}>Total</p>
+                                            <InfoTooltip
+                                                id="total"
+                                                title="Total de Conversas"
+                                                content="Todas as conversas registradas no sistema desde o início. Inclui conversas ativas e arquivadas."
+                                            />
+                                        </div>
                                         <p className="text-2xl font-semibold">{stats.total}</p>
                                     </div>
                                 </div>
@@ -373,7 +487,14 @@ export default function Statistics() {
 
                         {/* Booking stats */}
                         <section className={`rounded-xl p-6 ${themedCard}`}>
-                            <h2 className="mb-4 text-lg font-semibold">Agendamentos</h2>
+                            <div className="mb-4 flex items-center gap-2">
+                                <h2 className="text-lg font-semibold">Agendamentos</h2>
+                                <InfoTooltip
+                                    id="bookings"
+                                    title="Agendamentos"
+                                    content="Estatísticas de agendamentos confirmados e cancelados. Hoje mostra agendamentos de hoje, Mês mostra do mês atual."
+                                />
+                            </div>
                             <div className="grid gap-3 grid-cols-2">
                                 <div
                                     className={`rounded-xl p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
@@ -433,9 +554,118 @@ export default function Statistics() {
                             </div>
                         </section>
 
-                        {/* Circular progress */}
                         <section className={`rounded-xl p-6 ${themedCard}`}>
-                            <h2 className="mb-4 text-lg font-semibold">Visão Geral</h2>
+                            <div className="mb-4 flex items-center gap-2">
+                                <h2 className="text-lg font-semibold">Pesquisa de Satisfação</h2>
+                                <InfoTooltip
+                                    id="survey"
+                                    title="Pesquisa de Satisfação"
+                                    content="Estatísticas das avaliações dos usuários. Notas de 0-5, onde 4-5 são consideradas satisfeitas. Média calculada de todas as respostas."
+                                />
+                            </div>
+                            <div className="grid gap-3 grid-cols-2">
+                                <div
+                                    className={`rounded-xl p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <div className="rounded-lg bg-yellow-500/10 p-1.5">
+                                            <Star className="h-4 w-4 text-yellow-500" />
+                                        </div>
+                                        <div>
+                                            <p className={`text-[10px] ${themedMutedText}`}>Média Hoje</p>
+                                            <p className="text-lg font-semibold text-yellow-500">
+                                                {surveyStatsToday.average_rating.toFixed(1)}/5
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    className={`rounded-xl p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <div className="rounded-lg bg-blue-500/10 p-1.5">
+                                            <MessageSquare className="h-4 w-4 text-blue-500" />
+                                        </div>
+                                        <div>
+                                            <p className={`text-[10px] ${themedMutedText}`}>Respostas Hoje</p>
+                                            <p className="text-lg font-semibold text-blue-500">{surveyStatsToday.total_responses}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    className={`rounded-xl p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <div className="rounded-lg bg-yellow-500/10 p-1.5">
+                                            <Star className="h-4 w-4 text-yellow-500" />
+                                        </div>
+                                        <div>
+                                            <p className={`text-[10px] ${themedMutedText}`}>Média Total</p>
+                                            <p className="text-lg font-semibold text-yellow-500">{surveyStats.average_rating.toFixed(1)}/5</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    className={`rounded-xl p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <div className="rounded-lg bg-green-500/10 p-1.5">
+                                            <ThumbsUp className="h-4 w-4 text-green-500" />
+                                        </div>
+                                        <div>
+                                            <p className={`text-[10px] ${themedMutedText}`}>Satisfação</p>
+                                            <p className="text-lg font-semibold text-green-500">
+                                                {surveyStats.satisfaction_percentage.toFixed(0)}%
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Rating distribution */}
+                            <div className="mt-4 space-y-2">
+                                <p className={`text-xs font-medium ${themedMutedText}`}>Distribuição de Notas (Total)</p>
+                                {[5, 4, 3, 2, 1, 0].map((rating) => {
+                                    const count = surveyStats.rating_distribution[rating.toString()] || 0
+                                    const percentage = surveyStats.total_responses > 0 ? (count / surveyStats.total_responses) * 100 : 0
+                                    return (
+                                        <div key={rating} className="flex items-center gap-2">
+                                            <span className={`text-xs w-8 ${themedMutedText}`}>{rating} ★</span>
+                                            <div className="flex-1 h-2 rounded-full bg-gray-200 dark:bg-[#1f1f1f] overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all ${
+                                                        rating >= 4
+                                                            ? "bg-green-500"
+                                                            : rating >= 3
+                                                                ? "bg-yellow-500"
+                                                                : rating >= 2
+                                                                    ? "bg-orange-500"
+                                                                    : "bg-red-500"
+                                                    }`}
+                                                    style={{ width: `${percentage}%` }}
+                                                />
+                                            </div>
+                                            <span className={`text-xs w-12 text-right ${themedMutedText}`}>
+                        {count} ({percentage.toFixed(0)}%)
+                      </span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </section>
+
+                        <section className={`rounded-xl p-6 ${themedCard}`}>
+                            <div className="mb-4 flex items-center gap-2">
+                                <h2 className="text-lg font-semibold">Visão Geral</h2>
+                                <InfoTooltip
+                                    id="overview"
+                                    title="Visão Geral - Cálculo"
+                                    content={`Percentual de conversas de hoje em relação ao total. Cálculo: (${stats.today} conversas hoje ÷ ${stats.total} conversas totais) × 100 = ${percentage}%`}
+                                />
+                            </div>
                             <div className="flex items-center justify-center py-4">
                                 <div className="relative h-40 w-40">
                                     <svg className="h-full w-full -rotate-90 transform">
@@ -468,6 +698,41 @@ export default function Statistics() {
                                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                                         <span className="text-2xl font-bold">{percentage}%</span>
                                         <span className={`text-xs ${themedMutedText}`}>Hoje</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Detailed breakdown */}
+                            <div className="mt-4 space-y-2">
+                                <p className={`text-xs font-medium ${themedMutedText} mb-3`}>Detalhamento dos Dados:</p>
+                                <div
+                                    className={`rounded-lg p-3 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                                >
+                                    <div className="space-y-2 text-xs">
+                                        <div className="flex justify-between">
+                                            <span className={themedMutedText}>Conversas Hoje:</span>
+                                            <span className="font-semibold">{stats.today}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className={themedMutedText}>Conversas Totais:</span>
+                                            <span className="font-semibold">{stats.total}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className={themedMutedText}>Média Diária (Mês):</span>
+                                            <span className="font-semibold">
+                        {stats.month > 0 ? (stats.month / new Date().getDate()).toFixed(1) : "0"}
+                      </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className={themedMutedText}>Taxa de Satisfação:</span>
+                                            <span className="font-semibold text-green-500">
+                        {surveyStats.satisfaction_percentage.toFixed(0)}%
+                      </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className={themedMutedText}>Agendamentos Ativos:</span>
+                                            <span className="font-semibold text-emerald-500">{bookingStats.month_confirmed}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -673,7 +938,6 @@ export default function Statistics() {
                         </section>
                     </div>
                 </div>
-                {/* </CHANGE> */}
             </div>
 
             {selectedConversation && (
