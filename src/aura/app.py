@@ -249,7 +249,6 @@ def _save_conversation_history(conv: Conversation):
     except Exception as error:
         logger.error(f"Erro ao salvar histórico da conversa {conv.id}: {error}")
 
-
 def _delete_conversation_history(conversation_id: str):
     try:
         history_path = _find_history_path(conversation_id)
@@ -780,6 +779,8 @@ def obter_mensagens(conversation_id):
 def enviar_mensagem(conversation_id):
     """Envia mensagem para uma conversa do Telegram"""
     try:
+        from src.aura.chatbot.agent_manager import agent_manager
+
         if not request.is_json:
             return jsonify({"erro": "Content-Type deve ser application/json"}), 415
 
@@ -794,6 +795,108 @@ def enviar_mensagem(conversation_id):
             return jsonify({"erro": "Texto da mensagem é obrigatório"}), 400
 
         logger.info(f"Enviando mensagem para conversa: {conversation_id}")
+
+        if agent_manager.is_agent_session_active(conversation_id):
+            logger.info(f"Mensagem do operador detectada para sessão ativa: {conversation_id}")
+
+            # Process operator message (handles /finalizar and formatting)
+            result = agent_manager.process_operator_message(conversation_id, text)
+
+            if not result.get("success"):
+                return jsonify({"erro": result.get("error", "Erro ao processar mensagem do operador")}), 500
+
+            # Check if session was ended with /finalizar
+            if result.get("session_ended"):
+                logger.info(f"Sessão encerrada pelo operador com /finalizar: {conversation_id}")
+
+                # Send closure message to client
+                closure_message = result.get("message", "Atendimento encerrado.")
+
+                with _conversation_lock:
+                    if conversation_id in _conversations:
+                        conv = _conversations[conversation_id]
+                        account_id = chat_to_account.get(conversation_id)
+
+                        if account_id:
+                            success = send_telegram_message(conversation_id, closure_message, account_id)
+
+                            if success:
+                                # Add closure message to conversation
+                                closure_msg = Message(
+                                    id=uuid.uuid4().hex,
+                                    sender='bot',
+                                    text=closure_message,
+                                    timestamp=get_brasil_time(),
+                                    read=True,
+                                    platform='telegram'
+                                )
+
+                                conv.messages.append(closure_msg)
+                                conv.lastMessage = closure_message
+                                conv.lastAt = closure_msg.timestamp
+
+                                broadcast_to_subscribers(conversation_id, closure_msg.to_dict())
+                                _cache['conversations_last_update'] = 0
+                                _save_conversation_history(conv)
+
+                                # Reset the bot conversation so next message starts from beginning
+                                workflows = bot_components_api.get_all_workflows()
+                                active_workflows = [w for w in workflows if w.get('enabled', True)]
+                                if active_workflows:
+                                    active_workflows.sort(key=lambda w: w.get('updated_at', w.get('created_at', '')), reverse=True)
+                                    workflow_id = active_workflows[0]['id']
+                                    bot_components_api.reset_conversation(conversation_id, workflow_id)
+                                    logger.info(f"Conversa do bot resetada para {conversation_id} após /finalizar")
+
+                                return jsonify({
+                                    "success": True,
+                                    "message": "Atendimento encerrado com sucesso",
+                                    "session_ended": True
+                                }), 200
+
+                return jsonify({"erro": "Falha ao enviar mensagem de encerramento"}), 500
+
+            # Regular operator message - format with bold prefix
+            formatted_message = result.get("message", text)
+
+            with _conversation_lock:
+                if conversation_id in _conversations:
+                    conv = _conversations[conversation_id]
+                    account_id = chat_to_account.get(conversation_id)
+
+                    if account_id:
+                        # Send formatted message to Telegram
+                        success = send_telegram_message(conversation_id, formatted_message, account_id)
+
+                        if success:
+                            # Save operator message to conversation
+                            nova_mensagem = Message(
+                                id=uuid.uuid4().hex,
+                                sender='operator',
+                                text=formatted_message,
+                                timestamp=get_brasil_time(),
+                                read=True,
+                                platform='telegram'
+                            )
+
+                            conv.messages.append(nova_mensagem)
+                            conv.lastMessage = formatted_message
+                            conv.lastAt = nova_mensagem.timestamp
+                            conv.isArchived = False
+
+                            broadcast_to_subscribers(conversation_id, nova_mensagem.to_dict())
+                            _cache['conversations_last_update'] = 0
+                            _save_conversation_history(conv)
+
+                            logger.info(f"Mensagem do operador enviada e formatada: {nova_mensagem.id}")
+                            return jsonify(nova_mensagem.to_dict()), 201
+                        else:
+                            return jsonify({"erro": "Falha ao enviar mensagem via Telegram"}), 500
+                    else:
+                        return jsonify({"erro": "Conta Telegram não encontrada para esta conversa"}), 404
+
+            logger.warning(f"Conversa não encontrada: {conversation_id}")
+            return jsonify({"erro": "Conversa não encontrada"}), 404
 
         with _conversation_lock:
             if conversation_id in _conversations:
@@ -1192,6 +1295,8 @@ def test_archive():
 def get_telegram_statistics():
     """Retorna estatísticas das conversas do Telegram"""
     try:
+        from src.aura.chatbot.booking_manager import booking_manager
+
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
 
@@ -1205,8 +1310,17 @@ def get_telegram_statistics():
             'total_messages': 0,
             'conversations_by_date': {},
             'messages_by_date': {},
-            'conversations': []
+            'conversations': [],
+            'bookings': {
+                'total_confirmed': 0,
+                'total_cancelled': 0,
+                'confirmed_by_date': {},
+                'cancelled_by_date': {}
+            }
         }
+
+        booking_stats = booking_manager.get_statistics(start_date, end_date)
+        statistics['bookings'] = booking_stats
 
         with _conversation_lock:
             for conv_id, conv in _conversations.items():

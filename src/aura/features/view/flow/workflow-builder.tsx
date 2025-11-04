@@ -291,7 +291,7 @@ const findUnconnectedHandles = (nodes: Node[], edges: Edge[]): string[] => {
     const existingNodes = nodes.filter((node) => node && node.id && node.data)
 
     existingNodes.forEach((node) => {
-        if (node.type !== "finalizar") {
+        if (node.type !== "finalizar" && node.type !== "agentes") {
             const hasOutgoingConnection = edges.some((edge) => edge.source === node.id)
             if (!hasOutgoingConnection) {
                 unconnected.push(`${node.data.customId || node.data.label} (saída verde sem conexão)`)

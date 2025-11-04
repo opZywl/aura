@@ -529,6 +529,38 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     "archive_conversation": True
                                 }
 
+                            elif current_node.type == "agentes":
+                                initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+
+                                # Enviar mensagem de transferência
+                                messages_to_send.append({
+                                    "text": initial_message,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": initial_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                # Iniciar sessão de agente
+                                agent_manager.start_agent_session(user_id, current_node.id)
+
+                                # Marcar que não requer mais input do bot (operador vai responder)
+                                execution.waiting_for_input = False
+                                execution.current_node_id = current_node.id
+
+                                logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
+
+                                # Return immediately - don't process next nodes or archive
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": False,
+                                    "is_final": False
+                                }
+
                             else:
                                 execution.current_node_id = current_node.id
                                 current_node = find_next_node(workflow_id, current_node.id)
@@ -790,11 +822,9 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "archive_conversation": True
                     }
 
+                # START: Code added from updates
                 elif current_node.type == "agentes":
-                    initial_message = current_node.data.initialMessage or "Encaminhando para o operador disponível... Por favor aguarde."
-
-                    # Iniciar sessão de agente
-                    agent_manager.start_agent_session(user_id, current_node.id)
+                    initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
 
                     # Enviar mensagem de transferência
                     messages_to_send.append({
@@ -802,20 +832,29 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "options": []
                     })
 
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": initial_message,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                    })
+
+                    # Iniciar sessão de agente
+                    agent_manager.start_agent_session(user_id, current_node.id)
+
                     # Marcar que não requer mais input do bot (operador vai responder)
-                    execution.waiting_for_input = False # Bot is no longer waiting for user input
-                    is_final = False  # Not final, but bot stops processing user messages
+                    execution.waiting_for_input = False
+                    execution.current_node_id = current_node.id
 
                     logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
 
-                    # Since the bot is done processing this turn and handing over to an agent,
-                    # we should return the current messages and indicate no further bot input is needed.
+                    # Return immediately - don't process next nodes
                     return {
                         "success": True,
                         "messages": messages_to_send,
-                        "requires_input": False, # Bot is not waiting for input from the user
-                        "is_final": False # The conversation is not over, but handed off.
+                        "requires_input": False,
+                        "is_final": False
                     }
+                # END: Code added from updates
 
                 else:
                     # Outros tipos de nó - avançar automaticamente
@@ -1040,6 +1079,38 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                         "requires_input": False,
                                         "is_final": True,
                                         "archive_conversation": True
+                                    }
+
+                                elif current_node.type == "agentes":
+                                    initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+
+                                    # Enviar mensagem de transferência
+                                    messages_to_send.append({
+                                        "text": initial_message,
+                                        "options": []
+                                    })
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": initial_message,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                    })
+
+                                    # Iniciar sessão de agente
+                                    agent_manager.start_agent_session(user_id, current_node.id)
+
+                                    # Marcar que não requer mais input do bot (operador vai responder)
+                                    execution.waiting_for_input = False
+                                    execution.current_node_id = current_node.id
+
+                                    logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
+
+                                    # Return immediately - don't process next nodes or archive
+                                    return {
+                                        "success": True,
+                                        "messages": messages_to_send,
+                                        "requires_input": False,
+                                        "is_final": False
                                     }
 
                                 else:
@@ -1271,6 +1342,38 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                         "archive_conversation": True
                                     }
 
+                                elif current_node.type == "agentes":
+                                    initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+
+                                    # Enviar mensagem de transferência
+                                    messages_to_send.append({
+                                        "text": initial_message,
+                                        "options": []
+                                    })
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": initial_message,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                    })
+
+                                    # Iniciar sessão de agente
+                                    agent_manager.start_agent_session(user_id, current_node.id)
+
+                                    # Marcar que não requer mais input do bot (operador vai responder)
+                                    execution.waiting_for_input = False
+                                    execution.current_node_id = current_node.id
+
+                                    logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
+
+                                    # Return immediately - don't process next nodes or archive
+                                    return {
+                                        "success": True,
+                                        "messages": messages_to_send,
+                                        "requires_input": False,
+                                        "is_final": False
+                                    }
+
                                 else:
                                     execution.current_node_id = current_node.id
                                     current_node = find_next_node(workflow_id, current_node.id)
@@ -1472,6 +1575,38 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     "requires_input": False,
                                     "is_final": True,
                                     "archive_conversation": True
+                                }
+
+                            elif current_node.type == "agentes":
+                                initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+
+                                # Enviar mensagem de transferência
+                                messages_to_send.append({
+                                    "text": initial_message,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": initial_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                # Iniciar sessão de agente
+                                agent_manager.start_agent_session(user_id, current_node.id)
+
+                                # Marcar que não requer mais input do bot (operador vai responder)
+                                execution.waiting_for_input = False
+                                execution.current_node_id = current_node.id
+
+                                logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
+
+                                # Return immediately - don't process next nodes or archive
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": False,
+                                    "is_final": False
                                 }
 
                             else:

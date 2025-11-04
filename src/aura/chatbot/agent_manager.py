@@ -42,7 +42,7 @@ class AgentManager:
             "node_id": node_id,
             "started_at": datetime.now().isoformat(),
             "status": "active",
-            "operator": None  # Pode ser atribuído quando um operador pegar o atendimento
+            "operator": None
         }
 
         self._save_sessions(sessions)
@@ -84,5 +84,33 @@ class AgentManager:
             sessions[user_phone]["operator_assigned_at"] = datetime.now().isoformat()
             self._save_sessions(sessions)
             print(f"[AgentManager] Operador {operator_name} atribuído para {user_phone}")
+
+    def process_operator_message(self, user_phone: str, message: str) -> Dict:
+        """
+        Processa mensagem do operador
+        Retorna dict com success, message e session_ended
+        """
+        if message.strip().lower() == "/finalizar":
+            success = self.end_agent_session(user_phone)
+            if success:
+                return {
+                    "success": True,
+                    "message": "✅ Atendimento encerrado.\n\nObrigado pelo contato! Se precisar de ajuda novamente, é só enviar uma mensagem.",
+                    "session_ended": True
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Sessão não encontrada",
+                    "session_ended": False
+                }
+
+        formatted_message = f"**Operador:** {message}"
+
+        return {
+            "success": True,
+            "message": formatted_message,
+            "session_ended": False
+        }
 
 agent_manager = AgentManager()

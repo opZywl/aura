@@ -1,4 +1,3 @@
-
 """Booking management system for scheduling appointments."""
 
 import json
@@ -151,6 +150,70 @@ class BookingManager:
 
         return False
 
+    def get_statistics(self, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict[str, Any]:
+        """Get booking statistics for a date range."""
+        try:
+            data = self._read_file()
+
+            stats = {
+                "total_confirmed": 0,
+                "total_cancelled": 0,
+                "confirmed_by_date": {},
+                "cancelled_by_date": {}
+            }
+
+            for booking in data["bookings"]:
+                created_at = booking.get("created_at", "")
+                cancelled_at = booking.get("cancelled_at")
+                status = booking.get("status", "")
+
+                # Apply date filters if provided
+                if start_date:
+                    try:
+                        booking_date = datetime.fromisoformat(created_at)
+                        start_dt = datetime.fromisoformat(start_date)
+                        if booking_date < start_dt:
+                            continue
+                    except:
+                        pass
+
+                if end_date:
+                    try:
+                        booking_date = datetime.fromisoformat(created_at)
+                        end_dt = datetime.fromisoformat(end_date)
+                        if booking_date > end_dt:
+                            continue
+                    except:
+                        pass
+
+                # Count confirmed bookings
+                if status == "active":
+                    stats["total_confirmed"] += 1
+                    try:
+                        date_key = datetime.fromisoformat(created_at).strftime('%Y-%m-%d')
+                        stats["confirmed_by_date"][date_key] = stats["confirmed_by_date"].get(date_key, 0) + 1
+                    except:
+                        pass
+
+                # Count cancelled bookings
+                if status == "cancelled" and cancelled_at:
+                    stats["total_cancelled"] += 1
+                    try:
+                        date_key = datetime.fromisoformat(cancelled_at).strftime('%Y-%m-%d')
+                        stats["cancelled_by_date"][date_key] = stats["cancelled_by_date"].get(date_key, 0) + 1
+                    except:
+                        pass
+
+            return stats
+
+        except Exception as e:
+            logger.error(f"Error getting booking statistics: {e}")
+            return {
+                "total_confirmed": 0,
+                "total_cancelled": 0,
+                "confirmed_by_date": {},
+                "cancelled_by_date": {}
+            }
 
 # Global instance
 booking_manager = BookingManager()

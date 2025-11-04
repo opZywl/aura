@@ -22,6 +22,13 @@ interface StatsData {
     total: number
 }
 
+interface BookingStatsData {
+    today_confirmed: number
+    today_cancelled: number
+    month_confirmed: number
+    month_cancelled: number
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
 export default function Statistics() {
@@ -29,6 +36,12 @@ export default function Statistics() {
     const isDark = theme === "dark"
 
     const [stats, setStats] = useState<StatsData>({ today: 0, week: 0, month: 0, total: 0 })
+    const [bookingStats, setBookingStats] = useState<BookingStatsData>({
+        today_confirmed: 0,
+        today_cancelled: 0,
+        month_confirmed: 0,
+        month_cancelled: 0,
+    })
     const [conversations, setConversations] = useState<ConversationData[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [filter, setFilter] = useState<"today" | "month">("today")
@@ -58,7 +71,7 @@ export default function Statistics() {
                 `${API_BASE_URL}/api/statistics/telegram?start_date=${startOfDay.toISOString()}`,
                 { cache: "no-store" },
             )
-            const todayData = todayResponse.ok ? await todayResponse.json() : { total_conversations: 0 }
+            const todayData = todayResponse.ok ? await todayResponse.json() : { total_conversations: 0, bookings: {} }
 
             const weekResponse = await fetch(
                 `${API_BASE_URL}/api/statistics/telegram?start_date=${startOfWeek.toISOString()}`,
@@ -70,7 +83,7 @@ export default function Statistics() {
                 `${API_BASE_URL}/api/statistics/telegram?start_date=${startOfMonth.toISOString()}`,
                 { cache: "no-store" },
             )
-            const monthData = monthResponse.ok ? await monthResponse.json() : { total_conversations: 0 }
+            const monthData = monthResponse.ok ? await monthResponse.json() : { total_conversations: 0, bookings: {} }
 
             const totalResponse = await fetch(`${API_BASE_URL}/api/statistics/telegram`, { cache: "no-store" })
             const totalData = totalResponse.ok ? await totalResponse.json() : { total_conversations: 0 }
@@ -80,6 +93,13 @@ export default function Statistics() {
                 week: weekData.total_conversations,
                 month: monthData.total_conversations,
                 total: totalData.total_conversations,
+            })
+
+            setBookingStats({
+                today_confirmed: todayData.bookings?.total_confirmed || 0,
+                today_cancelled: todayData.bookings?.total_cancelled || 0,
+                month_confirmed: monthData.bookings?.total_confirmed || 0,
+                month_cancelled: monthData.bookings?.total_cancelled || 0,
             })
         } catch (error) {
             console.error("Erro ao carregar estatísticas:", error)
@@ -259,6 +279,67 @@ export default function Statistics() {
                         </div>
                     </div>
                 </div>
+
+                <section className={`rounded-xl p-6 ${themedCard}`}>
+                    <h2 className="mb-6 text-lg font-semibold">Estatísticas de Agendamentos</h2>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div
+                            className={`rounded-xl p-4 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="rounded-lg bg-emerald-500/10 p-2">
+                                    <Calendar className="h-5 w-5 text-emerald-500" />
+                                </div>
+                                <div>
+                                    <p className={`text-xs ${themedMutedText}`}>Confirmados Hoje</p>
+                                    <p className="text-2xl font-semibold text-emerald-500">{bookingStats.today_confirmed}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            className={`rounded-xl p-4 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="rounded-lg bg-red-500/10 p-2">
+                                    <X className="h-5 w-5 text-red-500" />
+                                </div>
+                                <div>
+                                    <p className={`text-xs ${themedMutedText}`}>Cancelados Hoje</p>
+                                    <p className="text-2xl font-semibold text-red-500">{bookingStats.today_cancelled}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            className={`rounded-xl p-4 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="rounded-lg bg-emerald-500/10 p-2">
+                                    <Calendar className="h-5 w-5 text-emerald-500" />
+                                </div>
+                                <div>
+                                    <p className={`text-xs ${themedMutedText}`}>Confirmados no Mês</p>
+                                    <p className="text-2xl font-semibold text-emerald-500">{bookingStats.month_confirmed}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            className={`rounded-xl p-4 border ${theme === "dark" ? "border-[#1f1f1f] bg-[#0b0b0f]" : "border-gray-200 bg-gray-50"}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="rounded-lg bg-red-500/10 p-2">
+                                    <X className="h-5 w-5 text-red-500" />
+                                </div>
+                                <div>
+                                    <p className={`text-xs ${themedMutedText}`}>Cancelados no Mês</p>
+                                    <p className="text-2xl font-semibold text-red-500">{bookingStats.month_cancelled}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
                 <section className={`rounded-xl p-6 ${themedCard}`}>
                     <h2 className="mb-6 text-lg font-semibold">Visão Geral</h2>
@@ -446,13 +527,7 @@ export default function Statistics() {
                                     {conversationHistory.map((message, index) => {
                                         const senderRaw = typeof message.sender === "string" ? message.sender : ""
                                         const senderType = senderRaw.toLowerCase()
-                                        const isOperator = [
-                                            "operator",
-                                            "attendant",
-                                            "agent",
-                                            "human",
-                                            "atendente",
-                                        ].includes(senderType)
+                                        const isOperator = ["operator", "attendant", "agent", "human", "atendente"].includes(senderType)
                                         const isBot = ["bot", "assistant", "system", "fluxo", "flow"].includes(senderType)
                                         const timestamp = new Date(message.timestamp).toLocaleString("pt-BR", {
                                             year: "numeric",
@@ -526,11 +601,7 @@ export default function Statistics() {
                                                                 letterSpacing: "0.2em",
                                                             }}
                                                         >
-                                                            {isBot
-                                                                ? "Fluxo automatizado"
-                                                                : isOperator
-                                                                    ? "Operador"
-                                                                    : "Cliente"}
+                                                            {isBot ? "Fluxo automatizado" : isOperator ? "Operador" : "Cliente"}
                                                             {isOperator && (
                                                                 <span
                                                                     className="inline-flex h-2.5 w-2.5 rounded-full"
@@ -543,9 +614,7 @@ export default function Statistics() {
                                                                 />
                                                             )}
                                                         </p>
-                                                        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
-                                                            {message.text}
-                                                        </p>
+                                                        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.text}</p>
                                                     </div>
                                                     <span className={`text-xs px-2 ${themedMutedText}`}>{timestamp}</span>
                                                 </div>
