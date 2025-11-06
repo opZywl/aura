@@ -17,6 +17,7 @@ export function useChannelPermissions() {
     const availablePages: PagePermission[] = [
         // MENU
         { id: "dashboard", name: "Dashboard", category: "MENU", icon: "Dashboard" },
+        { id: "sales", name: "Vendas", category: "MENU", icon: "ShoppingBag" },
 
         // TOOLS
         { id: "account", name: "Conta", category: "TOOLS", icon: "Usuários" },
