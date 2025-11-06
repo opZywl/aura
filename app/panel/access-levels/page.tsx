@@ -21,6 +21,7 @@ import {
   FileText,
   Table,
   Palette,
+  ShoppingBag,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -69,12 +70,14 @@ export default function AccessLevelsPage() {
     FileText,
     Table,
     Palette,
+    ShoppingBag,
   }
 
   // Páginas disponíveis no sidebar organizadas por categoria
   const [availablePages] = useState([
     // MENU
     { id: "dashboard", name: "Dashboard", category: "MENU", icon: "BarChart3" },
+    { id: "sales", name: "Vendas", category: "MENU", icon: "ShoppingBag" },
 
     // TOOLS
     { id: "account", name: "Conta", category: "TOOLS", icon: "Users" },
