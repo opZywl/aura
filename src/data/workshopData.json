@@ -1,0 +1,149 @@
+{
+  "inventory": [
+    {
+      "id": "item-oleo-5w30",
+      "name": "Óleo de Motor Sintético 5W30",
+      "category": "Lubrificantes",
+      "unitPrice": 150.0,
+      "stockQuantity": 40,
+      "minimumStock": 10
+    },
+    {
+      "id": "item-filtro-oleo",
+      "name": "Filtro de Óleo",
+      "category": "Filtros",
+      "unitPrice": 45.0,
+      "stockQuantity": 60,
+      "minimumStock": 15
+    },
+    {
+      "id": "item-pastilha-freio",
+      "name": "Pastilha de Freio Dianteira",
+      "category": "Freios",
+      "unitPrice": 220.0,
+      "stockQuantity": 25,
+      "minimumStock": 8
+    },
+    {
+      "id": "item-lampada-h7",
+      "name": "Lâmpada Farol H7",
+      "category": "Elétrica",
+      "unitPrice": 35.0,
+      "stockQuantity": 80,
+      "minimumStock": 20
+    },
+    {
+      "id": "item-bateria-60ah",
+      "name": "Bateria 60 Ah",
+      "category": "Elétrica",
+      "unitPrice": 480.0,
+      "stockQuantity": 12,
+      "minimumStock": 4
+    },
+    {
+      "id": "item-liquido-arrefecimento",
+      "name": "Líquido de Arrefecimento",
+      "category": "Fluidos",
+      "unitPrice": 65.0,
+      "stockQuantity": 50,
+      "minimumStock": 12
+    },
+    {
+      "id": "item-correia-dentada",
+      "name": "Correia Dentada",
+      "category": "Motor",
+      "unitPrice": 180.0,
+      "stockQuantity": 18,
+      "minimumStock": 6
+    },
+    {
+      "id": "item-filtro-ar",
+      "name": "Filtro de Ar do Motor",
+      "category": "Filtros",
+      "unitPrice": 70.0,
+      "stockQuantity": 40,
+      "minimumStock": 10
+    },
+    {
+      "id": "item-velas-ignicao",
+      "name": "Velas de Ignição (jogo)",
+      "category": "Ignição",
+      "unitPrice": 120.0,
+      "stockQuantity": 30,
+      "minimumStock": 8
+    },
+    {
+      "id": "item-pneu-aro15",
+      "name": "Pneu Aro 15",
+      "category": "Pneus",
+      "unitPrice": 520.0,
+      "stockQuantity": 16,
+      "minimumStock": 5
+    }
+  ],
+  "sales": [
+    {
+      "id": "sale-20240105-01",
+      "itemId": "item-oleo-5w30",
+      "quantity": 3,
+      "unitPrice": 150.0,
+      "total": 450.0,
+      "date": "2024-01-05",
+      "customer": "Carlos Alberto"
+    },
+    {
+      "id": "sale-20240211-02",
+      "itemId": "item-filtro-oleo",
+      "quantity": 5,
+      "unitPrice": 45.0,
+      "total": 225.0,
+      "date": "2024-02-11",
+      "customer": "Oficina Irmãos Lima"
+    },
+    {
+      "id": "sale-20240322-03",
+      "itemId": "item-pastilha-freio",
+      "quantity": 2,
+      "unitPrice": 220.0,
+      "total": 440.0,
+      "date": "2024-03-22",
+      "customer": "Luciana Prado"
+    },
+    {
+      "id": "sale-20240410-04",
+      "itemId": "item-pneu-aro15",
+      "quantity": 1,
+      "unitPrice": 520.0,
+      "total": 520.0,
+      "date": "2024-04-10",
+      "customer": "Frota Express"
+    },
+    {
+      "id": "sale-20240518-05",
+      "itemId": "item-bateria-60ah",
+      "quantity": 1,
+      "unitPrice": 480.0,
+      "total": 480.0,
+      "date": "2024-05-18",
+      "customer": "Renato Siqueira"
+    },
+    {
+      "id": "sale-20240602-06",
+      "itemId": "item-liquido-arrefecimento",
+      "quantity": 4,
+      "unitPrice": 65.0,
+      "total": 260.0,
+      "date": "2024-06-02",
+      "customer": "Auto Center Bela Vista"
+    },
+    {
+      "id": "sale-20240714-07",
+      "itemId": "item-velas-ignicao",
+      "quantity": 2,
+      "unitPrice": 120.0,
+      "total": 240.0,
+      "date": "2024-07-14",
+      "customer": "Bruno Almeida"
+    }
+  ]
+}
