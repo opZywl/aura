@@ -4,7 +4,7 @@
       "id": "item-oleo-5w30",
       "name": "Óleo de Motor Sintético 5W30",
       "category": "Lubrificantes",
-      "unitPrice": 150.0,
+      "unitPrice": 150,
       "stockQuantity": 40,
       "minimumStock": 10
     },
@@ -12,7 +12,7 @@
       "id": "item-filtro-oleo",
       "name": "Filtro de Óleo",
       "category": "Filtros",
-      "unitPrice": 45.0,
+      "unitPrice": 45,
       "stockQuantity": 60,
       "minimumStock": 15
     },
@@ -20,7 +20,7 @@
       "id": "item-pastilha-freio",
       "name": "Pastilha de Freio Dianteira",
       "category": "Freios",
-      "unitPrice": 220.0,
+      "unitPrice": 220,
       "stockQuantity": 25,
       "minimumStock": 8
     },
@@ -28,7 +28,7 @@
       "id": "item-lampada-h7",
       "name": "Lâmpada Farol H7",
       "category": "Elétrica",
-      "unitPrice": 35.0,
+      "unitPrice": 35,
       "stockQuantity": 80,
       "minimumStock": 20
     },
@@ -36,7 +36,7 @@
       "id": "item-bateria-60ah",
       "name": "Bateria 60 Ah",
       "category": "Elétrica",
-      "unitPrice": 480.0,
+      "unitPrice": 480,
       "stockQuantity": 12,
       "minimumStock": 4
     },
@@ -44,7 +44,7 @@
       "id": "item-liquido-arrefecimento",
       "name": "Líquido de Arrefecimento",
       "category": "Fluidos",
-      "unitPrice": 65.0,
+      "unitPrice": 65,
       "stockQuantity": 50,
       "minimumStock": 12
     },
@@ -52,7 +52,7 @@
       "id": "item-correia-dentada",
       "name": "Correia Dentada",
       "category": "Motor",
-      "unitPrice": 180.0,
+      "unitPrice": 180,
       "stockQuantity": 18,
       "minimumStock": 6
     },
@@ -60,7 +60,7 @@
       "id": "item-filtro-ar",
       "name": "Filtro de Ar do Motor",
       "category": "Filtros",
-      "unitPrice": 70.0,
+      "unitPrice": 70,
       "stockQuantity": 40,
       "minimumStock": 10
     },
@@ -68,7 +68,7 @@
       "id": "item-velas-ignicao",
       "name": "Velas de Ignição (jogo)",
       "category": "Ignição",
-      "unitPrice": 120.0,
+      "unitPrice": 120,
       "stockQuantity": 30,
       "minimumStock": 8
     },
@@ -76,7 +76,7 @@
       "id": "item-pneu-aro15",
       "name": "Pneu Aro 15",
       "category": "Pneus",
-      "unitPrice": 520.0,
+      "unitPrice": 520,
       "stockQuantity": 16,
       "minimumStock": 5
     }
@@ -86,8 +86,8 @@
       "id": "sale-20240105-01",
       "itemId": "item-oleo-5w30",
       "quantity": 3,
-      "unitPrice": 150.0,
-      "total": 450.0,
+      "unitPrice": 150,
+      "total": 450,
       "date": "2024-01-05",
       "customer": "Carlos Alberto"
     },
@@ -95,8 +95,8 @@
       "id": "sale-20240211-02",
       "itemId": "item-filtro-oleo",
       "quantity": 5,
-      "unitPrice": 45.0,
-      "total": 225.0,
+      "unitPrice": 45,
+      "total": 225,
       "date": "2024-02-11",
       "customer": "Oficina Irmãos Lima"
     },
@@ -104,8 +104,8 @@
       "id": "sale-20240322-03",
       "itemId": "item-pastilha-freio",
       "quantity": 2,
-      "unitPrice": 220.0,
-      "total": 440.0,
+      "unitPrice": 220,
+      "total": 440,
       "date": "2024-03-22",
       "customer": "Luciana Prado"
     },
@@ -113,8 +113,8 @@
       "id": "sale-20240410-04",
       "itemId": "item-pneu-aro15",
       "quantity": 1,
-      "unitPrice": 520.0,
-      "total": 520.0,
+      "unitPrice": 520,
+      "total": 520,
       "date": "2024-04-10",
       "customer": "Frota Express"
     },
@@ -122,8 +122,8 @@
       "id": "sale-20240518-05",
       "itemId": "item-bateria-60ah",
       "quantity": 1,
-      "unitPrice": 480.0,
-      "total": 480.0,
+      "unitPrice": 480,
+      "total": 480,
       "date": "2024-05-18",
       "customer": "Renato Siqueira"
     },
@@ -131,8 +131,8 @@
       "id": "sale-20240602-06",
       "itemId": "item-liquido-arrefecimento",
       "quantity": 4,
-      "unitPrice": 65.0,
-      "total": 260.0,
+      "unitPrice": 65,
+      "total": 260,
       "date": "2024-06-02",
       "customer": "Auto Center Bela Vista"
     },
@@ -140,10 +140,225 @@
       "id": "sale-20240714-07",
       "itemId": "item-velas-ignicao",
       "quantity": 2,
-      "unitPrice": 120.0,
-      "total": 240.0,
+      "unitPrice": 120,
+      "total": 240,
       "date": "2024-07-14",
       "customer": "Bruno Almeida"
+    }
+  ],
+  "serviceOrders": [
+    {
+      "id": "os-202407-001",
+      "code": "OS-2024-001",
+      "customer": "Mariana Costa",
+      "vehicle": "Toyota Corolla 2019",
+      "technician": "João Ribeiro",
+      "status": "em_andamento",
+      "priority": "alta",
+      "issueDescription": "Ruído ao frear e vibração no pedal.",
+      "services": [
+        {
+          "description": "Revisão completa do sistema de freios",
+          "cost": 350
+        },
+        {
+          "description": "Troca de pastilhas dianteiras",
+          "cost": 220
+        }
+      ],
+      "createdAt": "2024-07-08",
+      "expectedDelivery": "2024-07-12",
+      "partsCost": 280,
+      "amountPaid": 400,
+      "totalEstimate": 850,
+      "balance": 450
+    },
+    {
+      "id": "os-202407-002",
+      "code": "OS-2024-002",
+      "customer": "Ricardo Mendes",
+      "vehicle": "Volkswagen Gol 2015",
+      "technician": "Ana Freitas",
+      "status": "aguardando_peca",
+      "priority": "media",
+      "issueDescription": "Dificuldade na partida e consumo elevado.",
+      "services": [
+        {
+          "description": "Diagnóstico do sistema de ignição",
+          "cost": 180
+        },
+        {
+          "description": "Substituição de velas",
+          "cost": 120
+        }
+      ],
+      "createdAt": "2024-07-05",
+      "expectedDelivery": "2024-07-15",
+      "partsCost": 150,
+      "amountPaid": 150,
+      "totalEstimate": 450,
+      "balance": 300
+    },
+    {
+      "id": "os-202406-003",
+      "code": "OS-2024-003",
+      "customer": "Transportadora Norte",
+      "vehicle": "Mercedes Sprinter 2021",
+      "technician": "Felipe Duarte",
+      "status": "em_andamento",
+      "priority": "alta",
+      "issueDescription": "Luz de injeção acesa e perda de potência.",
+      "services": [
+        {
+          "description": "Leitura e análise de falhas eletrônicas",
+          "cost": 260
+        },
+        {
+          "description": "Limpeza de bicos injetores",
+          "cost": 320
+        }
+      ],
+      "createdAt": "2024-06-28",
+      "expectedDelivery": "2024-07-10",
+      "partsCost": 410,
+      "amountPaid": 500,
+      "totalEstimate": 990,
+      "balance": 490
+    },
+    {
+      "id": "os-202405-004",
+      "code": "OS-2024-004",
+      "customer": "Juliana Azevedo",
+      "vehicle": "Hyundai HB20 2017",
+      "technician": "Carlos Pires",
+      "status": "concluida",
+      "priority": "baixa",
+      "issueDescription": "Solicitação de revisão preventiva.",
+      "services": [
+        {
+          "description": "Troca de óleo e filtro",
+          "cost": 210
+        },
+        {
+          "description": "Alinhamento e balanceamento",
+          "cost": 180
+        }
+      ],
+      "createdAt": "2024-05-30",
+      "expectedDelivery": "2024-06-02",
+      "partsCost": 120,
+      "amountPaid": 510,
+      "totalEstimate": 510,
+      "balance": 0
+    },
+    {
+      "id": "os-202405-005",
+      "code": "OS-2024-005",
+      "customer": "Roberto Lima",
+      "vehicle": "Chevrolet Onix 2020",
+      "technician": "Ana Freitas",
+      "status": "aberta",
+      "priority": "media",
+      "issueDescription": "Troca de bateria preventiva e checagem elétrica.",
+      "services": [
+        {
+          "description": "Diagnóstico do sistema elétrico",
+          "cost": 150
+        },
+        {
+          "description": "Instalação de bateria",
+          "cost": 120
+        }
+      ],
+      "createdAt": "2024-05-22",
+      "expectedDelivery": "2024-05-25",
+      "partsCost": 480,
+      "amountPaid": 200,
+      "totalEstimate": 750,
+      "balance": 550
+    }
+  ],
+  "maintenanceTasks": [
+    {
+      "id": "mt-001",
+      "orderId": "os-202407-001",
+      "title": "Ajustar freio traseiro",
+      "status": "em_andamento",
+      "technician": "João Ribeiro",
+      "startDate": "2024-07-09",
+      "notes": "Aguardando peça do fornecedor."
+    },
+    {
+      "id": "mt-002",
+      "orderId": "os-202407-002",
+      "title": "Substituir velas NGK",
+      "status": "pendente",
+      "technician": "Ana Freitas",
+      "startDate": "2024-07-11"
+    },
+    {
+      "id": "mt-003",
+      "orderId": "os-202405-004",
+      "title": "Teste final de rodagem",
+      "status": "concluida",
+      "technician": "Carlos Pires",
+      "startDate": "2024-06-01",
+      "endDate": "2024-06-02",
+      "notes": "Sem ruídos ou alertas após revisão."
+    },
+    {
+      "id": "mt-004",
+      "orderId": "os-202406-003",
+      "title": "Reprogramar módulo eletrônico",
+      "status": "em_andamento",
+      "technician": "Felipe Duarte",
+      "startDate": "2024-07-03",
+      "notes": "Necessário atualizar software de fábrica."
+    }
+  ],
+  "financialRecords": [
+    {
+      "id": "fin-001",
+      "type": "receita",
+      "category": "Vendas de peças",
+      "description": "Vendas janeiro a julho",
+      "amount": 2615,
+      "date": "2024-07-01"
+    },
+    {
+      "id": "fin-002",
+      "type": "despesa",
+      "category": "Compra de peças",
+      "description": "Reposição de estoque inicial",
+      "amount": 1800,
+      "date": "2024-06-20"
+    },
+    {
+      "id": "fin-003",
+      "type": "despesa",
+      "category": "Serviços terceirizados",
+      "description": "Retífica de cabeçote",
+      "amount": 750,
+      "date": "2024-06-28",
+      "relatedServiceOrderId": "os-202406-003"
+    },
+    {
+      "id": "fin-004",
+      "type": "receita",
+      "category": "Ordens de serviço",
+      "description": "Pagamento parcial OS-2024-001",
+      "amount": 400,
+      "date": "2024-07-08",
+      "relatedServiceOrderId": "os-202407-001"
+    },
+    {
+      "id": "fin-005",
+      "type": "receita",
+      "category": "Ordens de serviço",
+      "description": "Pagamento integral OS-2024-004",
+      "amount": 510,
+      "date": "2024-05-31",
+      "relatedServiceOrderId": "os-202405-004"
     }
   ]
 }

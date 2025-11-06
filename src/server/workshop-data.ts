@@ -21,9 +21,65 @@ export interface SaleRecord {
     notes?: string
 }
 
+export type ServiceOrderStatus = "aberta" | "em_andamento" | "aguardando_peca" | "concluida" | "cancelada"
+
+export type ServicePriority = "baixa" | "media" | "alta"
+
+export interface ServiceOrderService {
+    description: string
+    cost: number
+}
+
+export interface ServiceOrder {
+    id: string
+    code: string
+    customer: string
+    vehicle: string
+    technician: string
+    status: ServiceOrderStatus
+    priority: ServicePriority
+    issueDescription: string
+    services: ServiceOrderService[]
+    createdAt: string
+    expectedDelivery?: string
+    partsCost: number
+    amountPaid: number
+    totalEstimate: number
+    balance: number
+}
+
+export type MaintenanceStatus = "pendente" | "em_andamento" | "concluida"
+
+export interface MaintenanceTask {
+    id: string
+    orderId: string
+    title: string
+    status: MaintenanceStatus
+    technician: string
+    startDate: string
+    endDate?: string
+    notes?: string
+}
+
+export type FinancialRecordType = "receita" | "despesa"
+
+export interface FinancialRecord {
+    id: string
+    type: FinancialRecordType
+    category: string
+    description: string
+    amount: number
+    date: string
+    relatedSaleId?: string
+    relatedServiceOrderId?: string
+}
+
 export interface WorkshopData {
     inventory: InventoryItem[]
     sales: SaleRecord[]
+    serviceOrders: ServiceOrder[]
+    maintenanceTasks: MaintenanceTask[]
+    financialRecords: FinancialRecord[]
 }
 
 const dataFilePath = path.join(process.cwd(), "src/data/workshopData.json")
@@ -32,7 +88,13 @@ async function ensureDataFile(): Promise<void> {
     try {
         await fs.access(dataFilePath)
     } catch (error) {
-        const defaultData: WorkshopData = { inventory: [], sales: [] }
+        const defaultData: WorkshopData = {
+            inventory: [],
+            sales: [],
+            serviceOrders: [],
+            maintenanceTasks: [],
+            financialRecords: [],
+        }
         await fs.mkdir(path.dirname(dataFilePath), { recursive: true })
         await fs.writeFile(dataFilePath, JSON.stringify(defaultData, null, 2), "utf-8")
     }
@@ -41,7 +103,15 @@ async function ensureDataFile(): Promise<void> {
 export async function readWorkshopData(): Promise<WorkshopData> {
     await ensureDataFile()
     const raw = await fs.readFile(dataFilePath, "utf-8")
-    return JSON.parse(raw) as WorkshopData
+    const parsed = JSON.parse(raw) as Partial<WorkshopData>
+
+    return {
+        inventory: parsed.inventory ?? [],
+        sales: parsed.sales ?? [],
+        serviceOrders: parsed.serviceOrders ?? [],
+        maintenanceTasks: parsed.maintenanceTasks ?? [],
+        financialRecords: parsed.financialRecords ?? [],
+    }
 }
 
 export async function writeWorkshopData(data: WorkshopData): Promise<void> {
