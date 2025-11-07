@@ -366,7 +366,7 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
     const recentFinancialRecords = useMemo(() => financialRecordsSorted.slice(0, 5), [financialRecordsSorted])
 
     const salesLookup = useMemo(() => {
-        const lookup = new Map<string, { label: string }>()
+        const lookup: Map<string, { label: string }> = new Map()
         data.sales.forEach((sale) => {
             lookup.set(sale.id, {
                 label: `${sale.id} · ${numberFormatter.format(sale.quantity)} un (${currencyFormatter.format(sale.total)})`,
@@ -376,7 +376,7 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
     }, [data.sales])
 
     const serviceOrderLookup = useMemo(() => {
-        const lookup = new Map<string, { code: string; customer: string }>()
+        const lookup: Map<string, { code: string; customer: string }> = new Map()
         data.serviceOrders.forEach((order) => {
             lookup.set(order.id, { code: order.code, customer: order.customer })
         })
@@ -522,47 +522,47 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
         return dateFormatter.format(parsed)
     }
 
-    const tooltipFormatter = (value: number, name: string, props: any) => {
+    const tooltipFormatter = (value: number, _name: string, props: any) => {
         const payload = props?.payload as { formatter?: (value: number) => string } | undefined
         if (payload?.formatter) {
             return payload.formatter(value)
         }
         return numberFormatter.format(value)
-    }
+    };
 
     const openInventoryForm = () => {
         setDashboardTab("operations")
         setActionTab("inventory")
-    }
+    };
 
     const openSaleForm = () => {
         setDashboardTab("operations")
         setActionTab("sale")
-    }
+    };
 
     const openServiceOrderForm = () => {
         setDashboardTab("operations")
         setActionTab("service-order")
-    }
+    };
 
     const goToSalesListing = () => {
         setDashboardTab("operations")
         setListingTab("sales")
-    }
+    };
 
     const goToInventoryListing = () => {
         setDashboardTab("operations")
         setListingTab("inventory")
-    }
+    };
 
     const goToServiceOrderListing = () => {
         setDashboardTab("operations")
         setListingTab("service-orders")
-    }
+    };
 
     const goToFinancialTab = () => {
         setDashboardTab("financial")
-    }
+    };
 
     return (
         <div className="space-y-6">
@@ -1098,9 +1098,7 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                                                 <Textarea
                                                     id="services"
                                                     name="services"
-                                                    placeholder={"Ex:
-Revisão geral - 350
-Alinhamento e balanceamento - 180"}
+                                                    placeholder={`Ex:\nRevisão geral - 350\nAlinhamento e balanceamento - 180`}
                                                     rows={3}
                                                 />
                                             </div>
