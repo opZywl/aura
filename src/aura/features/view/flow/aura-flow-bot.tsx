@@ -511,16 +511,37 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
         (currentNodeId: string, optionIndex?: number) => {
             if (!savedFlow) return null
 
-            const edges = savedFlow.edges
+            const sortEdgesByHandle = (edgeA: any, edgeB: any) => {
+                const parseIndex = (edge: any) => {
+                    const handle = edge?.sourceHandle
+                    if (typeof handle === "string" && handle.startsWith("output-")) {
+                        const [, index] = handle.split("output-")
+                        const parsed = Number.parseInt(index, 10)
+                        return Number.isNaN(parsed) ? 0 : parsed
+                    }
+                    return 0
+                }
+
+                return parseIndex(edgeA) - parseIndex(edgeB)
+            }
+
+            const nodeEdges = savedFlow.edges.filter((edge: any) => edge.source === currentNodeId)
+            if (nodeEdges.length === 0) return null
+
             let targetEdge
 
             if (optionIndex !== undefined) {
-                // Para nós de opções, encontrar a edge específica baseada no índice
-                const nodeEdges = edges.filter((edge: any) => edge.source === currentNodeId)
-                targetEdge = nodeEdges[optionIndex]
+                // Mapear edges usando o identificador do handle para garantir compatibilidade com qualquer nó anterior
+                const expectedHandle = `output-${optionIndex}`
+                targetEdge = nodeEdges.find((edge: any) => edge.sourceHandle === expectedHandle)
+
+                if (!targetEdge) {
+                    const orderedEdges = [...nodeEdges].sort(sortEdgesByHandle)
+                    targetEdge = orderedEdges[optionIndex]
+                }
             } else {
-                // Para outros nós, encontrar a primeira edge
-                targetEdge = edges.find((edge: any) => edge.source === currentNodeId)
+                const orderedEdges = [...nodeEdges].sort(sortEdgesByHandle)
+                targetEdge = orderedEdges[0]
             }
 
             if (targetEdge) {
