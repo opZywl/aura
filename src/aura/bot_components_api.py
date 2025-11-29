@@ -347,14 +347,14 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
         if agent_manager.is_agent_session_active(user_id):
             # Usuário está em atendimento com operador
-            # Verificar se é comando do operador
+            # Garantir que o histórico continue gravando para permitir /finalizar depois
+            execution = get_execution(user_id, workflow_id)
+
             if message.strip().lower() == "/finalizar":
                 # Operador finalizou o atendimento
                 agent_manager.end_agent_session(user_id)
 
                 # Resetar o chatbot para começar do início
-                # Assuming chatbot instance is available globally or passed as parameter
-                # For now, we'll just reset the execution state
                 reset_conversation(user_id, workflow_id) # This effectively resets the bot's context
 
                 return {
@@ -366,18 +366,25 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     "requires_input": False,
                     "is_final": True
                 }
-            else:
-                # Mensagem do usuário durante atendimento com operador
-                # Não processar com bot, apenas retornar sucesso
-                # (o operador verá a mensagem e responderá manualmente)
-                # The message will be handled by the agent_manager directly.
-                # We just need to acknowledge receipt by the system.
-                return {
-                    "success": True,
-                    "messages": [], # No bot messages to send
-                    "requires_input": False, # Bot is not waiting for input
-                    "is_final": False
-                }
+
+            # Persistir mensagem no histórico da execução ativa (se existir)
+            if execution:
+                execution.conversation_history.append({
+                    "role": "user",
+                    "content": message,
+                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                })
+
+            # Mensagem do usuário durante atendimento com operador
+            # Não processar com bot, apenas retornar sucesso
+            # (o operador verá a mensagem e responderá manualmente)
+            return {
+                "success": True,
+                "messages": [], # No bot messages to send
+                "requires_input": True,  # Mantém a conversa ativa para novos envios e /finalizar
+                "is_final": False,
+                "node_type": "agent"
+            }
 
         # Verificar se há execução ativa
         execution = get_execution(user_id, workflow_id)
@@ -697,8 +704,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                 # Iniciar sessão de agente
                                 agent_manager.start_agent_session(user_id, current_node.id)
 
-                                # Marcar que não requer mais input do bot (operador vai responder)
-                                execution.waiting_for_input = False
+                                # Marcar que o fluxo está com o operador humano
+                                execution.waiting_for_input = True
                                 execution.current_node_id = current_node.id
 
                                 logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
@@ -707,8 +714,9 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                 return {
                                     "success": True,
                                     "messages": messages_to_send,
-                                    "requires_input": False,
-                                    "is_final": False
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "agent"
                                 }
 
                             else:
@@ -1124,8 +1132,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     # Iniciar sessão de agente
                     agent_manager.start_agent_session(user_id, current_node.id)
 
-                    # Marcar que não requer mais input do bot (operador vai responder)
-                    execution.waiting_for_input = False
+                    # Marcar que o fluxo está com o operador humano
+                    execution.waiting_for_input = True
                     execution.current_node_id = current_node.id
 
                     logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
@@ -1134,8 +1142,9 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     return {
                         "success": True,
                         "messages": messages_to_send,
-                        "requires_input": False,
-                        "is_final": False
+                        "requires_input": True,
+                        "is_final": False,
+                        "node_type": "agent"
                     }
                 # END: Code added from updates
 
@@ -2022,8 +2031,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     # Iniciar sessão de agente
                                     agent_manager.start_agent_session(user_id, current_node.id)
 
-                                    # Marcar que não requer mais input do bot (operador vai responder)
-                                    execution.waiting_for_input = False
+                                    # Marcar que o fluxo está com o operador humano
+                                    execution.waiting_for_input = True
                                     execution.current_node_id = current_node.id
 
                                     logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
@@ -2032,8 +2041,9 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     return {
                                         "success": True,
                                         "messages": messages_to_send,
-                                        "requires_input": False,
-                                        "is_final": False
+                                        "requires_input": True,
+                                        "is_final": False,
+                                        "node_type": "agent"
                                     }
 
                                 else:
