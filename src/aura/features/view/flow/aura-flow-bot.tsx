@@ -569,20 +569,22 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 const intro = node.data.message || "Confira os itens disponíveis para venda:"
 
                 ;(async () => {
-                    const inventory = await fetchInventory()
-                    const availableItems = inventory.filter((item) => item.stockQuantity > 0)
+                    const inventory = (await fetchInventory()).map((item) => ({
+                        ...item,
+                        stockQuantity: Number.parseInt(String(item.stockQuantity ?? 0), 10) || 0,
+                    }))
 
                     let messageText = intro + "\n\n"
 
-                    if (availableItems.length > 0) {
-                        availableItems.forEach((item, index) => {
+                    if (inventory.length > 0) {
+                        inventory.forEach((item, index) => {
                             messageText += `${index + 1}. ${item.name} - ${formatCurrency(item.unitPrice)} (estoque: ${item.stockQuantity})\n`
                         })
                         messageText += "\n0. Solicitar item que não está disponível\nDigite o número do item desejado."
 
                         setSaleState({
                             stage: "selection",
-                            items: availableItems,
+                            items: inventory,
                             nodeId: node.id,
                         })
                     } else {
