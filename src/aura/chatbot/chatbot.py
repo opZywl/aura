@@ -138,7 +138,7 @@ class WorkflowStorage:
 WORKSHOP_DATA_PATH = (
     Path(os.environ.get("AURA_WORKSHOP_DATA_FILE", "")).expanduser()
     if os.environ.get("AURA_WORKSHOP_DATA_FILE")
-    else Path(__file__).resolve().parent.parent / "data" / "workshopData.json"
+    else Path(__file__).resolve().parents[2] / "src" / "data" / "workshopData.json"
 )
 
 
@@ -204,6 +204,10 @@ def _register_sale_request(payload: Dict[str, Any]) -> Dict[str, Any]:
     if sale_type not in {"estoque", "solicitacao"}:
         raise ValueError("Tipo de pedido inválido")
 
+    status = payload.get("status") or "pendente"
+    if status not in {"pendente", "confirmada", "cancelada"}:
+        status = "pendente"
+
     price_value = payload.get("price")
     try:
         price = float(price_value) if price_value is not None else None
@@ -220,7 +224,7 @@ def _register_sale_request(payload: Dict[str, Any]) -> Dict[str, Any]:
         "itemName": item_name,
         "requestedName": payload.get("requestedName") or None,
         "price": price,
-        "status": "pendente",
+        "status": status,
         "createdAt": now.isoformat(),
         "source": payload.get("source") or "workflow",
         "notes": payload.get("notes") or None,
@@ -257,6 +261,69 @@ def _fetch_available_inventory() -> List[Dict[str, Any]]:
     return available
 
 
+def _register_sale_transaction(
+    *,
+    item: Dict[str, Any],
+    customer_contact: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Register a sale in the shared JSON and reflect it in finances/stock."""
+
+    data = _load_workshop_data()
+    inventory = list(data.get("inventory") or [])
+    sales = list(data.get("sales") or [])
+    financial = list(data.get("financialRecords") or [])
+
+    now = datetime.now(timezone.utc)
+    sale_id = f"sale-{uuid4()}"
+
+    try:
+        unit_price = float(item.get("unitPrice", 0))
+    except Exception:
+        unit_price = 0.0
+
+    sale_record = {
+        "id": sale_id,
+        "itemId": item.get("id"),
+        "quantity": 1,
+        "unitPrice": unit_price,
+        "total": unit_price,
+        "date": now.isoformat(),
+        "customer": customer_contact,
+        "notes": item.get("description") or None,
+    }
+
+    sales.append(sale_record)
+
+    financial.append(
+        {
+            "id": f"finance-{uuid4()}",
+            "type": "receita",
+            "category": "Venda",
+            "description": item.get("name") or "Venda",
+            "amount": unit_price,
+            "date": now.isoformat(),
+            "relatedSaleId": sale_id,
+        }
+    )
+
+    for inv_item in inventory:
+        if inv_item.get("id") == item.get("id"):
+            try:
+                current_stock = int(inv_item.get("stockQuantity", 0))
+            except Exception:
+                current_stock = 0
+
+            inv_item["stockQuantity"] = max(current_stock - 1, 0)
+            break
+
+    data["inventory"] = inventory
+    data["sales"] = sales
+    data["financialRecords"] = financial
+
+    _write_workshop_data(data)
+    return sale_record
+
+
 @dataclass
 class ChatState:
     """Runtime state for a single chat conversation."""
@@ -272,6 +339,7 @@ class ChatState:
     sale_node_id: Optional[str] = None
     sale_stage: Optional[str] = None
     sale_items: List[Dict[str, Any]] = None
+    sale_selected: Optional[Dict[str, Any]] = None
 
     def reset(self) -> None:
         self.current_node = None
@@ -285,6 +353,7 @@ class ChatState:
         self.sale_node_id = None
         self.sale_stage = None
         self.sale_items = []
+        self.sale_selected = None
 
 
 class WorkflowManager:
@@ -588,41 +657,22 @@ class WorkflowManager:
             if 1 <= option <= len(items):
                 selected = items[option - 1]
 
-                try:
-                    request = _register_sale_request({
-                        "type": "estoque",
-                        "itemId": selected.get("id"),
-                        "itemName": selected.get("name"),
-                        "price": selected.get("unitPrice"),
-                        "source": "workflow",
-                    })
-                except Exception:
-                    logger.exception("Falha ao registrar pedido de estoque")
-                    return [{"text": "Não foi possível registrar o pedido agora. Tente novamente em instantes."}]
+                state.sale_stage = "phone"
+                state.sale_selected = selected
 
-                deadline = request.get("pickupDeadline", "")
-                confirmation = (
-                    f"Pedido registrado para {selected.get('name', 'item')} no valor de "
-                    f"{_format_currency(selected.get('unitPrice'))}. Compareça à loja em até 3 dias"
+                summary = (
+                    f"Você escolheu {selected.get('name', 'item')} - {_format_currency(selected.get('unitPrice'))}."
                 )
 
-                if deadline:
-                    confirmation += f" (até {_format_date_iso(deadline)})"
+                prompt = (
+                    "Envie seu telefone para confirmarmos a reserva do item. "
+                    "O pagamento e a retirada devem ser feitos na loja em até 3 dias."
+                )
 
-                confirmation += " ou cancelaremos o pedido."
-
-                state.waiting_sale = False
-                state.sale_stage = None
-                state.sale_items = []
-                state.sale_node_id = None
-                state.current_node = None
-
-                next_node = self._next_node(sale_node.get("id"), nodes_by_id, edges)
-                if next_node:
-                    return [{"text": confirmation}] + self._process_from_node(state, next_node, nodes_by_id, edges)
-
-                state.reset()
-                return [{"text": confirmation, "reply_markup": {"remove_keyboard": True}}]
+                return [
+                    {"text": summary, "reply_markup": {"remove_keyboard": True}},
+                    {"text": prompt, "reply_markup": {"remove_keyboard": True}},
+                ]
 
             return [{
                 "text": "Opção inválida. Digite um número listado acima ou 0 para solicitar um item não disponível.",
@@ -659,12 +709,58 @@ class WorkflowManager:
             state.sale_node_id = None
             state.current_node = None
 
+            state.sale_selected = None
+
             next_node = self._next_node(sale_node.get("id"), nodes_by_id, edges)
             if next_node:
                 return [{"text": message}] + self._process_from_node(state, next_node, nodes_by_id, edges)
 
             state.reset()
             return [{"text": message, "reply_markup": {"remove_keyboard": True}}]
+
+        if state.sale_stage == "phone":
+            selected = state.sale_selected or {}
+            contact = user_input
+
+            try:
+                request = _register_sale_request({
+                    "type": "estoque",
+                    "itemId": selected.get("id"),
+                    "itemName": selected.get("name"),
+                    "price": selected.get("unitPrice"),
+                    "source": "workflow",
+                    "status": "confirmada",
+                    "notes": f"Telefone: {contact}",
+                })
+                _register_sale_transaction(item=selected, customer_contact=contact)
+            except Exception:
+                logger.exception("Falha ao registrar pedido de estoque")
+                return [{"text": "Não foi possível registrar o pedido agora. Tente novamente em instantes."}]
+
+            deadline = request.get("pickupDeadline", "")
+            confirmation = (
+                f"Pedido registrado para {selected.get('name', 'item')} no valor de "
+                f"{_format_currency(selected.get('unitPrice'))}. Compareça à loja em até 3 dias"
+            )
+
+            if deadline:
+                confirmation += f" (até {_format_date_iso(deadline)})"
+
+            confirmation += " ou cancelaremos o pedido. Estaremos aguardando a retirada!"
+
+            state.waiting_sale = False
+            state.sale_stage = None
+            state.sale_items = []
+            state.sale_node_id = None
+            state.current_node = None
+            state.sale_selected = None
+
+            next_node = self._next_node(sale_node.get("id"), nodes_by_id, edges)
+            if next_node:
+                return [{"text": confirmation}] + self._process_from_node(state, next_node, nodes_by_id, edges)
+
+            state.reset()
+            return [{"text": confirmation, "reply_markup": {"remove_keyboard": True}}]
 
         # If stage is missing, reset and continue the flow
         state.waiting_sale = False
@@ -816,7 +912,13 @@ class WorkflowManager:
                     message_lines.append("0. Solicitar item que não está disponível")
                     message_lines.append("Digite o número do item desejado.")
 
-                    responses.append({"text": "\n".join(message_lines), "reply_markup": {"remove_keyboard": True}})
+                    options_keyboard = [str(i) for i in range(1, len(available_items) + 1)] + ["0"]
+                    responses.append(
+                        {
+                            "text": "\n".join(message_lines),
+                            "reply_markup": self._build_keyboard(options_keyboard),
+                        }
+                    )
 
                     state.current_node = current.get("id")
                     state.waiting_sale = True
