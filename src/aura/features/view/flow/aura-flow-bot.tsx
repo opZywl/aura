@@ -112,6 +112,23 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
         console.log("[OK] [AuraBot] Estado do chat limpo")
     }, [])
 
+    const gracefullyFinishFlow = useCallback((resetOnlyState = false) => {
+        // Encerrar o fluxo sem apagar o histórico de mensagens, preservando o contexto da conversa
+        setWaitingForUserInput(false)
+        setCurrentNodeId(null)
+        setCurrentOptions([])
+        setCurrentOptionsMessage("")
+        setSaleState(null)
+
+        if (resetOnlyState) {
+            localStorage.removeItem(CURRENT_NODE_KEY)
+            localStorage.removeItem(WAITING_INPUT_KEY)
+            localStorage.removeItem(CURRENT_OPTIONS_KEY)
+            localStorage.removeItem(OPTIONS_MESSAGE_KEY)
+            localStorage.removeItem(SALE_STATE_KEY)
+        }
+    }, [])
+
     const fetchInventory = useCallback(async (): Promise<InventoryItemSummary[]> => {
         try {
             const response = await fetch("/api/inventory")
@@ -584,10 +601,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                     if (nextNode) {
                         processNode(nextNode)
                     } else {
-                        setWaitingForUserInput(false)
-                        setCurrentNodeId(null)
-                        clearChatState()
-                        console.log("[OK] [AuraBot] Fluxo finalizado - conversa resetada")
+                        gracefullyFinishFlow(true)
+                        console.log("[OK] [AuraBot] Fluxo finalizado - estado reiniciado")
                     }
                 }, 1500)
             } else if (node.type === "venda") {
@@ -675,9 +690,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                         return updated
                     })
 
-                    setWaitingForUserInput(false)
-                    setCurrentNodeId(null)
-                    clearChatState()
+                    gracefullyFinishFlow(true)
                     console.log("[OK] [AuraBot] Fim do fluxo - agentes")
                 }, 1200)
             } else if (node.type === "options") {
@@ -727,14 +740,12 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 })
 
                 setTimeout(() => {
-                    setCurrentNodeId(null)
-                    setWaitingForUserInput(false)
-                    clearChatState()
-                    console.log("Finalizado [AuraBot] Conversa finalizada e resetada")
+                    gracefullyFinishFlow(true)
+                    console.log("Finalizado [AuraBot] Conversa finalizada e estado limpo")
                 }, 2000)
             }
         },
-        [findNextNode, saveMessages, clearChatState, fetchInventory, formatCurrency],
+        [findNextNode, saveMessages, gracefullyFinishFlow, fetchInventory, formatCurrency],
     )
 
     const startFlow = useCallback(() => {
@@ -943,9 +954,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                                     if (nextNode) {
                                         processNode(nextNode)
                                     } else {
-                                        setCurrentNodeId(null)
-                                        clearChatState()
-                                        console.log("[OK] [AuraBot] Fim do fluxo - conversa resetada")
+                                        gracefullyFinishFlow(true)
+                                        console.log("[OK] [AuraBot] Fim do fluxo - venda sem próximo nó")
                                     }
                                 }, 800)
                             } catch (error) {
@@ -1026,9 +1036,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                                 if (nextNode) {
                                     processNode(nextNode)
                                 } else {
-                                    setCurrentNodeId(null)
-                                    clearChatState()
-                                    console.log("[OK] [AuraBot] Fim do fluxo - conversa resetada")
+                                    gracefullyFinishFlow(true)
+                                    console.log("[OK] [AuraBot] Fim do fluxo - venda custom sem próximo nó")
                                 }
                             }, 800)
                         } catch (error) {
@@ -1072,9 +1081,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                             if (nextNode) {
                                 processNode(nextNode)
                             } else {
-                                setCurrentNodeId(null)
-                                clearChatState()
-                                console.log("[OK] [AuraBot] Fim do fluxo - conversa resetada")
+                                gracefullyFinishFlow(true)
+                                console.log("[OK] [AuraBot] Fim do fluxo - opções sem próximo nó")
                             }
                         }, 800)
                     } else {
@@ -1098,7 +1106,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             processNode,
             repeatOptions,
             saveMessages,
-            clearChatState,
+            gracefullyFinishFlow,
             saleState,
             registerSaleRequest,
             formatCurrency,
