@@ -21,6 +21,25 @@ export interface SaleRecord {
     notes?: string
 }
 
+export type SaleRequestType = "estoque" | "solicitacao"
+
+export type SaleRequestStatus = "pendente" | "confirmada" | "cancelada"
+
+export interface SaleRequest {
+    id: string
+    type: SaleRequestType
+    itemId?: string
+    itemName: string
+    requestedName?: string
+    price?: number
+    status: SaleRequestStatus
+    createdAt: string
+    pickupDeadline?: string
+    contactBy?: string
+    source?: "workflow" | "painel"
+    notes?: string
+}
+
 export type ServiceOrderStatus = "aberta" | "em_andamento" | "aguardando_peca" | "concluida" | "cancelada"
 
 export type ServicePriority = "baixa" | "media" | "alta"
@@ -80,6 +99,7 @@ export interface WorkshopData {
     serviceOrders: ServiceOrder[]
     maintenanceTasks: MaintenanceTask[]
     financialRecords: FinancialRecord[]
+    saleRequests: SaleRequest[]
 }
 
 const dataFilePath = path.join(process.cwd(), "src/data/workshopData.json")
@@ -94,6 +114,7 @@ async function ensureDataFile(): Promise<void> {
             serviceOrders: [],
             maintenanceTasks: [],
             financialRecords: [],
+            saleRequests: [],
         }
         await fs.mkdir(path.dirname(dataFilePath), { recursive: true })
         await fs.writeFile(dataFilePath, JSON.stringify(defaultData, null, 2), "utf-8")
@@ -111,6 +132,7 @@ export async function readWorkshopData(): Promise<WorkshopData> {
         serviceOrders: parsed.serviceOrders ?? [],
         maintenanceTasks: parsed.maintenanceTasks ?? [],
         financialRecords: parsed.financialRecords ?? [],
+        saleRequests: parsed.saleRequests ?? [],
     }
 }
 
