@@ -528,6 +528,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             const nodeEdges = savedFlow.edges.filter((edge: any) => edge.source === currentNodeId)
             if (nodeEdges.length === 0) return null
 
+            const orderedEdges = [...nodeEdges].sort(sortEdgesByHandle)
             let targetEdge
 
             if (optionIndex !== undefined) {
@@ -536,12 +537,15 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 targetEdge = nodeEdges.find((edge: any) => edge.sourceHandle === expectedHandle)
 
                 if (!targetEdge) {
-                    const orderedEdges = [...nodeEdges].sort(sortEdgesByHandle)
                     targetEdge = orderedEdges[optionIndex]
                 }
             } else {
-                const orderedEdges = [...nodeEdges].sort(sortEdgesByHandle)
                 targetEdge = orderedEdges[0]
+            }
+
+            if (!targetEdge) {
+                // Como último recurso, use a primeira conexão disponível para não travar o fluxo
+                targetEdge = nodeEdges[0]
             }
 
             if (targetEdge) {
@@ -632,6 +636,50 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
 
                     setWaitingForUserInput(true)
                 })()
+            } else if (node.type === "agentes") {
+                const handoffMessage =
+                    node.data.handoffMessage ||
+                    "Transferindo você para um operador humano... Aguarde enquanto conectamos."
+                const noAgentMessage =
+                    node.data.noAgentMessage ||
+                    "No momento não há operadores disponíveis. Por favor, tente novamente em instantes."
+
+                const transferMessage = {
+                    id: Date.now().toString(),
+                    role: "assistant" as const,
+                    content: handoffMessage,
+                }
+
+                setMessages((prev) => {
+                    const updated = [...prev, transferMessage]
+                    saveMessages(updated)
+                    return updated
+                })
+
+                setTimeout(() => {
+                    const nextNode = findNextNode(node.id)
+                    if (nextNode) {
+                        processNode(nextNode)
+                        return
+                    }
+
+                    const fallbackMessage = {
+                        id: Date.now().toString(),
+                        role: "assistant" as const,
+                        content: noAgentMessage,
+                    }
+
+                    setMessages((prev) => {
+                        const updated = [...prev, fallbackMessage]
+                        saveMessages(updated)
+                        return updated
+                    })
+
+                    setWaitingForUserInput(false)
+                    setCurrentNodeId(null)
+                    clearChatState()
+                    console.log("[OK] [AuraBot] Fim do fluxo - agentes")
+                }, 1200)
             } else if (node.type === "options") {
                 const message = node.data.message || "Escolha uma opção:"
                 const options = node.data.options || []
