@@ -569,29 +569,37 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 const intro = node.data.message || "Confira os itens disponíveis para venda:"
 
                 ;(async () => {
-                    const inventory = await fetchInventory()
-                    const availableItems = inventory.filter((item) => item.stockQuantity > 0)
-
                     let messageText = intro + "\n\n"
+                    let nextSaleState: SaleInteractionState = { stage: "customName", items: [], nodeId: node.id }
 
-                    if (availableItems.length > 0) {
-                        availableItems.forEach((item, index) => {
-                            messageText += `${index + 1}. ${item.name} - ${formatCurrency(item.unitPrice)} (estoque: ${item.stockQuantity})\n`
-                        })
-                        messageText += "\n0. Solicitar item que não está disponível\nDigite o número do item desejado."
+                    try {
+                        const inventory = (await fetchInventory()).map((item) => ({
+                            ...item,
+                            stockQuantity: Number.parseInt(String(item.stockQuantity ?? 0), 10) || 0,
+                        }))
 
-                        setSaleState({
-                            stage: "selection",
-                            items: availableItems,
-                            nodeId: node.id,
-                        })
-                    } else {
+                        if (inventory.length > 0) {
+                            inventory.forEach((item, index) => {
+                                messageText += `${index + 1}. ${item.name} - ${formatCurrency(item.unitPrice)} (estoque: ${item.stockQuantity})\n`
+                            })
+                            messageText += "\n0. Solicitar item que não está disponível\nDigite o número do item desejado."
+
+                            nextSaleState = {
+                                stage: "selection",
+                                items: inventory,
+                                nodeId: node.id,
+                            }
+                        } else {
+                            messageText +=
+                                "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
+                        }
+                    } catch (error) {
+                        console.error("ERRO: [AuraBot] Falha ao montar lista de vendas:", error)
                         messageText +=
-                            "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
-
-                        setSaleState({ stage: "customName", items: [], nodeId: node.id })
+                            "Não foi possível carregar o estoque agora. Informe o nome do item desejado e registraremos a solicitação."
                     }
 
+                    setSaleState(nextSaleState)
                     setCurrentOptions([])
                     setCurrentOptionsMessage("")
 

@@ -135,10 +135,15 @@ class WorkflowStorage:
         return payload
 
 
+_DEFAULT_WORKSHOP_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "workshopData.json"
+
+# Caminho antigo incorreto que pode ter sido criado em versões anteriores
+_LEGACY_WORKSHOP_DATA_PATH = Path(__file__).resolve().parents[3] / "data" / "workshopData.json"
+
 WORKSHOP_DATA_PATH = (
     Path(os.environ.get("AURA_WORKSHOP_DATA_FILE", "")).expanduser()
     if os.environ.get("AURA_WORKSHOP_DATA_FILE")
-    else Path(__file__).resolve().parents[3] / "src" / "data" / "workshopData.json"
+    else _DEFAULT_WORKSHOP_DATA_PATH
 )
 
 
@@ -146,6 +151,23 @@ def _load_workshop_data() -> Dict[str, Any]:
     """Load shared workshop data used by the vendas node."""
 
     WORKSHOP_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    use_env_path = bool(os.environ.get("AURA_WORKSHOP_DATA_FILE"))
+
+    if not use_env_path and _LEGACY_WORKSHOP_DATA_PATH.exists():
+        try:
+            legacy_mtime = _LEGACY_WORKSHOP_DATA_PATH.stat().st_mtime
+            target_exists = WORKSHOP_DATA_PATH.exists()
+            target_mtime = WORKSHOP_DATA_PATH.stat().st_mtime if target_exists else 0
+
+            if not target_exists or legacy_mtime > target_mtime:
+                legacy_content = _LEGACY_WORKSHOP_DATA_PATH.read_text(encoding="utf-8")
+                WORKSHOP_DATA_PATH.write_text(legacy_content, encoding="utf-8")
+                logger.info(
+                    "Arquivo de dados sincronizado do caminho legado para %s", WORKSHOP_DATA_PATH
+                )
+        except Exception:
+            logger.exception("Falha ao migrar workshopData.json do caminho legado")
 
     if not WORKSHOP_DATA_PATH.exists():
         WORKSHOP_DATA_PATH.write_text(
@@ -247,24 +269,34 @@ def _register_sale_request(payload: Dict[str, Any]) -> Dict[str, Any]:
 def _fetch_available_inventory() -> List[Dict[str, Any]]:
     data = _load_workshop_data()
     inventory = data.get("inventory") or []
-    available: List[Dict[str, Any]] = []
+    cleaned: List[Dict[str, Any]] = []
 
     for item in inventory:
-        try:
-            stock = int(item.get("stockQuantity", 0))
-        except Exception:
-            stock = 0
+        normalized = dict(item)
 
-        if stock > 0:
-            available.append(item)
+        # Nome e ID sempre como string para evitar mensagens vazias
+        normalized["id"] = str(item.get("id") or uuid4())
+        normalized["name"] = str(item.get("name") or "Item")
+
+        try:
+            normalized["stockQuantity"] = int(item.get("stockQuantity", 0))
+        except Exception:
+            normalized["stockQuantity"] = 0
+
+        try:
+            normalized["unitPrice"] = float(item.get("unitPrice", 0))
+        except Exception:
+            normalized["unitPrice"] = 0.0
+
+        cleaned.append(normalized)
 
     logger.info(
-        "Inventário carregado de %s - %s itens disponíveis",
+        "Inventário carregado de %s - %s itens listados",
         WORKSHOP_DATA_PATH,
-        len(available),
+        len(cleaned),
     )
 
-    return available
+    return cleaned
 
 
 def _register_sale_transaction(
@@ -663,6 +695,17 @@ class WorkflowManager:
             if 1 <= option <= len(items):
                 selected = items[option - 1]
 
+                try:
+                    stock = int(selected.get("stockQuantity", 0))
+                except Exception:
+                    stock = 0
+
+                if stock <= 0:
+                    return [{
+                        "text": "Este item está sem estoque no momento. Escolha outro número ou digite 0 para solicitar o item.",
+                        "reply_markup": {"remove_keyboard": True},
+                    }]
+
                 state.sale_stage = "phone"
                 state.sale_selected = selected
 
@@ -948,7 +991,14 @@ class WorkflowManager:
                 message_lines.append(
                     "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
                 )
-                responses.append({"text": "\n".join(message_lines), "reply_markup": {"remove_keyboard": True}, "options": []})
+                # Ainda oferecemos a opção 0 para manter o teclado ativo no fluxo de vendas
+                responses.append(
+                    {
+                        "text": "\n".join(message_lines),
+                        "reply_markup": self._build_keyboard(["0"]),
+                        "options": ["0"],
+                    }
+                )
 
                 state.current_node = current.get("id")
                 state.waiting_sale = True
