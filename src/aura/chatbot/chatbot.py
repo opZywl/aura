@@ -251,10 +251,20 @@ def _fetch_available_inventory() -> List[Dict[str, Any]]:
 
     for item in inventory:
         normalized = dict(item)
+
+        # Nome e ID sempre como string para evitar mensagens vazias
+        normalized["id"] = str(item.get("id") or uuid4())
+        normalized["name"] = str(item.get("name") or "Item")
+
         try:
             normalized["stockQuantity"] = int(item.get("stockQuantity", 0))
         except Exception:
             normalized["stockQuantity"] = 0
+
+        try:
+            normalized["unitPrice"] = float(item.get("unitPrice", 0))
+        except Exception:
+            normalized["unitPrice"] = 0.0
 
         cleaned.append(normalized)
 
@@ -959,7 +969,14 @@ class WorkflowManager:
                 message_lines.append(
                     "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
                 )
-                responses.append({"text": "\n".join(message_lines), "reply_markup": {"remove_keyboard": True}, "options": []})
+                # Ainda oferecemos a opção 0 para manter o teclado ativo no fluxo de vendas
+                responses.append(
+                    {
+                        "text": "\n".join(message_lines),
+                        "reply_markup": self._build_keyboard(["0"]),
+                        "options": ["0"],
+                    }
+                )
 
                 state.current_node = current.get("id")
                 state.waiting_sale = True
