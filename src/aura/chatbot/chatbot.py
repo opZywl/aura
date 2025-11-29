@@ -898,7 +898,12 @@ class WorkflowManager:
 
             if node_type == "venda":
                 intro = node_data.get("message") or "Confira os itens disponíveis para venda:"
-                available_items = _fetch_available_inventory()
+
+                try:
+                    available_items = _fetch_available_inventory()
+                except Exception:
+                    logger.exception("Falha ao carregar inventário para o nó de vendas")
+                    available_items = []
 
                 message_lines = [intro, ""]
 
@@ -913,12 +918,13 @@ class WorkflowManager:
                     message_lines.append("Digite o número do item desejado.")
 
                     options_keyboard = [str(i) for i in range(1, len(available_items) + 1)] + ["0"]
-                    responses.append(
-                        {
-                            "text": "\n".join(message_lines),
-                            "reply_markup": self._build_keyboard(options_keyboard),
-                        }
-                    )
+                    response_payload = {
+                        "text": "\n".join(message_lines),
+                        "reply_markup": self._build_keyboard(options_keyboard),
+                        "options": options_keyboard,
+                    }
+
+                    responses.append(response_payload)
 
                     state.current_node = current.get("id")
                     state.waiting_sale = True
@@ -930,7 +936,7 @@ class WorkflowManager:
                 message_lines.append(
                     "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
                 )
-                responses.append({"text": "\n".join(message_lines), "reply_markup": {"remove_keyboard": True}})
+                responses.append({"text": "\n".join(message_lines), "reply_markup": {"remove_keyboard": True}, "options": []})
 
                 state.current_node = current.get("id")
                 state.waiting_sale = True
