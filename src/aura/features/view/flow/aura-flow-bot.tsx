@@ -14,6 +14,21 @@ interface Message {
     content: string
 }
 
+interface InventoryItemSummary {
+    id: string
+    name: string
+    unitPrice: number
+    stockQuantity: number
+}
+
+type SaleStage = "selection" | "customName"
+
+interface SaleInteractionState {
+    stage: SaleStage
+    nodeId: string
+    items: InventoryItemSummary[]
+}
+
 interface AuraFlowBotProps {
     isOpen?: boolean
     onClose?: () => void
@@ -28,6 +43,7 @@ const WAITING_INPUT_KEY = "aura_waiting_input"
 const CURRENT_OPTIONS_KEY = "aura_current_options"
 const OPTIONS_MESSAGE_KEY = "aura_options_message"
 const FLOW_VERSION_KEY = "aura_flow_version"
+const SALE_STATE_KEY = "aura_sale_state"
 
 export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = false }: AuraFlowBotProps) {
     const [isOpen, setIsOpen] = useState(propIsOpen || false)
@@ -48,6 +64,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
     const [waitingForUserInput, setWaitingForUserInput] = useState(false)
     const [currentOptions, setCurrentOptions] = useState<any[]>([])
     const [currentOptionsMessage, setCurrentOptionsMessage] = useState("")
+    const [saleState, setSaleState] = useState<SaleInteractionState | null>(null)
     const [isFlowExecuted, setIsFlowExecuted] = useState(false)
     const [flowLoaded, setFlowLoaded] = useState(false)
 
@@ -82,6 +99,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
         localStorage.removeItem(WAITING_INPUT_KEY)
         localStorage.removeItem(CURRENT_OPTIONS_KEY)
         localStorage.removeItem(OPTIONS_MESSAGE_KEY)
+        localStorage.removeItem(SALE_STATE_KEY)
 
         // Resetar estado local
         setMessages([])
@@ -89,8 +107,47 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
         setWaitingForUserInput(false)
         setCurrentOptions([])
         setCurrentOptionsMessage("")
+        setSaleState(null)
 
         console.log("[OK] [AuraBot] Estado do chat limpo")
+    }, [])
+
+    const fetchInventory = useCallback(async (): Promise<InventoryItemSummary[]> => {
+        try {
+            const response = await fetch("/api/inventory")
+            if (!response.ok) throw new Error("Resposta inválida")
+            const payload = await response.json()
+            return Array.isArray(payload.inventory) ? payload.inventory : []
+        } catch (error) {
+            console.error("ERRO: [AuraBot] Não foi possível carregar o estoque:", error)
+            return []
+        }
+    }, [])
+
+    const registerSaleRequest = useCallback(async (payload: any) => {
+        const response = await fetch("/api/pedidos", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        })
+
+        if (!response.ok) {
+            throw new Error("Falha ao registrar pedido")
+        }
+
+        const data = await response.json()
+        return data.saleRequest
+    }, [])
+
+    const formatCurrency = useCallback((value?: number) => {
+        if (typeof value !== "number") return "R$ 0,00"
+        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
+    }, [])
+
+    const formatDate = useCallback((date: Date) => {
+        return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date)
     }, [])
 
     // Carregar mensagens do localStorage
@@ -107,6 +164,18 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
         return []
     }, [])
 
+    const loadSaleState = useCallback(() => {
+        try {
+            const savedState = localStorage.getItem(SALE_STATE_KEY)
+            if (savedState) {
+                return JSON.parse(savedState) as SaleInteractionState
+            }
+        } catch (error) {
+            console.error("ERRO: [AuraBot] Erro ao carregar estado de vendas:", error)
+        }
+        return null
+    }, [])
+
     // Salvar mensagens no localStorage
     const saveMessages = useCallback((newMessages: Message[]) => {
         try {
@@ -114,6 +183,18 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             localStorage.setItem(MESSAGES_KEY, JSON.stringify(newMessages))
         } catch (error) {
             console.error("ERRO: [AuraBot] Erro ao salvar mensagens:", error)
+        }
+    }, [])
+
+    const saveSaleState = useCallback((state: SaleInteractionState | null) => {
+        try {
+            if (state) {
+                localStorage.setItem(SALE_STATE_KEY, JSON.stringify(state))
+            } else {
+                localStorage.removeItem(SALE_STATE_KEY)
+            }
+        } catch (error) {
+            console.error("ERRO: [AuraBot] Erro ao salvar estado de vendas:", error)
         }
     }, [])
 
@@ -280,11 +361,16 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 setWaitingForUserInput(chatState.waiting)
                 setCurrentOptions(chatState.options)
                 setCurrentOptionsMessage(chatState.optionsMsg)
+
+                const restoredSaleState = loadSaleState()
+                if (restoredSaleState) {
+                    setSaleState(restoredSaleState)
+                }
             }
 
             isInitialMount.current = false
         }
-    }, [checkForNewFlow, initializeWithNewFlow, loadMessages, loadChatState])
+    }, [checkForNewFlow, initializeWithNewFlow, loadMessages, loadChatState, loadSaleState])
 
     // Efeito para salvar mensagens quando elas mudam
     useEffect(() => {
@@ -300,6 +386,12 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             saveChatState()
         }
     }, [currentNodeId, waitingForUserInput, currentOptions, currentOptionsMessage, saveChatState])
+
+    useEffect(() => {
+        if (!isInitialMount.current) {
+            saveSaleState(saleState)
+        }
+    }, [saleState, saveSaleState])
 
     // Carregar fluxo quando abrir o chat
     useEffect(() => {
@@ -473,6 +565,50 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                         console.log("[OK] [AuraBot] Fluxo finalizado - conversa resetada")
                     }
                 }, 1500)
+            } else if (node.type === "venda") {
+                const intro = node.data.message || "Confira os itens disponíveis para venda:"
+
+                ;(async () => {
+                    const inventory = await fetchInventory()
+                    const availableItems = inventory.filter((item) => item.stockQuantity > 0)
+
+                    let messageText = intro + "\n\n"
+
+                    if (availableItems.length > 0) {
+                        availableItems.forEach((item, index) => {
+                            messageText += `${index + 1}. ${item.name} - ${formatCurrency(item.unitPrice)} (estoque: ${item.stockQuantity})\n`
+                        })
+                        messageText += "\n0. Solicitar item que não está disponível\nDigite o número do item desejado."
+
+                        setSaleState({
+                            stage: "selection",
+                            items: availableItems,
+                            nodeId: node.id,
+                        })
+                    } else {
+                        messageText +=
+                            "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
+
+                        setSaleState({ stage: "customName", items: [], nodeId: node.id })
+                    }
+
+                    setCurrentOptions([])
+                    setCurrentOptionsMessage("")
+
+                    const newMessage = {
+                        id: Date.now().toString(),
+                        role: "assistant" as const,
+                        content: messageText,
+                    }
+
+                    setMessages((prev) => {
+                        const updated = [...prev, newMessage]
+                        saveMessages(updated)
+                        return updated
+                    })
+
+                    setWaitingForUserInput(true)
+                })()
             } else if (node.type === "options") {
                 const message = node.data.message || "Escolha uma opção:"
                 const options = node.data.options || []
@@ -527,7 +663,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 }, 2000)
             }
         },
-        [findNextNode, saveMessages, clearChatState],
+        [findNextNode, saveMessages, clearChatState, fetchInventory, formatCurrency],
     )
 
     const startFlow = useCallback(() => {
@@ -611,7 +747,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
 
     // Função para lidar com o envio de mensagens
     const handleSendMessage = useCallback(
-        (e: React.FormEvent) => {
+        async (e: React.FormEvent) => {
             e.preventDefault()
 
             if (!input.trim()) return
@@ -663,9 +799,185 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 return
             }
 
-            // Se estamos aguardando input do usuário (nó de opções)
+            // Se estamos aguardando input do usuário (nó de opções ou venda)
             if (waitingForUserInput && currentNodeId) {
                 const currentNode = savedFlow.nodes.find((node: any) => node.id === currentNodeId)
+
+                if (currentNode && currentNode.type === "venda" && saleState && saleState.nodeId === currentNodeId) {
+                    if (saleState.stage === "selection") {
+                        const optionIndex = Number.parseInt(userInput, 10)
+
+                        if (Number.isNaN(optionIndex)) {
+                            const warningMessage = {
+                                id: Date.now().toString(),
+                                role: "assistant" as const,
+                                content: "Digite apenas o número do item desejado ou 0 para solicitar um item ausente.",
+                            }
+
+                            setMessages((prev) => {
+                                const updated = [...prev, warningMessage]
+                                saveMessages(updated)
+                                return updated
+                            })
+                            return
+                        }
+
+                        if (optionIndex === 0) {
+                            setSaleState({ ...saleState, stage: "customName" })
+                            const promptMessage = {
+                                id: Date.now().toString(),
+                                role: "assistant" as const,
+                                content: "Qual item você deseja solicitar? Informe o nome para registrarmos a solicitação.",
+                            }
+
+                            setMessages((prev) => {
+                                const updated = [...prev, promptMessage]
+                                saveMessages(updated)
+                                return updated
+                            })
+                            return
+                        }
+
+                        if (optionIndex >= 1 && optionIndex <= saleState.items.length) {
+                            const selectedItem = saleState.items[optionIndex - 1]
+
+                            try {
+                                await registerSaleRequest({
+                                    type: "estoque",
+                                    itemId: selectedItem.id,
+                                    itemName: selectedItem.name,
+                                    price: selectedItem.unitPrice,
+                                    source: "workflow",
+                                })
+
+                                const deadline = new Date()
+                                deadline.setDate(deadline.getDate() + 3)
+                                const confirmationMessage = {
+                                    id: Date.now().toString(),
+                                    role: "assistant" as const,
+                                    content: `Pedido registrado para ${selectedItem.name} no valor de ${formatCurrency(selectedItem.unitPrice)}. Compareça à loja em até 3 dias (até ${formatDate(deadline)}) ou cancelaremos o pedido.`,
+                                }
+
+                                setMessages((prev) => {
+                                    const updated = [...prev, confirmationMessage]
+                                    saveMessages(updated)
+                                    return updated
+                                })
+
+                                setWaitingForUserInput(false)
+                                setSaleState(null)
+
+                                setTimeout(() => {
+                                    const nextNode = findNextNode(currentNodeId)
+                                    if (nextNode) {
+                                        processNode(nextNode)
+                                    } else {
+                                        setCurrentNodeId(null)
+                                        clearChatState()
+                                        console.log("[OK] [AuraBot] Fim do fluxo - conversa resetada")
+                                    }
+                                }, 800)
+                            } catch (error) {
+                                console.error("ERRO: [AuraBot] Falha ao registrar pedido:", error)
+                                const errorMessage = {
+                                    id: Date.now().toString(),
+                                    role: "assistant" as const,
+                                    content: "Não conseguimos registrar o pedido agora. Tente novamente em instantes.",
+                                }
+
+                                setMessages((prev) => {
+                                    const updated = [...prev, errorMessage]
+                                    saveMessages(updated)
+                                    return updated
+                                })
+                            }
+
+                            return
+                        }
+
+                        const invalidMessage = {
+                            id: Date.now().toString(),
+                            role: "assistant" as const,
+                            content:
+                                "Opção inválida. Digite um número listado acima ou 0 para solicitar um item que não está disponível.",
+                        }
+
+                        setMessages((prev) => {
+                            const updated = [...prev, invalidMessage]
+                            saveMessages(updated)
+                            return updated
+                        })
+                        return
+                    }
+
+                    if (saleState.stage === "customName") {
+                        if (!userInput) {
+                            const retryMessage = {
+                                id: Date.now().toString(),
+                                role: "assistant" as const,
+                                content: "Informe o nome do item desejado para registrar a solicitação.",
+                            }
+
+                            setMessages((prev) => {
+                                const updated = [...prev, retryMessage]
+                                saveMessages(updated)
+                                return updated
+                            })
+                            return
+                        }
+
+                        try {
+                            await registerSaleRequest({
+                                type: "solicitacao",
+                                itemName: userInput,
+                                requestedName: userInput,
+                                source: "workflow",
+                            })
+
+                            const customMessage = {
+                                id: Date.now().toString(),
+                                role: "assistant" as const,
+                                content:
+                                    "Adicionado o item desejado como solicitação. Entraremos em contato em até 7 dias referente ao item.",
+                            }
+
+                            setMessages((prev) => {
+                                const updated = [...prev, customMessage]
+                                saveMessages(updated)
+                                return updated
+                            })
+
+                            setWaitingForUserInput(false)
+                            setSaleState(null)
+
+                            setTimeout(() => {
+                                const nextNode = findNextNode(currentNodeId)
+                                if (nextNode) {
+                                    processNode(nextNode)
+                                } else {
+                                    setCurrentNodeId(null)
+                                    clearChatState()
+                                    console.log("[OK] [AuraBot] Fim do fluxo - conversa resetada")
+                                }
+                            }, 800)
+                        } catch (error) {
+                            console.error("ERRO: [AuraBot] Falha ao registrar solicitação:", error)
+                            const errorMessage = {
+                                id: Date.now().toString(),
+                                role: "assistant" as const,
+                                content: "Não foi possível registrar a solicitação agora. Tente novamente em instantes.",
+                            }
+
+                            setMessages((prev) => {
+                                const updated = [...prev, errorMessage]
+                                saveMessages(updated)
+                                return updated
+                            })
+                        }
+
+                        return
+                    }
+                }
 
                 if (currentNode && currentNode.type === "options") {
                     const options = currentNode.data.options || []
@@ -716,6 +1028,10 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             repeatOptions,
             saveMessages,
             clearChatState,
+            saleState,
+            registerSaleRequest,
+            formatCurrency,
+            formatDate,
         ],
     )
 

@@ -32,6 +32,7 @@ import { StartNode } from "./nodes/start-node"
 import { FinalizarNode } from "./nodes/finalizar-node"
 import { AgendamentoNode } from "./nodes/agendamento-node" // Import AgendamentoNode
 import { AgentesNode } from "./nodes/agentes-node" // Import AgentesNode
+import { VendaNode } from "./nodes/venda-node"
 import { generateNodeId, createNode } from "@/lib/workflow-utils"
 import type { WorkflowNode } from "@/lib/types"
 import { useTheme } from "../homePanels/ThemeContext"
@@ -63,6 +64,13 @@ const nodeTypes: NodeTypes = {
     ),
     agentes: (props) => (
         <AgentesNode
+            {...props}
+            onRemove={() => removeNodeById(props.id)}
+            onUpdateData={(data) => updateNodeDataById(props.id, data)}
+        />
+    ),
+    venda: (props) => (
+        <VendaNode
             {...props}
             onRemove={() => removeNodeById(props.id)}
             onUpdateData={(data) => updateNodeDataById(props.id, data)}
