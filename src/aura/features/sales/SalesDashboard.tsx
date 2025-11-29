@@ -31,6 +31,7 @@ import type {
     MaintenanceTask,
     ServiceOrder,
     ServiceOrderStatus,
+    SaleRequest,
     WorkshopData,
 } from "@/src/server/workshop-data"
 
@@ -91,6 +92,18 @@ const maintenanceStatusBadgeClasses: Record<MaintenanceStatus, string> = {
     pendente: "bg-slate-100 text-slate-700 border border-slate-200",
     em_andamento: "bg-amber-100 text-amber-700 border border-amber-200",
     concluida: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+}
+
+const saleRequestStatusLabels: Record<SaleRequest["status"], string> = {
+    pendente: "Pendente",
+    confirmada: "Confirmada",
+    cancelada: "Cancelada",
+}
+
+const saleRequestStatusClasses: Record<SaleRequest["status"], string> = {
+    pendente: "bg-amber-100 text-amber-700 border border-amber-200",
+    confirmada: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    cancelada: "bg-rose-100 text-rose-700 border border-rose-200",
 }
 
 const maintenanceColumns: { status: MaintenanceStatus; title: string; description: string }[] = [
@@ -273,6 +286,16 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                 return dateB - dateA
             }),
         [data.serviceOrders],
+    )
+
+    const saleRequestsSorted = useMemo(
+        () =>
+            [...(data.saleRequests ?? [])].sort((a, b) => {
+                const dateA = new Date(a.createdAt).getTime()
+                const dateB = new Date(b.createdAt).getTime()
+                return dateB - dateA
+            }),
+        [data.saleRequests],
     )
 
     const recentServiceOrders = useMemo(() => serviceOrdersSorted.slice(0, 5), [serviceOrdersSorted])
@@ -710,6 +733,7 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                                             className="rounded-lg border border-border/60 bg-background/60 p-3 text-sm"
                                         >
                                             <p className="font-semibold text-foreground">{entry.metric}</p>
+                                            <p className="text-2xl font-bold text-foreground">{entry.formatter(entry.value)}</p>
                                             <p className="text-muted-foreground">{entry.formula}</p>
                                         </div>
                                     ))}
@@ -1182,9 +1206,10 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                             </CardHeader>
                             <CardContent>
                                 <Tabs value={listingTab} onValueChange={setListingTab} className="space-y-4">
-                                    <TabsList className="grid w-full gap-2 md:grid-cols-3">
+                                    <TabsList className="grid w-full gap-2 md:grid-cols-4">
                                         <TabsTrigger value="inventory">Estoque</TabsTrigger>
                                         <TabsTrigger value="sales">Vendas</TabsTrigger>
+                                        <TabsTrigger value="requests">Pedidos</TabsTrigger>
                                         <TabsTrigger value="service-orders">Ordens</TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="inventory">
@@ -1261,6 +1286,60 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                                                         <TableRow>
                                                             <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
                                                                 Nenhuma venda registrada até o momento.
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    </TabsContent>
+                                    <TabsContent value="requests">
+                                        <ScrollArea className="max-h-[360px]">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Item</TableHead>
+                                                        <TableHead>Tipo</TableHead>
+                                                        <TableHead>Status</TableHead>
+                                                        <TableHead className="text-right">Valor</TableHead>
+                                                        <TableHead>Prazo</TableHead>
+                                                        <TableHead>Origem</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {saleRequestsSorted.map((request) => {
+                                                        const amount =
+                                                            typeof request.price === "number"
+                                                                ? currencyFormatter.format(request.price)
+                                                                : "—"
+                                                        const deadline = request.pickupDeadline || request.contactBy
+                                                        return (
+                                                            <TableRow key={request.id}>
+                                                                <TableCell>
+                                                                    <div className="font-medium text-foreground">{request.itemName}</div>
+                                                                    {request.requestedName && (
+                                                                        <p className="text-xs text-muted-foreground">Solicitado: {request.requestedName}</p>
+                                                                    )}
+                                                                    <p className="text-xs text-muted-foreground">{getSaleDateLabel(request.createdAt)}</p>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant="outline">{request.type === "estoque" ? "Estoque" : "Solicitação"}</Badge>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge className={saleRequestStatusClasses[request.status]}>
+                                                                        {saleRequestStatusLabels[request.status]}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right">{amount}</TableCell>
+                                                                <TableCell>{deadline ? getSaleDateLabel(deadline) : "—"}</TableCell>
+                                                                <TableCell className="capitalize">{request.source ?? "workflow"}</TableCell>
+                                                            </TableRow>
+                                                        )
+                                                    })}
+                                                    {saleRequestsSorted.length === 0 && (
+                                                        <TableRow>
+                                                            <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                                                                Nenhum pedido registrado ainda.
                                                             </TableCell>
                                                         </TableRow>
                                                     )}
