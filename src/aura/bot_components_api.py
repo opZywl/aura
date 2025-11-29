@@ -13,6 +13,13 @@ import random
 import string
 
 from src.aura.chatbot.agent_manager import agent_manager
+from src.aura.chatbot.chatbot import (
+    _fetch_available_inventory,
+    _format_currency,
+    _format_date_iso,
+    _register_sale_request,
+    _register_sale_transaction,
+)
 # The following imports are not directly used in this file but might be needed by other modules.
 # from src.aura.chatbot.chatbot import Chatbot
 from src.aura.chatbot.booking_manager import booking_manager
@@ -73,6 +80,7 @@ class WorkflowExecution:
     created_at: str
     cancellation_state: Optional[Dict[str, Any]] = field(default_factory=dict) # Add cancellation_state
     survey_state: Optional[Dict[str, Any]] = field(default_factory=dict)
+    sale_state: Dict[str, Any] = field(default_factory=dict)
     # </CHANGE>
 
     def to_dict(self) -> Dict:
@@ -938,6 +946,81 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "node_type": "agendamento"
                     }
 
+                elif current_node.type == "venda":
+                    intro = current_node.data.message or "Confira os itens disponíveis para venda:"
+
+                    try:
+                        available_items = _fetch_available_inventory()
+                    except Exception:
+                        logger.exception("Falha ao carregar inventário para o nó de vendas")
+                        available_items = []
+
+                    logger.info(
+                        "Nó de vendas carregado (%s): %s itens elegíveis",
+                        current_node.id,
+                        len(available_items),
+                    )
+
+                    message_lines = [intro, ""]
+
+                    if available_items:
+                        for idx, item in enumerate(available_items, start=1):
+                            price = _format_currency(item.get("unitPrice"))
+                            stock = item.get("stockQuantity", 0)
+                            message_lines.append(f"{idx}. {item.get('name', 'Item')} - {price} (estoque: {stock})")
+
+                        message_lines.append("")
+                        message_lines.append("0. Solicitar item que não está disponível")
+                        message_lines.append("Digite o número do item desejado.")
+
+                        messages_to_send.append({
+                            "text": "\n".join(message_lines),
+                            "options": [],
+                        })
+
+                        execution.current_node_id = current_node.id
+                        execution.waiting_for_input = True
+                        execution.sale_state = {
+                            "stage": "selection",
+                            "items": available_items,
+                            "selected": None,
+                        }
+
+                        return {
+                            "success": True,
+                            "messages": messages_to_send,
+                            "requires_input": True,
+                            "is_final": False,
+                            "node_type": "venda",
+                        }
+
+                    message_lines.append(
+                        "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
+                    )
+
+                    messages_to_send.append(
+                        {
+                            "text": "\n".join(message_lines),
+                            "options": [],
+                        }
+                    )
+
+                    execution.current_node_id = current_node.id
+                    execution.waiting_for_input = True
+                    execution.sale_state = {
+                        "stage": "customName",
+                        "items": [],
+                        "selected": None,
+                    }
+
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": True,
+                        "is_final": False,
+                        "node_type": "venda",
+                    }
+
                 elif current_node.type == "finalizar":
                     logger.info(f"[SURVEY] ========================================")
                     logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO: {current_node.id}")
@@ -1115,9 +1198,590 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     return {
                         "success": True,
                         "messages": messages_to_send,
+                    "requires_input": True,
+                    "is_final": False,
+                    "node_type": "agendamento_cancellation"
+                }
+
+            if current_node.type == "venda":
+                sale_state = getattr(execution, "sale_state", {}) or {}
+                stage = sale_state.get("stage", "selection")
+                sale_items = sale_state.get("items", [])
+                user_input = message.strip()
+
+                if stage == "selection":
+                    if not user_input.isdigit():
+                        return {
+                            "success": True,
+                            "messages": [{
+                                "text": "Digite apenas o número do item desejado ou 0 para solicitar um item ausente.",
+                                "options": [],
+                            }],
+                            "requires_input": True,
+                            "is_final": False,
+                            "node_type": "venda",
+                        }
+
+                    option = int(user_input)
+
+                    if option == 0:
+                        execution.sale_state = {
+                            "stage": "customName",
+                            "items": sale_items,
+                            "selected": None,
+                        }
+
+                        return {
+                            "success": True,
+                            "messages": [{
+                                "text": "Você deseja algum item que não está disponível? Informe o nome para registrarmos a solicitação.",
+                                "options": [],
+                            }],
+                            "requires_input": True,
+                            "is_final": False,
+                            "node_type": "venda",
+                        }
+
+                    if 1 <= option <= len(sale_items):
+                        selected = sale_items[option - 1]
+
+                        try:
+                            stock = int(selected.get("stockQuantity", 0))
+                        except Exception:
+                            stock = 0
+
+                        if stock <= 0:
+                            return {
+                                "success": True,
+                                "messages": [{
+                                    "text": "Este item está sem estoque no momento. Escolha outro número ou digite 0 para solicitar o item.",
+                                    "options": [],
+                                }],
+                                "requires_input": True,
+                                "is_final": False,
+                                "node_type": "venda",
+                            }
+
+                        execution.sale_state = {
+                            "stage": "phone",
+                            "items": sale_items,
+                            "selected": selected,
+                        }
+
+                        summary = f"Você escolheu {selected.get('name', 'item')} - {_format_currency(selected.get('unitPrice'))}."
+                        prompt = (
+                            "Envie seu telefone para confirmarmos a reserva do item. "
+                            "O pagamento e a retirada devem ser feitos na loja em até 3 dias."
+                        )
+
+                        return {
+                            "success": True,
+                            "messages": [
+                                {"text": summary, "options": []},
+                                {"text": prompt, "options": []},
+                            ],
+                            "requires_input": True,
+                            "is_final": False,
+                            "node_type": "venda",
+                        }
+
+                    return {
+                        "success": True,
+                        "messages": [{
+                            "text": "Opção inválida. Digite um número listado acima ou 0 para solicitar um item não disponível.",
+                            "options": [],
+                        }],
                         "requires_input": True,
                         "is_final": False,
-                        "node_type": "agendamento_cancellation"
+                        "node_type": "venda",
+                    }
+
+                if stage == "customName":
+                    if not user_input:
+                        return {
+                            "success": True,
+                            "messages": [{"text": "Informe o nome do item desejado para registrar a solicitação.", "options": []}],
+                            "requires_input": True,
+                            "is_final": False,
+                            "node_type": "venda",
+                        }
+
+                    try:
+                        request = _register_sale_request(
+                            {
+                                "type": "solicitacao",
+                                "requestedName": user_input,
+                                "itemName": user_input,
+                                "source": "workflow",
+                            }
+                        )
+                    except Exception:
+                        logger.exception("Falha ao registrar solicitação de item")
+                        return {
+                            "success": True,
+                            "messages": [{"text": "Não foi possível registrar a solicitação agora. Tente novamente em instantes.", "options": []}],
+                            "requires_input": True,
+                            "is_final": False,
+                            "node_type": "venda",
+                        }
+
+                    contact_by = request.get("contactBy", "")
+                    message = "Adicionado o item desejado como solicitação. Entraremos em contato em até 7 dias referente o item."
+
+                    if contact_by:
+                        message = (
+                            f"Solicitação registrada para {user_input}. Entraremos em contato até {_format_date_iso(contact_by)} "
+                            "sobre o item."
+                        )
+
+                    messages_to_send.append({"text": message, "options": []})
+
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": message,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                    })
+
+                    execution.waiting_for_input = False
+                    execution.sale_state = {}
+
+                    next_node = find_next_node(workflow_id, current_node.id)
+                    if next_node:
+                        execution.current_node_id = next_node.id
+                        current_node = next_node
+                        # Continue processing chain from next node
+                        while current_node:
+                            logger.info(f"Processando nó: {current_node.id} ({current_node.type})")
+
+                            if current_node.type == "sendMessage":
+                                msg_text = current_node.data.message or "Mensagem não configurada"
+                                messages_to_send.append({"text": msg_text, "options": []})
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": msg_text,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                })
+
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
+                                continue
+
+                            if current_node.type == "options":
+                                msg_text = current_node.data.message or "Escolha uma opção:"
+                                options = current_node.data.options or []
+
+                                if options:
+                                    options_text = "\n\n" + "\n".join([
+                                        f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)
+                                    ])
+                                    full_message = msg_text + options_text
+                                else:
+                                    full_message = msg_text
+
+                                messages_to_send.append({"text": full_message, "options": []})
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": full_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                })
+
+                                execution.current_node_id = current_node.id
+                                execution.waiting_for_input = True
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "venda",
+                                }
+
+                            if current_node.type == "agendamento":
+                                msg_text = current_node.data.message or "📅 Deseja agendar um horário?"
+                                available_slots = current_node.data.availableSlots or []
+
+                                filtered_slots = []
+                                for slot in available_slots:
+                                    if slot.get("available", False):
+                                        time = slot.get("time", "")
+                                        date = slot.get("date", "")
+                                        if not booking_manager.is_slot_booked(time, date, workflow_id):
+                                            filtered_slots.append(slot)
+
+                                if not filtered_slots:
+                                    no_slots_msg = current_node.data.noSlotsMessage or "😔 Não há horários disponíveis no momento.\n\nPor favor, tente novamente mais tarde."
+                                    messages_to_send.append({"text": no_slots_msg, "options": []})
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": no_slots_msg,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    })
+
+                                    execution.current_node_id = current_node.id
+                                    current_node = find_next_node(workflow_id, current_node.id)
+                                    continue
+
+                                slots_text = "\n\n━━━━━━━━━━━━━━━━━━━━\n📋 *Horários Disponíveis:*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+
+                                for idx, slot in enumerate(filtered_slots, start=1):
+                                    time = slot.get("time", "")
+                                    date = slot.get("date", "")
+
+                                    try:
+                                        date_obj = datetime.strptime(date, "%Y-%m-%d")
+                                        date_formatted = date_obj.strftime("%d/%m/%Y")
+                                    except Exception:
+                                        date_formatted = date
+
+                                    slots_text += f"⏰ *{idx}.* {time} - 📅 {date_formatted}\n"
+
+                                slots_text += "\n━━━━━━━━━━━━━━━━━━━━\n\n💡 Digite o *número* do horário desejado\n❌ Digite *'cancelar'* para cancelar um agendamento"
+
+                                full_message = msg_text + slots_text
+
+                                messages_to_send.append({"text": full_message, "options": []})
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": full_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                })
+
+                                execution.current_node_id = current_node.id
+                                execution.waiting_for_input = True
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "venda",
+                                }
+
+                            if current_node.type == "finalizar":
+                                logger.info(f"[SURVEY] ========================================")
+                                logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO (APÓS VENDAS): {current_node.id}")
+                                logger.info(f"[SURVEY] ========================================")
+
+                                msg_text = current_node.data.finalMessage or current_node.data.message or ""
+
+                                if msg_text.strip():
+                                    messages_to_send.append({"text": msg_text, "options": []})
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": msg_text,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    })
+
+                                survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
+                                rating_labels = current_node.data.surveyRatingLabels or [
+                                    "Péssimo",
+                                    "Ruim",
+                                    "Regular",
+                                    "Bom",
+                                    "Excelente",
+                                    "Extremamente Satisfeito",
+                                ]
+
+                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+
+                                for i, label in enumerate(rating_labels):
+                                    survey_text += f"*{i}* - {label}\n"
+
+                                survey_text += "\n💡 Digite o número correspondente à sua avaliação"
+
+                                messages_to_send.append({"text": survey_text, "options": [], "delay": 2000})
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": survey_text,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                })
+
+                                execution.survey_state = {
+                                    "waiting_response": True,
+                                    "question": survey_question,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                }
+                                execution.waiting_for_input = True
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "venda",
+                                }
+
+                            execution.current_node_id = current_node.id
+                            current_node = find_next_node(workflow_id, current_node.id)
+
+                        reset_conversation(user_id, workflow_id)
+                        return {
+                            "success": True,
+                            "messages": messages_to_send,
+                            "requires_input": False,
+                            "is_final": True,
+                            "archive_conversation": True,
+                            "node_type": "venda",
+                        }
+
+                    reset_conversation(user_id, workflow_id)
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": False,
+                        "is_final": True,
+                        "archive_conversation": True,
+                        "node_type": "venda",
+                    }
+
+                if stage == "phone":
+                    selected = sale_state.get("selected", {})
+                    contact = user_input
+
+                    try:
+                        request = _register_sale_request(
+                            {
+                                "type": "estoque",
+                                "itemId": selected.get("id"),
+                                "itemName": selected.get("name"),
+                                "price": selected.get("unitPrice"),
+                                "source": "workflow",
+                                "status": "confirmada",
+                                "notes": f"Telefone: {contact}",
+                            }
+                        )
+                        _register_sale_transaction(item=selected, customer_contact=contact)
+                    except Exception:
+                        logger.exception("Falha ao registrar pedido de estoque")
+                        return {
+                            "success": True,
+                            "messages": [{"text": "Não foi possível registrar o pedido agora. Tente novamente em instantes.", "options": []}],
+                            "requires_input": True,
+                            "is_final": False,
+                            "node_type": "venda",
+                        }
+
+                    deadline = request.get("pickupDeadline", "")
+                    confirmation = (
+                        f"Pedido registrado para {selected.get('name', 'item')} no valor de "
+                        f"{_format_currency(selected.get('unitPrice'))}. Compareça à loja em até 3 dias"
+                    )
+
+                    if deadline:
+                        confirmation += f" (até {_format_date_iso(deadline)})"
+
+                    confirmation += " ou cancelaremos o pedido. Estaremos aguardando a retirada!"
+
+                    messages_to_send.append({"text": confirmation, "options": []})
+
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": confirmation,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                    })
+
+                    execution.waiting_for_input = False
+                    execution.sale_state = {}
+
+                    next_node = find_next_node(workflow_id, current_node.id)
+                    if next_node:
+                        execution.current_node_id = next_node.id
+                        current_node = next_node
+
+                        while current_node:
+                            logger.info(f"Processando nó: {current_node.id} ({current_node.type})")
+
+                            if current_node.type == "sendMessage":
+                                msg_text = current_node.data.message or "Mensagem não configurada"
+                                messages_to_send.append({"text": msg_text, "options": []})
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": msg_text,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                })
+
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
+                                continue
+
+                            if current_node.type == "options":
+                                msg_text = current_node.data.message or "Escolha uma opção:"
+                                options = current_node.data.options or []
+
+                                if options:
+                                    options_text = "\n\n" + "\n".join([
+                                        f"{i+1}. {opt.get('text', '')}" for i, opt in enumerate(options)
+                                    ])
+                                    full_message = msg_text + options_text
+                                else:
+                                    full_message = msg_text
+
+                                messages_to_send.append({"text": full_message, "options": []})
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": full_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                })
+
+                                execution.current_node_id = current_node.id
+                                execution.waiting_for_input = True
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "venda",
+                                }
+
+                            if current_node.type == "agendamento":
+                                msg_text = current_node.data.message or "📅 Deseja agendar um horário?"
+                                available_slots = current_node.data.availableSlots or []
+
+                                filtered_slots = []
+                                for slot in available_slots:
+                                    if slot.get("available", False):
+                                        time = slot.get("time", "")
+                                        date = slot.get("date", "")
+                                        if not booking_manager.is_slot_booked(time, date, workflow_id):
+                                            filtered_slots.append(slot)
+
+                                if not filtered_slots:
+                                    no_slots_msg = current_node.data.noSlotsMessage or "😔 Não há horários disponíveis no momento.\n\nPor favor, tente novamente mais tarde."
+                                    messages_to_send.append({"text": no_slots_msg, "options": []})
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": no_slots_msg,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    })
+
+                                    execution.current_node_id = current_node.id
+                                    current_node = find_next_node(workflow_id, current_node.id)
+                                    continue
+
+                                slots_text = "\n\n━━━━━━━━━━━━━━━━━━━━\n📋 *Horários Disponíveis:*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+
+                                for idx, slot in enumerate(filtered_slots, start=1):
+                                    time = slot.get("time", "")
+                                    date = slot.get("date", "")
+
+                                    try:
+                                        date_obj = datetime.strptime(date, "%Y-%m-%d")
+                                        date_formatted = date_obj.strftime("%d/%m/%Y")
+                                    except Exception:
+                                        date_formatted = date
+
+                                    slots_text += f"⏰ *{idx}.* {time} - 📅 {date_formatted}\n"
+
+                                slots_text += "\n━━━━━━━━━━━━━━━━━━━━\n\n💡 Digite o *número* do horário desejado\n❌ Digite *'cancelar'* para cancelar um agendamento"
+
+                                full_message = msg_text + slots_text
+
+                                messages_to_send.append({"text": full_message, "options": []})
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": full_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                })
+
+                                execution.current_node_id = current_node.id
+                                execution.waiting_for_input = True
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "venda",
+                                }
+
+                            if current_node.type == "finalizar":
+                                logger.info(f"[SURVEY] ========================================")
+                                logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO (APÓS VENDAS): {current_node.id}")
+                                logger.info(f"[SURVEY] ========================================")
+
+                                msg_text = current_node.data.finalMessage or current_node.data.message or ""
+
+                                if msg_text.strip():
+                                    messages_to_send.append({"text": msg_text, "options": []})
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": msg_text,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    })
+
+                                survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
+                                rating_labels = current_node.data.surveyRatingLabels or [
+                                    "Péssimo",
+                                    "Ruim",
+                                    "Regular",
+                                    "Bom",
+                                    "Excelente",
+                                    "Extremamente Satisfeito",
+                                ]
+
+                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+
+                                for i, label in enumerate(rating_labels):
+                                    survey_text += f"*{i}* - {label}\n"
+
+                                survey_text += "\n💡 Digite o número correspondente à sua avaliação"
+
+                                messages_to_send.append({"text": survey_text, "options": [], "delay": 2000})
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": survey_text,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                })
+
+                                execution.survey_state = {
+                                    "waiting_response": True,
+                                    "question": survey_question,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                }
+                                execution.waiting_for_input = True
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "venda",
+                                }
+
+                            execution.current_node_id = current_node.id
+                            current_node = find_next_node(workflow_id, current_node.id)
+
+                        reset_conversation(user_id, workflow_id)
+                        return {
+                            "success": True,
+                            "messages": messages_to_send,
+                            "requires_input": False,
+                            "is_final": True,
+                            "archive_conversation": True,
+                            "node_type": "venda",
+                        }
+
+                    reset_conversation(user_id, workflow_id)
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": False,
+                        "is_final": True,
+                        "archive_conversation": True,
+                        "node_type": "venda",
                     }
 
                 if hasattr(execution, 'cancellation_state') and execution.cancellation_state.get('waiting_code'):
