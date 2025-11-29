@@ -90,7 +90,7 @@ const edgeTypes: EdgeTypes = {
 let removeNodeById: (id: string) => void = () => {}
 let updateNodeDataById: (id: string, data: any) => void = () => {}
 
-const normalizeNodeType = (type: string) => {
+const normalizeNodeType = (type?: string) => {
     if (!type) return type
 
     const normalized = type.toLowerCase()
