@@ -7,8 +7,10 @@ import logging
 import os
 import threading
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from uuid import uuid4
 
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,19 @@ def _default_workflow() -> Dict[str, Any]:
     """Return an empty workflow structure."""
 
     return {"nodes": [], "edges": [], "nodeCounters": {}, "updated_at": None}
+
+
+def _default_workshop_data() -> Dict[str, Any]:
+    """Default structure for workshop sales/inventory data."""
+
+    return {
+        "inventory": [],
+        "sales": [],
+        "serviceOrders": [],
+        "maintenanceTasks": [],
+        "financialRecords": [],
+        "saleRequests": [],
+    }
 
 
 class WorkflowStorage:
@@ -120,6 +135,128 @@ class WorkflowStorage:
         return payload
 
 
+WORKSHOP_DATA_PATH = (
+    Path(os.environ.get("AURA_WORKSHOP_DATA_FILE", "")).expanduser()
+    if os.environ.get("AURA_WORKSHOP_DATA_FILE")
+    else Path(__file__).resolve().parent.parent / "data" / "workshopData.json"
+)
+
+
+def _load_workshop_data() -> Dict[str, Any]:
+    """Load shared workshop data used by the vendas node."""
+
+    WORKSHOP_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    if not WORKSHOP_DATA_PATH.exists():
+        WORKSHOP_DATA_PATH.write_text(
+            json.dumps(_default_workshop_data(), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    try:
+        with WORKSHOP_DATA_PATH.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except Exception:
+        logger.exception("Erro ao carregar workshopData.json - usando estrutura padrão")
+        data = _default_workshop_data()
+
+    default = _default_workshop_data()
+    merged: Dict[str, Any] = {**default, **data}
+
+    for key in default.keys():
+        if not isinstance(merged.get(key), list):
+            merged[key] = default[key]
+
+    return merged
+
+
+def _write_workshop_data(data: Dict[str, Any]) -> None:
+    WORKSHOP_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+    WORKSHOP_DATA_PATH.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _format_currency(value: Any) -> str:
+    try:
+        number = float(value)
+    except Exception:
+        number = 0.0
+
+    formatted = f"R$ {number:,.2f}"
+    return formatted.replace(",", "@").replace(".", ",").replace("@", ".")
+
+
+def _format_date_iso(date_str: str) -> str:
+    try:
+        parsed = datetime.fromisoformat(date_str)
+        return parsed.strftime("%d/%m/%Y")
+    except Exception:
+        return date_str
+
+
+def _register_sale_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    data = _load_workshop_data()
+    sale_requests = list(data.get("saleRequests") or [])
+
+    sale_type = payload.get("type")
+    if sale_type not in {"estoque", "solicitacao"}:
+        raise ValueError("Tipo de pedido inválido")
+
+    price_value = payload.get("price")
+    try:
+        price = float(price_value) if price_value is not None else None
+    except Exception:
+        price = None
+
+    item_name = payload.get("itemName") or payload.get("requestedName") or ""
+    now = datetime.now(timezone.utc)
+
+    new_request: Dict[str, Any] = {
+        "id": f"pedido-{uuid4()}",
+        "type": sale_type,
+        "itemId": payload.get("itemId") or None,
+        "itemName": item_name,
+        "requestedName": payload.get("requestedName") or None,
+        "price": price,
+        "status": "pendente",
+        "createdAt": now.isoformat(),
+        "source": payload.get("source") or "workflow",
+        "notes": payload.get("notes") or None,
+    }
+
+    if sale_type == "estoque":
+        deadline = now + timedelta(days=3)
+        new_request["pickupDeadline"] = deadline.isoformat()
+    else:
+        contact_by = now + timedelta(days=7)
+        new_request["contactBy"] = contact_by.isoformat()
+
+    sale_requests.append(new_request)
+    data["saleRequests"] = sale_requests
+
+    _write_workshop_data(data)
+    return new_request
+
+
+def _fetch_available_inventory() -> List[Dict[str, Any]]:
+    data = _load_workshop_data()
+    inventory = data.get("inventory") or []
+    available: List[Dict[str, Any]] = []
+
+    for item in inventory:
+        try:
+            stock = int(item.get("stockQuantity", 0))
+        except Exception:
+            stock = 0
+
+        if stock > 0:
+            available.append(item)
+
+    return available
+
+
 @dataclass
 class ChatState:
     """Runtime state for a single chat conversation."""
@@ -131,6 +268,10 @@ class ChatState:
     waiting_cancellation_code: bool = False
     waiting_cancellation_reason: bool = False
     cancellation_code: Optional[str] = None
+    waiting_sale: bool = False
+    sale_node_id: Optional[str] = None
+    sale_stage: Optional[str] = None
+    sale_items: List[Dict[str, Any]] = None
 
     def reset(self) -> None:
         self.current_node = None
@@ -140,6 +281,10 @@ class ChatState:
         self.waiting_cancellation_code = False
         self.waiting_cancellation_reason = False
         self.cancellation_code = None
+        self.waiting_sale = False
+        self.sale_node_id = None
+        self.sale_stage = None
+        self.sale_items = []
 
 
 class WorkflowManager:
@@ -199,6 +344,14 @@ class WorkflowManager:
             scheduling_node = nodes_by_id.get(state.scheduling_node_id)
             if scheduling_node:
                 return self._handle_scheduling_response(state, scheduling_node, user_text, nodes_by_id, edges)
+
+        if state.waiting_sale and state.sale_node_id:
+            sale_node = nodes_by_id.get(state.sale_node_id)
+            if sale_node:
+                return self._handle_sale_response(state, sale_node, user_text, nodes_by_id, edges)
+            else:
+                state.waiting_sale = False
+                state.sale_node_id = None
 
         if state.waiting_options:
             selection = self._match_option(state.waiting_options, user_text)
@@ -402,6 +555,131 @@ class WorkflowManager:
         # Invalid input
         return [{"text": "❌ Opção inválida.\n\nPor favor, digite o número do horário desejado ou 'cancelar' para cancelar."}]
 
+    def _handle_sale_response(
+            self,
+            state: ChatState,
+            sale_node: Dict[str, Any],
+            user_text: str,
+            nodes_by_id: Dict[str, Dict[str, Any]],
+            edges: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Handle user input for the vendas node."""
+
+        node_data = sale_node.get("data", {}) or {}
+        user_input = user_text.strip()
+
+        if state.sale_stage == "selection":
+            if not user_input.isdigit():
+                return [{
+                    "text": "Digite apenas o número do item desejado ou 0 para solicitar um item ausente.",
+                    "reply_markup": {"remove_keyboard": True},
+                }]
+
+            option = int(user_input)
+
+            if option == 0:
+                state.sale_stage = "customName"
+                return [{
+                    "text": "Você deseja algum item que não está disponível? Informe o nome para registrarmos a solicitação.",
+                    "reply_markup": {"remove_keyboard": True},
+                }]
+
+            items = state.sale_items or []
+            if 1 <= option <= len(items):
+                selected = items[option - 1]
+
+                try:
+                    request = _register_sale_request({
+                        "type": "estoque",
+                        "itemId": selected.get("id"),
+                        "itemName": selected.get("name"),
+                        "price": selected.get("unitPrice"),
+                        "source": "workflow",
+                    })
+                except Exception:
+                    logger.exception("Falha ao registrar pedido de estoque")
+                    return [{"text": "Não foi possível registrar o pedido agora. Tente novamente em instantes."}]
+
+                deadline = request.get("pickupDeadline", "")
+                confirmation = (
+                    f"Pedido registrado para {selected.get('name', 'item')} no valor de "
+                    f"{_format_currency(selected.get('unitPrice'))}. Compareça à loja em até 3 dias"
+                )
+
+                if deadline:
+                    confirmation += f" (até {_format_date_iso(deadline)})"
+
+                confirmation += " ou cancelaremos o pedido."
+
+                state.waiting_sale = False
+                state.sale_stage = None
+                state.sale_items = []
+                state.sale_node_id = None
+                state.current_node = None
+
+                next_node = self._next_node(sale_node.get("id"), nodes_by_id, edges)
+                if next_node:
+                    return [{"text": confirmation}] + self._process_from_node(state, next_node, nodes_by_id, edges)
+
+                state.reset()
+                return [{"text": confirmation, "reply_markup": {"remove_keyboard": True}}]
+
+            return [{
+                "text": "Opção inválida. Digite um número listado acima ou 0 para solicitar um item não disponível.",
+                "reply_markup": {"remove_keyboard": True},
+            }]
+
+        if state.sale_stage == "customName":
+            if not user_input:
+                return [{"text": "Informe o nome do item desejado para registrar a solicitação."}]
+
+            try:
+                request = _register_sale_request({
+                    "type": "solicitacao",
+                    "requestedName": user_input,
+                    "itemName": user_input,
+                    "source": "workflow",
+                })
+            except Exception:
+                logger.exception("Falha ao registrar solicitação de item")
+                return [{"text": "Não foi possível registrar a solicitação agora. Tente novamente em instantes."}]
+
+            contact_by = request.get("contactBy", "")
+            message = "Adicionado o item desejado como solicitação. Entraremos em contato em até 7 dias referente o item."
+
+            if contact_by:
+                message = (
+                    f"Solicitação registrada para {user_input}. Entraremos em contato até {_format_date_iso(contact_by)} "
+                    "sobre o item."
+                )
+
+            state.waiting_sale = False
+            state.sale_stage = None
+            state.sale_items = []
+            state.sale_node_id = None
+            state.current_node = None
+
+            next_node = self._next_node(sale_node.get("id"), nodes_by_id, edges)
+            if next_node:
+                return [{"text": message}] + self._process_from_node(state, next_node, nodes_by_id, edges)
+
+            state.reset()
+            return [{"text": message, "reply_markup": {"remove_keyboard": True}}]
+
+        # If stage is missing, reset and continue the flow
+        state.waiting_sale = False
+        state.sale_stage = None
+        state.sale_items = []
+        state.sale_node_id = None
+        state.current_node = None
+
+        next_node = self._next_node(sale_node.get("id"), nodes_by_id, edges)
+        if next_node:
+            return self._process_from_node(state, next_node, nodes_by_id, edges)
+
+        state.reset()
+        return [{"text": node_data.get("fallbackMessage") or "Continuando atendimento.", "reply_markup": {"remove_keyboard": True}}]
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
@@ -520,6 +798,43 @@ class WorkflowManager:
                 state.current_node = current.get("id")
 
                 logger.info(f"Aguardando resposta de agendamento no nó: {current.get('id')}")
+                return responses
+
+            if node_type == "venda":
+                intro = node_data.get("message") or "Confira os itens disponíveis para venda:"
+                available_items = _fetch_available_inventory()
+
+                message_lines = [intro, ""]
+
+                if available_items:
+                    for idx, item in enumerate(available_items, start=1):
+                        price = _format_currency(item.get("unitPrice"))
+                        stock = item.get("stockQuantity", 0)
+                        message_lines.append(f"{idx}. {item.get('name', 'Item')} - {price} (estoque: {stock})")
+
+                    message_lines.append("")
+                    message_lines.append("0. Solicitar item que não está disponível")
+                    message_lines.append("Digite o número do item desejado.")
+
+                    responses.append({"text": "\n".join(message_lines), "reply_markup": {"remove_keyboard": True}})
+
+                    state.current_node = current.get("id")
+                    state.waiting_sale = True
+                    state.sale_node_id = current.get("id")
+                    state.sale_stage = "selection"
+                    state.sale_items = available_items
+                    return responses
+
+                message_lines.append(
+                    "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
+                )
+                responses.append({"text": "\n".join(message_lines), "reply_markup": {"remove_keyboard": True}})
+
+                state.current_node = current.get("id")
+                state.waiting_sale = True
+                state.sale_node_id = current.get("id")
+                state.sale_stage = "customName"
+                state.sale_items = []
                 return responses
 
             if node_type == "finalizar":

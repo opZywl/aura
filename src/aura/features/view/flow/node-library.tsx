@@ -14,6 +14,7 @@ import {
     ExternalLink,
     Calendar,
     Users,
+    ShoppingCart,
 } from "lucide-react"
 import { useTheme } from "../homePanels/ThemeContext"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -43,6 +44,12 @@ const nodeTypes = [
         label: "Agentes",
         icon: Users,
         description: "Transfere para operador humano",
+    },
+    {
+        type: "venda",
+        label: "Venda",
+        icon: ShoppingCart,
+        description: "Lista itens cadastrados e registra pedidos",
     },
     {
         type: "process",
