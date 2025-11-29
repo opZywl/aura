@@ -135,10 +135,15 @@ class WorkflowStorage:
         return payload
 
 
+_DEFAULT_WORKSHOP_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "workshopData.json"
+
+# Caminho antigo incorreto que pode ter sido criado em versões anteriores
+_LEGACY_WORKSHOP_DATA_PATH = Path(__file__).resolve().parents[3] / "data" / "workshopData.json"
+
 WORKSHOP_DATA_PATH = (
     Path(os.environ.get("AURA_WORKSHOP_DATA_FILE", "")).expanduser()
     if os.environ.get("AURA_WORKSHOP_DATA_FILE")
-    else Path(__file__).resolve().parents[3] / "src" / "data" / "workshopData.json"
+    else _DEFAULT_WORKSHOP_DATA_PATH
 )
 
 
@@ -146,6 +151,23 @@ def _load_workshop_data() -> Dict[str, Any]:
     """Load shared workshop data used by the vendas node."""
 
     WORKSHOP_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    use_env_path = bool(os.environ.get("AURA_WORKSHOP_DATA_FILE"))
+
+    if not use_env_path and _LEGACY_WORKSHOP_DATA_PATH.exists():
+        try:
+            legacy_mtime = _LEGACY_WORKSHOP_DATA_PATH.stat().st_mtime
+            target_exists = WORKSHOP_DATA_PATH.exists()
+            target_mtime = WORKSHOP_DATA_PATH.stat().st_mtime if target_exists else 0
+
+            if not target_exists or legacy_mtime > target_mtime:
+                legacy_content = _LEGACY_WORKSHOP_DATA_PATH.read_text(encoding="utf-8")
+                WORKSHOP_DATA_PATH.write_text(legacy_content, encoding="utf-8")
+                logger.info(
+                    "Arquivo de dados sincronizado do caminho legado para %s", WORKSHOP_DATA_PATH
+                )
+        except Exception:
+            logger.exception("Falha ao migrar workshopData.json do caminho legado")
 
     if not WORKSHOP_DATA_PATH.exists():
         WORKSHOP_DATA_PATH.write_text(
