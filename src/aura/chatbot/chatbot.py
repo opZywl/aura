@@ -138,7 +138,7 @@ class WorkflowStorage:
 WORKSHOP_DATA_PATH = (
     Path(os.environ.get("AURA_WORKSHOP_DATA_FILE", "")).expanduser()
     if os.environ.get("AURA_WORKSHOP_DATA_FILE")
-    else Path(__file__).resolve().parents[2] / "src" / "data" / "workshopData.json"
+    else Path(__file__).resolve().parents[3] / "src" / "data" / "workshopData.json"
 )
 
 
@@ -257,6 +257,12 @@ def _fetch_available_inventory() -> List[Dict[str, Any]]:
 
         if stock > 0:
             available.append(item)
+
+    logger.info(
+        "Inventário carregado de %s - %s itens disponíveis",
+        WORKSHOP_DATA_PATH,
+        len(available),
+    )
 
     return available
 
@@ -904,6 +910,12 @@ class WorkflowManager:
                 except Exception:
                     logger.exception("Falha ao carregar inventário para o nó de vendas")
                     available_items = []
+
+                logger.info(
+                    "Nó de vendas carregado (%s): %s itens elegíveis",
+                    current.get("id"),
+                    len(available_items),
+                )
 
                 message_lines = [intro, ""]
 
