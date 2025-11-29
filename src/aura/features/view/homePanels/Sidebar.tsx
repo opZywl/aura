@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { BarChart3, Users, Home, MessageSquare, Layers, ChevronRight, Palette, Wrench } from "lucide-react"
+import { BarChart3, Users, Home, MessageSquare, Layers, ChevronRight, Palette, Wrench, ShoppingBag } from "lucide-react"
 import Link from "next/link"
 import { useTheme } from "./ThemeContext"
 import { useChannelPermissions } from "../../../hooks/use-channel-permissions"
@@ -48,6 +48,13 @@ const Sidebar = () => {
             label: "Oficina",
             hasSubmenu: false,
             href: "/panel/vendas",
+            pageId: "sales",
+        },
+        {
+            icon: ShoppingBag,
+            label: "Pedidos",
+            hasSubmenu: false,
+            href: "/panel/pedidos",
             pageId: "sales",
         },
     ]
