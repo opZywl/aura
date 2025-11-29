@@ -346,28 +346,10 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
         logger.info(f"Processando mensagem de {user_id}: '{message}'")
 
         if agent_manager.is_agent_session_active(user_id):
-            # Usuário está em atendimento com operador
-            # Garantir que o histórico continue gravando para permitir /finalizar depois
+            # Usuário está em atendimento com operador; o bot não deve responder enquanto a sessão estiver ativa
             execution = get_execution(user_id, workflow_id)
 
-            if message.strip().lower() == "/finalizar":
-                # Operador finalizou o atendimento
-                agent_manager.end_agent_session(user_id)
-
-                # Resetar o chatbot para começar do início
-                reset_conversation(user_id, workflow_id) # This effectively resets the bot's context
-
-                return {
-                    "success": True,
-                    "messages": [{
-                        "text": "Atendimento finalizado. Obrigado por entrar em contato!",
-                        "options": []
-                    }],
-                    "requires_input": False,
-                    "is_final": True
-                }
-
-            # Persistir mensagem no histórico da execução ativa (se existir)
+            # Persistir mensagem no histórico da execução ativa (se existir) para o painel exibir
             if execution:
                 execution.conversation_history.append({
                     "role": "user",
@@ -375,13 +357,11 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     "timestamp": datetime.now(BRASIL_TZ).isoformat()
                 })
 
-            # Mensagem do usuário durante atendimento com operador
-            # Não processar com bot, apenas retornar sucesso
-            # (o operador verá a mensagem e responderá manualmente)
+            # Nenhuma resposta automática deve ser enviada; o operador continua o atendimento
             return {
                 "success": True,
                 "messages": [], # No bot messages to send
-                "requires_input": True,  # Mantém a conversa ativa para novos envios e /finalizar
+                "requires_input": True,  # Mantém a conversa ativa para novos envios e /finalizar pelo operador
                 "is_final": False,
                 "node_type": "agent"
             }
@@ -404,13 +384,6 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     "is_final": True
                 }
 
-        # Adicionar mensagem do usuário ao histórico
-        execution.conversation_history.append({
-            "role": "user",
-            "content": message,
-            "timestamp": datetime.now(BRASIL_TZ).isoformat()
-        })
-
         workflow = _published_workflows.get(workflow_id)
         if not workflow:
             return {
@@ -422,6 +395,33 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 "requires_input": False,
                 "is_final": True
             }
+
+        nodes = workflow.get("nodes", [])
+
+        # Se o atendimento com agente foi finalizado pelo operador, reiniciar o fluxo para permitir nova interação
+        if execution.waiting_for_input and execution.current_node_id:
+            current_node = next((n for n in nodes if n.id == execution.current_node_id), None)
+            if current_node and current_node.type == "agentes" and not agent_manager.is_agent_session_active(user_id):
+                logger.info("Sessão com operador encerrada - reiniciando fluxo para próxima mensagem do cliente")
+                reset_conversation(user_id, workflow_id)
+                execution = start_workflow_execution(workflow_id, user_id)
+                if not execution:
+                    return {
+                        "success": False,
+                        "messages": [{
+                            "text": "Erro ao iniciar fluxo",
+                            "options": []
+                        }],
+                        "requires_input": False,
+                        "is_final": True
+                    }
+
+        # Adicionar mensagem do usuário ao histórico
+        execution.conversation_history.append({
+            "role": "user",
+            "content": message,
+            "timestamp": datetime.now(BRASIL_TZ).isoformat()
+        })
 
         nodes: List[FlowNode] = workflow["nodes"]
         messages_to_send = []
