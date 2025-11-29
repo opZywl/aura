@@ -270,7 +270,7 @@ export async function createServiceOrder(formData: FormData) {
 
     const updatedServiceOrders = [newOrder, ...data.serviceOrders]
 
-    const updatedFinancialRecords =
+    const updatedFinancialRecords: FinancialRecord[] =
         normalizedAmountPaid > 0
             ? [
                   ...data.financialRecords,

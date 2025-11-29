@@ -70,25 +70,25 @@ function HomeContent() {
             title: "FLOW BUILDER VISUAL",
             description:
                 "Modele diálogos arrastando componentes como mensagens, opções e processos. O fluxo orienta o chatbot a responder com precisão e encaminhar exceções para a equipe humana.",
-            image: "/workflow-diagram-automation.jpg",
+            image: "/workflow-diagram-automation-flowchart.jpg",
         },
         {
             title: "CHAT MULTICANAL",
             description:
                 "Acompanhe atendimentos em tempo real, com histórico completo e monitoramento das conversas ativas, arquivadas e automatizadas.",
-            image: "/chat-interface-messaging.jpg",
+            image: "/chat-interface-messaging-app.jpg",
         },
         {
             title: "GESTÃO OPERACIONAL",
             description:
                 "Consolide ordens de serviço, status de manutenção e registros financeiros em um painel integrado ao banco de dados da oficina.",
-            image: "/financial-dashboard-accounts.jpg",
+            image: "/financial-dashboard-analytics.jpg",
         },
         {
             title: "AGENDAMENTO INTELIGENTE",
             description:
                 "Configure disponibilidade, confirme horários e gere relatórios sobre o desempenho do chatbot nas interações com clientes.",
-            image: "/appointment-calendar-dashboard.jpg",
+            image: "/appointment-calendar-scheduling.jpg",
         },
     ]
 
@@ -184,7 +184,8 @@ function HomeContent() {
                         </p>
 
                         <p className="text-sm sm:text-base text-gray-300 mb-6">
-                            Projeto acadêmico desenvolvido por estudantes com arquitetura MVC em Flask, React, PostgreSQL e TypeScript.
+                            Projeto acadêmico desenvolvido por estudantes com arquitetura MVC em Flask, React, PostgreSQL e
+                            TypeScript.
                         </p>
 
                         <div className="hidden">
@@ -225,10 +226,7 @@ function HomeContent() {
                     </motion.div>
                 </section>
 
-                <section
-                    id="que-son"
-                    className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative bg-black"
-                >
+                <section id="que-son" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 relative bg-black">
                     <motion.div
                         initial={reducedMotion ? {} : { opacity: 0 }}
                         whileInView={{ opacity: 1 }}

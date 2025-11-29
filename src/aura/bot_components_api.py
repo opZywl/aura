@@ -919,11 +919,10 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         time = slot.get("time", "")
                         date = slot.get("date", "")
 
-                        # Format date nicely
                         try:
                             date_obj = datetime.strptime(date, "%Y-%m-%d")
                             date_formatted = date_obj.strftime("%d/%m/%Y")
-                        except:
+                        except Exception:
                             date_formatted = date
 
                         slots_text += f"⏰ *{idx}.* {time} - 📅 {date_formatted}\n"
@@ -1070,10 +1069,10 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     logger.info(f"[SURVEY] Labels configurados: {len(rating_labels)} labels")
 
                     # Build survey message with better formatting
-                    survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+                    survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 Pesquisa de Satisfação\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
 
                     for i, label in enumerate(rating_labels):
-                        survey_text += f"*{i}* - {label}\n"
+                        survey_text += f"{i} - {label}\n"
 
                     survey_text += "\n💡 Digite o número correspondente à sua avaliação"
 
@@ -1404,8 +1403,104 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     "messages": messages_to_send,
                                     "requires_input": True,
                                     "is_final": False,
+                                    "node_type": "options",
+                                }
+
+                            if current_node.type == "venda":
+                                intro = current_node.data.message or "Confira os itens disponíveis para venda:"
+
+                                try:
+                                    available_items = _fetch_available_inventory()
+                                except Exception:
+                                    logger.exception("Falha ao carregar inventário para o nó de vendas")
+                                    available_items = []
+
+                                message_lines = [intro, ""]
+
+                                if available_items:
+                                    for idx, item in enumerate(available_items, start=1):
+                                        price = _format_currency(item.get("unitPrice"))
+                                        stock = item.get("stockQuantity", 0)
+                                        message_lines.append(f"{idx}. {item.get('name', 'Item')} - {price} (estoque: {stock})")
+
+                                    message_lines.append("")
+                                    message_lines.append("0. Solicitar item que não está disponível")
+                                    message_lines.append("Digite o número do item desejado.")
+
+                                    messages_to_send.append({
+                                        "text": "\n".join(message_lines),
+                                        "options": [],
+                                    })
+
+                                    execution.current_node_id = current_node.id
+                                    execution.waiting_for_input = True
+                                    execution.sale_state = {
+                                        "stage": "selection",
+                                        "items": available_items,
+                                        "selected": None,
+                                    }
+
+                                    return {
+                                        "success": True,
+                                        "messages": messages_to_send,
+                                        "requires_input": True,
+                                        "is_final": False,
+                                        "node_type": "venda",
+                                    }
+
+                                message_lines.append(
+                                    "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
+                                )
+
+                                messages_to_send.append({
+                                    "text": "\n".join(message_lines),
+                                    "options": [],
+                                })
+
+                                execution.current_node_id = current_node.id
+                                execution.waiting_for_input = True
+                                execution.sale_state = {
+                                    "stage": "customName",
+                                    "items": [],
+                                    "selected": None,
+                                }
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
                                     "node_type": "venda",
                                 }
+                            # </CHANGE>
+
+                            if current_node.type == "agentes":
+                                initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+
+                                messages_to_send.append({
+                                    "text": initial_message,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": initial_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                agent_manager.start_agent_session(user_id, current_node.id)
+
+                                execution.waiting_for_input = True
+                                execution.current_node_id = current_node.id
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "agent"
+                                }
+                            # </CHANGE>
 
                             if current_node.type == "agendamento":
                                 msg_text = current_node.data.message or "📅 Deseja agendar um horário?"
@@ -1467,7 +1562,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     "messages": messages_to_send,
                                     "requires_input": True,
                                     "is_final": False,
-                                    "node_type": "venda",
+                                    "node_type": "agendamento",
                                 }
 
                             if current_node.type == "finalizar":
@@ -1523,7 +1618,6 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     "messages": messages_to_send,
                                     "requires_input": True,
                                     "is_final": False,
-                                    "node_type": "venda",
                                 }
 
                             execution.current_node_id = current_node.id
@@ -1536,7 +1630,6 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                             "requires_input": False,
                             "is_final": True,
                             "archive_conversation": True,
-                            "node_type": "venda",
                         }
 
                     reset_conversation(user_id, workflow_id)
@@ -1546,7 +1639,6 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "requires_input": False,
                         "is_final": True,
                         "archive_conversation": True,
-                        "node_type": "venda",
                     }
 
                 if stage == "phone":
@@ -1648,8 +1740,104 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     "messages": messages_to_send,
                                     "requires_input": True,
                                     "is_final": False,
+                                    "node_type": "options",
+                                }
+
+                            if current_node.type == "venda":
+                                intro = current_node.data.message or "Confira os itens disponíveis para venda:"
+
+                                try:
+                                    available_items = _fetch_available_inventory()
+                                except Exception:
+                                    logger.exception("Falha ao carregar inventário para o nó de vendas")
+                                    available_items = []
+
+                                message_lines = [intro, ""]
+
+                                if available_items:
+                                    for idx, item in enumerate(available_items, start=1):
+                                        price = _format_currency(item.get("unitPrice"))
+                                        stock = item.get("stockQuantity", 0)
+                                        message_lines.append(f"{idx}. {item.get('name', 'Item')} - {price} (estoque: {stock})")
+
+                                    message_lines.append("")
+                                    message_lines.append("0. Solicitar item que não está disponível")
+                                    message_lines.append("Digite o número do item desejado.")
+
+                                    messages_to_send.append({
+                                        "text": "\n".join(message_lines),
+                                        "options": [],
+                                    })
+
+                                    execution.current_node_id = current_node.id
+                                    execution.waiting_for_input = True
+                                    execution.sale_state = {
+                                        "stage": "selection",
+                                        "items": available_items,
+                                        "selected": None,
+                                    }
+
+                                    return {
+                                        "success": True,
+                                        "messages": messages_to_send,
+                                        "requires_input": True,
+                                        "is_final": False,
+                                        "node_type": "venda",
+                                    }
+
+                                message_lines.append(
+                                    "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
+                                )
+
+                                messages_to_send.append({
+                                    "text": "\n".join(message_lines),
+                                    "options": [],
+                                })
+
+                                execution.current_node_id = current_node.id
+                                execution.waiting_for_input = True
+                                execution.sale_state = {
+                                    "stage": "customName",
+                                    "items": [],
+                                    "selected": None,
+                                }
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
                                     "node_type": "venda",
                                 }
+                            # </CHANGE>
+
+                            if current_node.type == "agentes":
+                                initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+
+                                messages_to_send.append({
+                                    "text": initial_message,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": initial_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                agent_manager.start_agent_session(user_id, current_node.id)
+
+                                execution.waiting_for_input = True
+                                execution.current_node_id = current_node.id
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "agent"
+                                }
+                            # </CHANGE>
 
                             if current_node.type == "agendamento":
                                 msg_text = current_node.data.message or "📅 Deseja agendar um horário?"
@@ -1711,25 +1899,36 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     "messages": messages_to_send,
                                     "requires_input": True,
                                     "is_final": False,
-                                    "node_type": "venda",
+                                    "node_type": "agendamento",
                                 }
 
                             if current_node.type == "finalizar":
                                 logger.info(f"[SURVEY] ========================================")
-                                logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO (APÓS VENDAS): {current_node.id}")
+                                logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO (APÓS OPÇÕES): {current_node.id}")
                                 logger.info(f"[SURVEY] ========================================")
 
                                 msg_text = current_node.data.finalMessage or current_node.data.message or ""
 
                                 if msg_text.strip():
-                                    messages_to_send.append({"text": msg_text, "options": []})
+                                    logger.info(f"[SURVEY] Adicionando mensagem final: {msg_text[:50]}...")
+                                    messages_to_send.append({
+                                        "text": msg_text,
+                                        "options": []
+                                    })
 
                                     execution.conversation_history.append({
                                         "role": "assistant",
                                         "content": msg_text,
-                                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
                                     })
+                                else:
+                                    logger.info(f"[SURVEY] Nenhuma mensagem final configurada")
 
+                                # SEMPRE enviar pesquisa de satisfação
+                                logger.info(f"[SURVEY] Preparando pesquisa de satisfação...")
+                                logger.info(f"[SURVEY] enableSatisfactionSurvey: {current_node.data.enableSatisfactionSurvey}")
+
+                                # Get survey configuration or use defaults
                                 survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
                                 rating_labels = current_node.data.surveyRatingLabels or [
                                     "Péssimo",
@@ -1737,38 +1936,55 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     "Regular",
                                     "Bom",
                                     "Excelente",
-                                    "Extremamente Satisfeito",
+                                    "Extremamente Satisfeito"
                                 ]
 
-                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+                                logger.info(f"[SURVEY] Pergunta: {survey_question}")
+                                logger.info(f"[SURVEY] Labels configurados: {len(rating_labels)} labels")
+
+                                # Build survey message with better formatting
+                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 Pesquisa de Satisfação\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
 
                                 for i, label in enumerate(rating_labels):
-                                    survey_text += f"*{i}* - {label}\n"
+                                    survey_text += f"{i} - {label}\n"
 
                                 survey_text += "\n💡 Digite o número correspondente à sua avaliação"
 
-                                messages_to_send.append({"text": survey_text, "options": [], "delay": 2000})
+                                logger.info(f"[SURVEY] Texto da pesquisa montado ({len(survey_text)} caracteres)")
+                                logger.info(f"[SURVEY] Preview: {survey_text[:100]}...")
+
+                                messages_to_send.append({
+                                    "text": survey_text,
+                                    "options": [],
+                                    "delay": 2000  # 2 seconds delay
+                                })
 
                                 execution.conversation_history.append({
                                     "role": "assistant",
                                     "content": survey_text,
-                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
                                 })
 
+                                # Set survey state to wait for user response
                                 execution.survey_state = {
-                                    "waiting_response": True,
-                                    "question": survey_question,
-                                    "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    'waiting_response': True,
+                                    'question': survey_question,
+                                    'timestamp': datetime.now(BRASIL_TZ).isoformat()
                                 }
                                 execution.waiting_for_input = True
+
+                                logger.info(f"[SURVEY] ✅ Pesquisa ADICIONADA às mensagens!")
+                                logger.info(f"[SURVEY] Total de mensagens a enviar: {len(messages_to_send)}")
+                                logger.info(f"[SURVEY] Estado configurado: waiting_response=True")
+                                logger.info(f"[SURVEY] ========================================")
 
                                 return {
                                     "success": True,
                                     "messages": messages_to_send,
                                     "requires_input": True,
-                                    "is_final": False,
-                                    "node_type": "venda",
+                                    "is_final": False
                                 }
+
 
                             execution.current_node_id = current_node.id
                             current_node = find_next_node(workflow_id, current_node.id)
@@ -1779,8 +1995,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                             "messages": messages_to_send,
                             "requires_input": False,
                             "is_final": True,
-                            "archive_conversation": True,
-                            "node_type": "venda",
+                            "archive_conversation": True
                         }
 
                     reset_conversation(user_id, workflow_id)
@@ -1789,8 +2004,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "messages": messages_to_send,
                         "requires_input": False,
                         "is_final": True,
-                        "archive_conversation": True,
-                        "node_type": "venda",
+                        "archive_conversation": True
                     }
 
                 if hasattr(execution, 'cancellation_state') and execution.cancellation_state.get('waiting_code'):
@@ -1970,10 +2184,10 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     logger.info(f"[SURVEY] Labels configurados: {len(rating_labels)} labels")
 
                                     # Build survey message with better formatting
-                                    survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+                                    survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 Pesquisa de Satisfação\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
 
                                     for i, label in enumerate(rating_labels):
-                                        survey_text += f"*{i}* - {label}\n"
+                                        survey_text += f"{i} - {label}\n"
 
                                     survey_text += "\n💡 Digite o número correspondente à sua avaliação"
 
@@ -2437,8 +2651,124 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                     "is_final": False
                                 }
 
+                            elif current_node.type == "venda":
+                                intro = current_node.data.message or "Confira os itens disponíveis para venda:"
+
+                                try:
+                                    available_items = _fetch_available_inventory()
+                                except Exception:
+                                    logger.exception("Falha ao carregar inventário para o nó de vendas")
+                                    available_items = []
+
+                                logger.info(
+                                    "Nó de vendas carregado (%s): %s itens elegíveis",
+                                    current_node.id,
+                                    len(available_items),
+                                )
+
+                                message_lines = [intro, ""]
+
+                                if available_items:
+                                    for idx, item in enumerate(available_items, start=1):
+                                        price = _format_currency(item.get("unitPrice"))
+                                        stock = item.get("stockQuantity", 0)
+                                        message_lines.append(f"{idx}. {item.get('name', 'Item')} - {price} (estoque: {stock})")
+
+                                    message_lines.append("")
+                                    message_lines.append("0. Solicitar item que não está disponível")
+                                    message_lines.append("Digite o número do item desejado.")
+
+                                    messages_to_send.append({
+                                        "text": "\n".join(message_lines),
+                                        "options": [],
+                                    })
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": "\n".join(message_lines),
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                    })
+
+                                    execution.current_node_id = current_node.id
+                                    execution.waiting_for_input = True
+                                    execution.sale_state = {
+                                        "stage": "selection",
+                                        "items": available_items,
+                                        "selected": None,
+                                    }
+
+                                    return {
+                                        "success": True,
+                                        "messages": messages_to_send,
+                                        "requires_input": True,
+                                        "is_final": False,
+                                        "node_type": "venda",
+                                    }
+
+                                message_lines.append(
+                                    "No momento não há itens em estoque. Informe o nome do item que deseja e registraremos a solicitação."
+                                )
+
+                                messages_to_send.append({
+                                    "text": "\n".join(message_lines),
+                                    "options": [],
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": "\n".join(message_lines),
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                execution.current_node_id = current_node.id
+                                execution.waiting_for_input = True
+                                execution.sale_state = {
+                                    "stage": "customName",
+                                    "items": [],
+                                    "selected": None,
+                                }
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "venda",
+                                }
+                            # </CHANGE>
+
+                            elif current_node.type == "agentes":
+                                initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+
+                                messages_to_send.append({
+                                    "text": initial_message,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": initial_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                agent_manager.start_agent_session(user_id, current_node.id)
+
+                                execution.waiting_for_input = True
+                                execution.current_node_id = current_node.id
+
+                                logger.info(f"Conversa transferida para operador - Nó: {current_node.id}")
+
+                                return {
+                                    "success": True,
+                                    "messages": messages_to_send,
+                                    "requires_input": True,
+                                    "is_final": False,
+                                    "node_type": "agent"
+                                }
+                            # </CHANGE>
+
                             elif current_node.type == "agendamento":
-                                msg_text = current_node.data.message or "Deseja agendar um horário?"
+                                msg_text = current_node.data.message or "📅 Deseja agendar um horário?"
                                 available_slots = current_node.data.availableSlots or []
 
                                 # Filter out booked slots
@@ -2543,10 +2873,10 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                                 logger.info(f"[SURVEY] Labels configurados: {len(rating_labels)} labels")
 
                                 # Build survey message with better formatting
-                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 *Pesquisa de Satisfação*\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+                                survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 Pesquisa de Satisfação\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
 
                                 for i, label in enumerate(rating_labels):
-                                    survey_text += f"*{i}* - {label}\n"
+                                    survey_text += f"{i} - {label}\n"
 
                                 survey_text += "\n💡 Digite o número correspondente à sua avaliação"
 

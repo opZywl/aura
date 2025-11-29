@@ -112,6 +112,23 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
         console.log("[OK] [AuraBot] Estado do chat limpo")
     }, [])
 
+    const gracefullyFinishFlow = useCallback((resetOnlyState = false) => {
+        // Encerrar o fluxo sem apagar o histórico de mensagens, preservando o contexto da conversa
+        setWaitingForUserInput(false)
+        setCurrentNodeId(null)
+        setCurrentOptions([])
+        setCurrentOptionsMessage("")
+        setSaleState(null)
+
+        if (resetOnlyState) {
+            localStorage.removeItem(CURRENT_NODE_KEY)
+            localStorage.removeItem(WAITING_INPUT_KEY)
+            localStorage.removeItem(CURRENT_OPTIONS_KEY)
+            localStorage.removeItem(OPTIONS_MESSAGE_KEY)
+            localStorage.removeItem(SALE_STATE_KEY)
+        }
+    }, [])
+
     const fetchInventory = useCallback(async (): Promise<InventoryItemSummary[]> => {
         try {
             const response = await fetch("/api/inventory")
@@ -511,16 +528,41 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
         (currentNodeId: string, optionIndex?: number) => {
             if (!savedFlow) return null
 
-            const edges = savedFlow.edges
+            const sortEdgesByHandle = (edgeA: any, edgeB: any) => {
+                const parseIndex = (edge: any) => {
+                    const handle = edge?.sourceHandle
+                    if (typeof handle === "string" && handle.startsWith("output-")) {
+                        const [, index] = handle.split("output-")
+                        const parsed = Number.parseInt(index, 10)
+                        return Number.isNaN(parsed) ? 0 : parsed
+                    }
+                    return 0
+                }
+
+                return parseIndex(edgeA) - parseIndex(edgeB)
+            }
+
+            const nodeEdges = savedFlow.edges.filter((edge: any) => edge.source === currentNodeId)
+            if (nodeEdges.length === 0) return null
+
+            const orderedEdges = [...nodeEdges].sort(sortEdgesByHandle)
             let targetEdge
 
             if (optionIndex !== undefined) {
-                // Para nós de opções, encontrar a edge específica baseada no índice
-                const nodeEdges = edges.filter((edge: any) => edge.source === currentNodeId)
-                targetEdge = nodeEdges[optionIndex]
+                // Mapear edges usando o identificador do handle para garantir compatibilidade com qualquer nó anterior
+                const expectedHandle = `output-${optionIndex}`
+                targetEdge = nodeEdges.find((edge: any) => edge.sourceHandle === expectedHandle)
+
+                if (!targetEdge) {
+                    targetEdge = orderedEdges[optionIndex]
+                }
             } else {
-                // Para outros nós, encontrar a primeira edge
-                targetEdge = edges.find((edge: any) => edge.source === currentNodeId)
+                targetEdge = orderedEdges[0]
+            }
+
+            if (!targetEdge) {
+                // Como último recurso, use a primeira conexão disponível para não travar o fluxo
+                targetEdge = nodeEdges[0]
             }
 
             if (targetEdge) {
@@ -559,10 +601,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                     if (nextNode) {
                         processNode(nextNode)
                     } else {
-                        setWaitingForUserInput(false)
-                        setCurrentNodeId(null)
-                        clearChatState()
-                        console.log("[OK] [AuraBot] Fluxo finalizado - conversa resetada")
+                        gracefullyFinishFlow(true)
+                        console.log("[OK] [AuraBot] Fluxo finalizado - estado reiniciado")
                     }
                 }, 1500)
             } else if (node.type === "venda") {
@@ -611,6 +651,48 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
 
                     setWaitingForUserInput(true)
                 })()
+            } else if (node.type === "agentes") {
+                const handoffMessage =
+                    node.data.handoffMessage ||
+                    "Transferindo você para um operador humano... Aguarde enquanto conectamos."
+                const noAgentMessage =
+                    node.data.noAgentMessage ||
+                    "No momento não há operadores disponíveis. Por favor, tente novamente em instantes."
+
+                const transferMessage = {
+                    id: Date.now().toString(),
+                    role: "assistant" as const,
+                    content: handoffMessage,
+                }
+
+                setMessages((prev) => {
+                    const updated = [...prev, transferMessage]
+                    saveMessages(updated)
+                    return updated
+                })
+
+                setTimeout(() => {
+                    const nextNode = findNextNode(node.id)
+                    if (nextNode) {
+                        processNode(nextNode)
+                        return
+                    }
+
+                    const fallbackMessage = {
+                        id: Date.now().toString(),
+                        role: "assistant" as const,
+                        content: noAgentMessage,
+                    }
+
+                    setMessages((prev) => {
+                        const updated = [...prev, fallbackMessage]
+                        saveMessages(updated)
+                        return updated
+                    })
+
+                    gracefullyFinishFlow(true)
+                    console.log("[OK] [AuraBot] Fim do fluxo - agentes")
+                }, 1200)
             } else if (node.type === "options") {
                 const message = node.data.message || "Escolha uma opção:"
                 const options = node.data.options || []
@@ -658,14 +740,12 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                 })
 
                 setTimeout(() => {
-                    setCurrentNodeId(null)
-                    setWaitingForUserInput(false)
-                    clearChatState()
-                    console.log("Finalizado [AuraBot] Conversa finalizada e resetada")
+                    gracefullyFinishFlow(true)
+                    console.log("Finalizado [AuraBot] Conversa finalizada e estado limpo")
                 }, 2000)
             }
         },
-        [findNextNode, saveMessages, clearChatState, fetchInventory, formatCurrency],
+        [findNextNode, saveMessages, gracefullyFinishFlow, fetchInventory, formatCurrency],
     )
 
     const startFlow = useCallback(() => {
@@ -874,9 +954,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                                     if (nextNode) {
                                         processNode(nextNode)
                                     } else {
-                                        setCurrentNodeId(null)
-                                        clearChatState()
-                                        console.log("[OK] [AuraBot] Fim do fluxo - conversa resetada")
+                                        gracefullyFinishFlow(true)
+                                        console.log("[OK] [AuraBot] Fim do fluxo - venda sem próximo nó")
                                     }
                                 }, 800)
                             } catch (error) {
@@ -957,9 +1036,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                                 if (nextNode) {
                                     processNode(nextNode)
                                 } else {
-                                    setCurrentNodeId(null)
-                                    clearChatState()
-                                    console.log("[OK] [AuraBot] Fim do fluxo - conversa resetada")
+                                    gracefullyFinishFlow(true)
+                                    console.log("[OK] [AuraBot] Fim do fluxo - venda custom sem próximo nó")
                                 }
                             }, 800)
                         } catch (error) {
@@ -1003,9 +1081,8 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
                             if (nextNode) {
                                 processNode(nextNode)
                             } else {
-                                setCurrentNodeId(null)
-                                clearChatState()
-                                console.log("[OK] [AuraBot] Fim do fluxo - conversa resetada")
+                                gracefullyFinishFlow(true)
+                                console.log("[OK] [AuraBot] Fim do fluxo - opções sem próximo nó")
                             }
                         }, 800)
                     } else {
@@ -1029,7 +1106,7 @@ export default function AuraFlowBot({ isOpen: propIsOpen, onClose, standalone = 
             processNode,
             repeatOptions,
             saveMessages,
-            clearChatState,
+            gracefullyFinishFlow,
             saleState,
             registerSaleRequest,
             formatCurrency,
