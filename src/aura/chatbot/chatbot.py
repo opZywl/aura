@@ -247,24 +247,24 @@ def _register_sale_request(payload: Dict[str, Any]) -> Dict[str, Any]:
 def _fetch_available_inventory() -> List[Dict[str, Any]]:
     data = _load_workshop_data()
     inventory = data.get("inventory") or []
-    available: List[Dict[str, Any]] = []
+    cleaned: List[Dict[str, Any]] = []
 
     for item in inventory:
+        normalized = dict(item)
         try:
-            stock = int(item.get("stockQuantity", 0))
+            normalized["stockQuantity"] = int(item.get("stockQuantity", 0))
         except Exception:
-            stock = 0
+            normalized["stockQuantity"] = 0
 
-        if stock > 0:
-            available.append(item)
+        cleaned.append(normalized)
 
     logger.info(
-        "Inventário carregado de %s - %s itens disponíveis",
+        "Inventário carregado de %s - %s itens listados",
         WORKSHOP_DATA_PATH,
-        len(available),
+        len(cleaned),
     )
 
-    return available
+    return cleaned
 
 
 def _register_sale_transaction(
@@ -662,6 +662,17 @@ class WorkflowManager:
             items = state.sale_items or []
             if 1 <= option <= len(items):
                 selected = items[option - 1]
+
+                try:
+                    stock = int(selected.get("stockQuantity", 0))
+                except Exception:
+                    stock = 0
+
+                if stock <= 0:
+                    return [{
+                        "text": "Este item está sem estoque no momento. Escolha outro número ou digite 0 para solicitar o item.",
+                        "reply_markup": {"remove_keyboard": True},
+                    }]
 
                 state.sale_stage = "phone"
                 state.sale_selected = selected
