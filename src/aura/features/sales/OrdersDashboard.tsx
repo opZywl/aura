@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -43,14 +44,45 @@ const typeLabels: Record<SaleRequest["type"], string> = {
 }
 
 export default function OrdersDashboard({ saleRequests }: OrdersDashboardProps) {
+    const [requests, setRequests] = useState<SaleRequest[]>(saleRequests)
+    const [submittingId, setSubmittingId] = useState<string | null>(null)
+
+    const handleUpdateStatus = async (request: SaleRequest, status: SaleRequest["status"]) => {
+        try {
+            setSubmittingId(request.id)
+
+            const response = await fetch("/api/pedidos", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: request.id,
+                    status,
+                    restock: status === "confirmada",
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error("Falha ao atualizar pedido")
+            }
+
+            const payload = await response.json()
+            const updated: SaleRequest = payload.saleRequest
+            setRequests((prev) => prev.map((entry) => (entry.id === updated.id ? updated : entry)))
+        } catch (error) {
+            console.error("Erro ao atualizar status do pedido:", error)
+        } finally {
+            setSubmittingId(null)
+        }
+    }
+
     const totals = useMemo(() => {
-        const total = saleRequests.length
-        const pending = saleRequests.filter((request) => request.status === "pendente").length
-        const confirmed = saleRequests.filter((request) => request.status === "confirmada").length
-        const cancelled = saleRequests.filter((request) => request.status === "cancelada").length
+        const total = requests.length
+        const pending = requests.filter((request) => request.status === "pendente").length
+        const confirmed = requests.filter((request) => request.status === "confirmada").length
+        const cancelled = requests.filter((request) => request.status === "cancelada").length
 
         return { total, pending, confirmed, cancelled }
-    }, [saleRequests])
+    }, [requests])
 
     return (
         <div className="space-y-6">
@@ -103,7 +135,7 @@ export default function OrdersDashboard({ saleRequests }: OrdersDashboardProps) 
                 </CardHeader>
                 <Separator />
                 <CardContent className="pt-4">
-                    {saleRequests.length === 0 ? (
+                    {requests.length === 0 ? (
                         <Alert>
                             <AlertTitle>Nenhum pedido encontrado</AlertTitle>
                             <AlertDescription>
@@ -121,10 +153,11 @@ export default function OrdersDashboard({ saleRequests }: OrdersDashboardProps) 
                                         <TableHead>Valor</TableHead>
                                         <TableHead>Prazo</TableHead>
                                         <TableHead>Origem</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {saleRequests.map((request) => {
+                                    {requests.map((request) => {
                                         const value =
                                             typeof request.price === "number"
                                                 ? currencyFormatter.format(request.price)
@@ -162,6 +195,33 @@ export default function OrdersDashboard({ saleRequests }: OrdersDashboardProps) 
                                                 <TableCell>{value}</TableCell>
                                                 <TableCell>{deadlineLabel}</TableCell>
                                                 <TableCell className="capitalize">{request.source ?? "workflow"}</TableCell>
+                                                <TableCell className="space-x-2 text-right">
+                                                    {request.status === "pendente" ? (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                disabled={submittingId === request.id}
+                                                                onClick={() => handleUpdateStatus(request, "confirmada")}
+                                                            >
+                                                                Aceitar
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="text-destructive"
+                                                                disabled={submittingId === request.id}
+                                                                onClick={() => handleUpdateStatus(request, "cancelada")}
+                                                            >
+                                                                Recusar
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <Badge variant="secondary" className="text-xs">
+                                                            {statusLabels[request.status]}
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
                                             </TableRow>
                                         )
                                     })}

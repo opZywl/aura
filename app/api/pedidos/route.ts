@@ -5,9 +5,13 @@ import { NextResponse } from "next/server"
 import {
     readWorkshopData,
     writeWorkshopData,
+    type InventoryItem,
     type SaleRequest,
+    type SaleRequestStatus,
     type SaleRequestType,
 } from "@/src/server/workshop-data"
+
+export const dynamic = "force-dynamic"
 
 function sanitizeText(value: unknown): string {
     if (typeof value !== "string") return ""
@@ -16,6 +20,10 @@ function sanitizeText(value: unknown): string {
 
 function normalizeType(value: unknown): SaleRequestType | null {
     return value === "estoque" || value === "solicitacao" ? value : null
+}
+
+function normalizeStatus(value: unknown): SaleRequestStatus | null {
+    return value === "pendente" || value === "confirmada" || value === "cancelada" ? value : null
 }
 
 function parsePrice(value: unknown): number | undefined {
@@ -85,5 +93,85 @@ export async function POST(request: Request) {
     } catch (error) {
         console.error("Erro ao registrar pedido:", error)
         return NextResponse.json({ error: "Não foi possível registrar o pedido." }, { status: 500 })
+    }
+}
+
+export async function PATCH(request: Request) {
+    try {
+        const body = await request.json()
+        const requestId = sanitizeText(body?.id)
+        const status = normalizeStatus(body?.status)
+        const restock = body?.restock === true
+        const restockQuantity = Number.isFinite(Number(body?.restockQuantity))
+            ? Math.max(1, Math.floor(Number(body.restockQuantity)))
+            : 1
+        const restockPrice = parsePrice(body?.restockPrice)
+
+        if (!requestId) {
+            return NextResponse.json({ error: "Informe o ID do pedido." }, { status: 400 })
+        }
+
+        if (!status) {
+            return NextResponse.json({ error: "Status inválido." }, { status: 400 })
+        }
+
+        const data = await readWorkshopData()
+        const existing = data.saleRequests.find((entry) => entry.id === requestId)
+
+        if (!existing) {
+            return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 })
+        }
+
+        const updatedRequest: SaleRequest = { ...existing, status }
+        let updatedInventory = data.inventory
+
+        if (status === "confirmada" && restock) {
+            const normalizedPrice = restockPrice ?? existing.price ?? 0
+            const normalizedName = existing.itemName || existing.requestedName || "Item solicitado"
+
+            const inventoryMatch = updatedInventory.find(
+                (item) => item.id === existing.itemId || item.name.toLowerCase() === normalizedName.toLowerCase(),
+            )
+
+            if (inventoryMatch) {
+                updatedInventory = updatedInventory.map((item) =>
+                    item.id === inventoryMatch.id
+                        ? {
+                              ...item,
+                              unitPrice: normalizedPrice > 0 ? normalizedPrice : item.unitPrice,
+                              stockQuantity: item.stockQuantity + restockQuantity,
+                          }
+                        : item,
+                )
+                updatedRequest.itemId = inventoryMatch.id
+                updatedRequest.itemName = inventoryMatch.name
+            } else {
+                const newItem: InventoryItem = {
+                    id: `item-${randomUUID()}`,
+                    name: normalizedName,
+                    category: existing.type === "solicitacao" ? "Solicitações" : "Vendas",
+                    unitPrice: normalizedPrice > 0 ? normalizedPrice : 0,
+                    stockQuantity: restockQuantity,
+                    minimumStock: 0,
+                }
+
+                updatedInventory = [...updatedInventory, newItem]
+                updatedRequest.itemId = newItem.id
+                updatedRequest.itemName = newItem.name
+            }
+        }
+
+        const updatedRequests = data.saleRequests.map((entry) => (entry.id === requestId ? updatedRequest : entry))
+
+        await writeWorkshopData({
+            ...data,
+            inventory: updatedInventory,
+            saleRequests: updatedRequests,
+        })
+
+        return NextResponse.json({ saleRequest: updatedRequest })
+    } catch (error) {
+        console.error("Erro ao atualizar pedido:", error)
+        return NextResponse.json({ error: "Não foi possível atualizar o pedido." }, { status: 500 })
     }
 }
