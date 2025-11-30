@@ -10,8 +10,6 @@ const logos = [
   { src: "Unasp.svg", alt: "UNASP" },
   { src: "Pirelli.svg", alt: "PIRELLI" },
   { src: "Desktop.svg", alt: "DESKTOP" },
-  { src: "Microsoft.svg", alt: "MICROSOFT" },
-  { src: "Google.svg", alt: "GOOGLE" },
 ]
 
 export default function LogoCarousel() {
