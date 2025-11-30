@@ -81,6 +81,7 @@ class WorkflowExecution:
     cancellation_state: Optional[Dict[str, Any]] = field(default_factory=dict) # Add cancellation_state
     survey_state: Optional[Dict[str, Any]] = field(default_factory=dict)
     sale_state: Dict[str, Any] = field(default_factory=dict)
+    scheduling_state: Dict[str, Any] = field(default_factory=dict)
     # </CHANGE>
 
     def to_dict(self) -> Dict:
@@ -94,6 +95,7 @@ class WorkflowExecution:
             "cancellation_state": self.cancellation_state, # Include cancellation_state
             "survey_state": self.survey_state,
             "sale_state": self.sale_state,  # Adicionado sale_state
+            "scheduling_state": self.scheduling_state,
         }
 
 # Armazenamento em memória (dados REAIS do JSON)
@@ -1211,6 +1213,287 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                         "node_type": "agendamento_cancellation"
                     }
 
+                scheduling_state = getattr(execution, "scheduling_state", {}) or {}
+                filtered_slots = scheduling_state.get("slots", [])
+
+                if not filtered_slots:
+                    available_slots = current_node.data.availableSlots or []
+                    for slot in available_slots:
+                        if slot.get("available", False):
+                            time = slot.get("time", "")
+                            date = slot.get("date", "")
+                            if not booking_manager.is_slot_booked(time, date, workflow_id):
+                                filtered_slots.append(slot)
+
+                    execution.scheduling_state = {
+                        "slots": filtered_slots,
+                        "node_id": current_node.id,
+                    }
+
+                if not filtered_slots:
+                    no_slots_msg = current_node.data.noSlotsMessage or "😔 Não há horários disponíveis no momento.\n\nPor favor, tente novamente mais tarde."
+
+                    messages_to_send.append({"text": no_slots_msg, "options": []})
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": no_slots_msg,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                    })
+
+                    execution.waiting_for_input = False
+                    execution.scheduling_state = {}
+
+                    next_node = find_next_node(workflow_id, current_node.id)
+                    if next_node:
+                        execution.current_node_id = next_node.id
+                        current_node = next_node
+
+                    reset_conversation(user_id, workflow_id)
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": False,
+                        "is_final": True,
+                        "archive_conversation": True,
+                    }
+
+                def _format_slots(slots: List[Dict[str, Any]]) -> str:
+                    slots_text = "\n\n━━━━━━━━━━━━━━━━━━━━\n📋 *Horários Disponíveis:*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+
+                    for idx, slot in enumerate(slots, start=1):
+                        time = slot.get("time", "")
+                        date = slot.get("date", "")
+
+                        try:
+                            date_obj = datetime.strptime(date, "%Y-%m-%d")
+                            date_formatted = date_obj.strftime("%d/%m/%Y")
+                        except Exception:
+                            date_formatted = date
+
+                        slots_text += f"⏰ *{idx}.* {time} - 📅 {date_formatted}\n"
+
+                    slots_text += "\n━━━━━━━━━━━━━━━━━━━━\n\n💡 Digite o *número* do horário desejado\n❌ Digite *'cancelar'* para cancelar um agendamento"
+                    base_message = current_node.data.message or "📅 Deseja agendar um horário?"
+                    return base_message + slots_text
+
+                import re
+
+                slot_match = re.search(r"(\d+)", user_input)
+                if slot_match:
+                    slot_index = int(slot_match.group(1)) - 1
+                    if 0 <= slot_index < len(filtered_slots):
+                        slot = filtered_slots[slot_index]
+
+                        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+                        booking_manager.create_booking(
+                            user_id=user_id,
+                            code=code,
+                            time=slot.get("time", ""),
+                            date=slot.get("date", ""),
+                            workflow_id=workflow_id
+                        )
+
+                        confirmation_msg = current_node.data.confirmationMessage or "✅ Agendamento confirmado!\n\n🎫 Seu código é: {code}\n⏰ Horário: {time}\n📅 Data: {date}\n\n⚠️ Guarde este código para cancelamentos futuros!"
+                        confirmation_msg = confirmation_msg.replace("{code}", code)
+                        confirmation_msg = confirmation_msg.replace("{time}", slot.get("time", ""))
+                        confirmation_msg = confirmation_msg.replace("{date}", slot.get("date", ""))
+
+                        messages_to_send.append({"text": confirmation_msg, "options": []})
+                        execution.conversation_history.append({
+                            "role": "assistant",
+                            "content": confirmation_msg,
+                            "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                        })
+
+                        execution.waiting_for_input = False
+                        execution.scheduling_state = {}
+
+                        next_node = find_next_node(workflow_id, current_node.id)
+                        if next_node:
+                            execution.current_node_id = next_node.id
+                            current_node = next_node
+                            while current_node:
+                                logger.info(f"Processando nó: {current_node.id} ({current_node.type})")
+
+                                if current_node.type == "sendMessage":
+                                    msg_text = current_node.data.message or "Mensagem não configurada"
+                                    messages_to_send.append({"text": msg_text, "options": []})
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": msg_text,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    })
+
+                                    execution.current_node_id = current_node.id
+                                    current_node = find_next_node(workflow_id, current_node.id)
+
+                                elif current_node.type == "options":
+                                    msg_text = current_node.data.message or "Escolha uma opção:"
+                                    options = current_node.data.options or []
+
+                                    if options:
+                                        options_text = "\n\n" + "\n".join([f"{i+1}. {opt.get('text', '')}"for i, opt in enumerate(options)])
+                                        full_message = msg_text + options_text
+                                    else:
+                                        full_message = msg_text
+
+                                    messages_to_send.append({"text": full_message, "options": []})
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": full_message,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    })
+
+                                    execution.current_node_id = current_node.id
+                                    execution.waiting_for_input = True
+
+                                    return {
+                                        "success": True,
+                                        "messages": messages_to_send,
+                                        "requires_input": True,
+                                        "is_final": False,
+                                    }
+
+                                elif current_node.type == "finalizar":
+                                    logger.info(f"[SURVEY] ========================================")
+                                    logger.info(f"[SURVEY] NÓ FINALIZAR ATINGIDO (APÓS AGENDAMENTO): {current_node.id}")
+                                    logger.info(f"[SURVEY] ========================================")
+
+                                    msg_text = current_node.data.finalMessage or current_node.data.message or ""
+
+                                    if msg_text.strip():
+                                        messages_to_send.append({"text": msg_text, "options": []})
+
+                                        execution.conversation_history.append({
+                                            "role": "assistant",
+                                            "content": msg_text,
+                                            "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                        })
+
+                                    survey_question = current_node.data.surveyQuestion or "Olá, diga de 0 a 5, qual é a nota do atendimento?"
+                                    rating_labels = current_node.data.surveyRatingLabels or [
+                                        "Péssimo",
+                                        "Ruim",
+                                        "Regular",
+                                        "Bom",
+                                        "Excelente",
+                                        "Extremamente Satisfeito",
+                                    ]
+
+                                    survey_text = f"\n\n━━━━━━━━━━━━━━━━━━━━\n📊 Pesquisa de Satisfação\n━━━━━━━━━━━━━━━━━━━━\n\n{survey_question}\n\n"
+
+                                    for i, label in enumerate(rating_labels):
+                                        survey_text += f"{i} - {label}\n"
+
+                                    survey_text += "\n💡 Digite o número correspondente à sua avaliação"
+
+                                    messages_to_send.append({"text": survey_text, "options": [], "delay": 2000})
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": survey_text,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    })
+
+                                    execution.survey_state = {
+                                        'waiting_response': True,
+                                        'question': survey_question,
+                                        'timestamp': datetime.now(BRASIL_TZ).isoformat(),
+                                    }
+                                    execution.waiting_for_input = True
+
+                                    return {
+                                        "success": True,
+                                        "messages": messages_to_send,
+                                        "requires_input": True,
+                                        "is_final": False,
+                                    }
+
+                                elif current_node.type == "agentes":
+                                    initial_message = current_node.data.initialMessage or "🔄 Encaminhando para o operador disponível... Por favor aguarde."
+
+                                    messages_to_send.append({"text": initial_message, "options": []})
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": initial_message,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat(),
+                                    })
+
+                                    agent_manager.start_agent_session(user_id, current_node.id)
+
+                                    execution.waiting_for_input = True
+                                    execution.current_node_id = current_node.id
+
+                                    return {
+                                        "success": True,
+                                        "messages": messages_to_send,
+                                        "requires_input": True,
+                                        "is_final": False,
+                                        "node_type": "agent",
+                                    }
+
+                                elif current_node.type == "venda":
+                                    # Preserve sale flow behaviour by reusing existing handler on next user message
+                                    execution.current_node_id = current_node.id
+                                    execution.waiting_for_input = True
+                                    return {
+                                        "success": True,
+                                        "messages": messages_to_send,
+                                        "requires_input": True,
+                                        "is_final": False,
+                                        "node_type": "venda",
+                                    }
+
+                                else:
+                                    execution.current_node_id = current_node.id
+                                    current_node = find_next_node(workflow_id, current_node.id)
+
+                            reset_conversation(user_id, workflow_id)
+                            return {
+                                "success": True,
+                                "messages": messages_to_send,
+                                "requires_input": False,
+                                "is_final": True,
+                                "archive_conversation": True,
+                            }
+
+                        reset_conversation(user_id, workflow_id)
+                        return {
+                            "success": True,
+                            "messages": messages_to_send,
+                            "requires_input": False,
+                            "is_final": True,
+                            "archive_conversation": True,
+                        }
+
+                    retry_message = _format_slots(filtered_slots)
+                    return {
+                        "success": True,
+                        "messages": [{
+                            "text": f"❌ Opção inválida. Escolha um número entre 1 e {len(filtered_slots)}.\n" + retry_message,
+                            "options": [],
+                        }],
+                        "requires_input": True,
+                        "is_final": False,
+                        "node_type": "agendamento",
+                    }
+
+                retry_message = _format_slots(filtered_slots)
+                return {
+                    "success": True,
+                    "messages": [{
+                        "text": "❌ Opção inválida.\n\nPor favor, digite o número do horário desejado ou 'cancelar' para cancelar.\n" + retry_message,
+                        "options": [],
+                    }],
+                    "requires_input": True,
+                    "is_final": False,
+                    "node_type": "agendamento",
+                }
+
             if current_node.type == "venda":
                 sale_state = getattr(execution, "sale_state", {}) or {}
                 stage = sale_state.get("stage", "selection")
@@ -1556,6 +1839,10 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                                 execution.current_node_id = current_node.id
                                 execution.waiting_for_input = True
+                                execution.scheduling_state = {
+                                    "slots": filtered_slots,
+                                    "node_id": current_node.id,
+                                }
 
                                 return {
                                     "success": True,
@@ -1893,6 +2180,10 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                             execution.current_node_id = current_node.id
                             execution.waiting_for_input = True
+                            execution.scheduling_state = {
+                                "slots": filtered_slots,
+                                "node_id": current_node.id,
+                            }
 
                             return {
                                 "success": True,
@@ -2086,6 +2377,7 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                         execution.waiting_for_input = False
                         execution.cancellation_state = {}
+                        execution.scheduling_state = {}
 
                         # Move to next node
                         next_node = find_next_node(workflow_id, current_node.id)

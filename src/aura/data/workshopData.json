@@ -1,65 +1,12 @@
 {
   "inventory": [
-    {
-      "id": "item-25690bcb-a679-4203-9503-ff2267c68878",
-      "name": "pasta",
-      "category": "freio",
-      "unitPrice": 1,
-      "stockQuantity": 89,
-      "minimumStock": 10
-    }
   ],
   "sales": [
-    {
-      "id": "sale-c0b3f6b4-d938-449d-b1fe-c92e1d0a0a4b",
-      "itemId": "item-25690bcb-a679-4203-9503-ff2267c68878",
-      "quantity": 1,
-      "unitPrice": 1.0,
-      "total": 1.0,
-      "date": "2025-11-29T17:55:09.442330+00:00",
-      "customer": "19971580092",
-      "notes": null
-    }
   ],
   "serviceOrders": [],
   "maintenanceTasks": [],
   "financialRecords": [
-    {
-      "id": "finance-33e6337c-f16a-4ef0-a597-2b5a6f135315",
-      "type": "receita",
-      "category": "Venda",
-      "description": "pasta",
-      "amount": 1.0,
-      "date": "2025-11-29T17:55:09.442330+00:00",
-      "relatedSaleId": "sale-c0b3f6b4-d938-449d-b1fe-c92e1d0a0a4b"
-    }
   ],
   "saleRequests": [
-    {
-      "id": "pedido-9a7c1dce-1362-479c-91ce-502de100f78d",
-      "type": "estoque",
-      "itemId": "item-25690bcb-a679-4203-9503-ff2267c68878",
-      "itemName": "pasta",
-      "requestedName": null,
-      "price": 1.0,
-      "status": "confirmada",
-      "createdAt": "2025-11-29T17:55:09.439757+00:00",
-      "source": "workflow",
-      "notes": "Telefone: 19971580092",
-      "pickupDeadline": "2025-12-02T17:55:09.439757+00:00"
-    },
-    {
-      "id": "pedido-cb62f592-39f4-4563-b226-e784e82b3cc1",
-      "type": "solicitacao",
-      "itemId": null,
-      "itemName": "vidro",
-      "requestedName": "vidro",
-      "price": null,
-      "status": "pendente",
-      "createdAt": "2025-11-29T17:57:20.484429+00:00",
-      "source": "workflow",
-      "notes": null,
-      "contactBy": "2025-12-06T17:57:20.484429+00:00"
-    }
   ]
 }
