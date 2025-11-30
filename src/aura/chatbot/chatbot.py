@@ -524,7 +524,14 @@ class WorkflowManager:
             if current_node and current_node.get("type") == "agent":
                 return self._handle_agent_response(state, current_node, user_text, nodes_by_id, edges)
 
-        if state.waiting_scheduling and state.scheduling_node_id:
+        if (
+            state.scheduling_node_id
+            and (
+                state.waiting_scheduling
+                or state.waiting_cancellation_code
+                or state.waiting_cancellation_reason
+            )
+        ):
             scheduling_node = nodes_by_id.get(state.scheduling_node_id)
             if scheduling_node:
                 return self._handle_scheduling_response(state, scheduling_node, user_text, nodes_by_id, edges)
