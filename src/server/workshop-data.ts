@@ -140,19 +140,26 @@ async function ensureDataFile(): Promise<void> {
 
 function tryRecoverJson(raw: string): Partial<WorkshopData> | null {
     const start = raw.indexOf("{")
-    const end = raw.lastIndexOf("}")
 
-    if (start === -1 || end === -1 || end <= start) {
+    if (start === -1) {
         return null
     }
 
-    const candidate = raw.slice(start, end + 1)
+    for (let end = raw.length; end > start; end -= 1) {
+        const candidate = raw.slice(start, end).trimEnd()
 
-    try {
-        return JSON.parse(candidate) as Partial<WorkshopData>
-    } catch (error) {
-        return null
+        if (!candidate.endsWith("}")) {
+            continue
+        }
+
+        try {
+            return JSON.parse(candidate) as Partial<WorkshopData>
+        } catch (error) {
+            continue
+        }
     }
+
+    return null
 }
 
 export async function readWorkshopData(): Promise<WorkshopData> {
