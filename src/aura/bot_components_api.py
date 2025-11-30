@@ -31,6 +31,21 @@ logger = logging.getLogger(__name__)
 # Timezone Brasil
 BRASIL_TZ = timezone(timedelta(hours=-3))
 
+
+def _normalize_node_type(node_type: Optional[str]) -> str:
+    """Canonicaliza tipos de nós vindos do editor."""
+
+    if not node_type:
+        return ""
+
+    normalized = node_type.lower()
+
+    # O editor já envia "venda", mas versões antigas salvavam "vendas".
+    if normalized == "vendas":
+        return "venda"
+
+    return normalized
+
 @dataclass
 class NodeData:
     """Dados de um nó do fluxo"""
@@ -112,6 +127,9 @@ def parse_workflow_data(workflow_data: Dict) -> Tuple[List[FlowNode], List[FlowE
         # Parsear nós REAIS
         nodes = []
         for node_raw in nodes_raw:
+            raw_type = node_raw.get("type", "")
+            normalized_type = _normalize_node_type(raw_type)
+
             node_data = NodeData(
                 label=node_raw.get("data", {}).get("label", ""),
                 description=node_raw.get("data", {}).get("description", ""),
@@ -134,11 +152,19 @@ def parse_workflow_data(workflow_data: Dict) -> Tuple[List[FlowNode], List[FlowE
 
             node = FlowNode(
                 id=node_raw.get("id", ""),
-                type=node_raw.get("type", ""),
+                type=normalized_type,
                 data=node_data,
                 position=node_raw.get("position", {})
             )
             nodes.append(node)
+
+            if raw_type != normalized_type:
+                logger.info(
+                    "Normalizando tipo do nó %s: '%s' -> '%s'",
+                    node.id,
+                    raw_type,
+                    normalized_type,
+                )
 
         # Parsear edges REAIS
         edges = []
@@ -956,11 +982,15 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 elif current_node.type == "venda":
                     intro = current_node.data.message or "Confira os itens disponíveis para venda:"
 
+                    logger.info("[VENDA] Iniciando nó de vendas %s", current_node.id)
+
                     try:
                         available_items = _fetch_available_inventory()
                     except Exception:
                         logger.exception("Falha ao carregar inventário para o nó de vendas")
                         available_items = []
+
+                    logger.info("[VENDA] Inventário carregado com %s itens", len(available_items))
 
                     logger.info(
                         "Nó de vendas carregado (%s): %s itens elegíveis",
@@ -1217,6 +1247,13 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 sale_items = sale_state.get("items", [])
                 user_input = message.strip()
 
+                logger.info(
+                    "[VENDA] Mensagem recebida na etapa '%s' do nó %s: %s",
+                    stage,
+                    current_node.id,
+                    user_input,
+                )
+
                 if stage == "selection":
                     if not user_input.isdigit():
                         return {
@@ -1232,12 +1269,16 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                     option = int(user_input)
 
+                    logger.info("[VENDA] Opção selecionada: %s", option)
+
                     if option == 0:
                         execution.sale_state = {
                             "stage": "customName",
                             "items": sale_items,
                             "selected": None,
                         }
+
+                        logger.info("[VENDA] Cliente solicitou item fora da lista")
 
                         return {
                             "success": True,
@@ -1252,6 +1293,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
 
                     if 1 <= option <= len(sale_items):
                         selected = sale_items[option - 1]
+
+                        logger.info("[VENDA] Item escolhido: %s", selected.get("name"))
 
                         try:
                             stock = int(selected.get("stockQuantity", 0))
@@ -1275,6 +1318,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                             "items": sale_items,
                             "selected": selected,
                         }
+
+                        logger.info("[VENDA] Avançando para coleta de telefone")
 
                         summary = f"Você escolheu {selected.get('name', 'item')} - {_format_currency(selected.get('unitPrice'))}."
                         prompt = (
@@ -1341,6 +1386,8 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                             f"Solicitação registrada para {user_input}. Entraremos em contato até {_format_date_iso(contact_by)} "
                             "sobre o item."
                         )
+
+                    logger.info("[VENDA] Solicitação registrada para item customizado: %s", user_input)
 
                     messages_to_send.append({"text": message, "options": []})
 
@@ -1644,6 +1691,12 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                 if stage == "phone":
                     selected = sale_state.get("selected", {})
                     contact = user_input
+
+                    logger.info(
+                        "[VENDA] Registrando reserva para '%s' com contato '%s'",
+                        selected.get("name"),
+                        contact,
+                    )
 
                     try:
                         request = _register_sale_request(

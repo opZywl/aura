@@ -90,6 +90,22 @@ const edgeTypes: EdgeTypes = {
 let removeNodeById: (id: string) => void = () => {}
 let updateNodeDataById: (id: string, data: any) => void = () => {}
 
+const normalizeNodeType = (type?: string) => {
+    if (!type) return type
+
+    const normalized = type.toLowerCase()
+
+    if (normalized === "vendas") return "venda"
+
+    return normalized
+}
+
+const normalizeWorkflowNodes = (nodes: Node<WorkflowNode["data"]>[]) =>
+    nodes.map((node) => ({
+        ...node,
+        type: normalizeNodeType(node.type),
+    }))
+
 // Fluxo padrão que sempre funciona - COMPLETAMENTE CONECTADO
 // Fluxo padrão que sempre funciona
 const createDefaultWorkflow = () => {
@@ -378,7 +394,7 @@ function WorkflowBuilderInner({
                 const savedWorkflow = localStorage.getItem(WORKFLOW_KEY)
                 if (savedWorkflow) {
                     const workflow = JSON.parse(savedWorkflow)
-                    setNodes(workflow.nodes || [])
+                    setNodes(normalizeWorkflowNodes(workflow.nodes || []))
                     setEdges(workflow.edges || [])
                     setNodeCounters(workflow.nodeCounters || {})
 
@@ -573,8 +589,9 @@ function WorkflowBuilderInner({
 
             const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect()
             const type = event.dataTransfer.getData("application/reactflow")
+            const normalizedType = normalizeNodeType(type)
 
-            if (typeof type === "undefined" || !type || type === "start") {
+            if (typeof normalizedType === "undefined" || !normalizedType || normalizedType === "start") {
                 return
             }
 
@@ -585,12 +602,12 @@ function WorkflowBuilderInner({
                 })
 
                 const newNode = createNode({
-                    type,
+                    type: normalizedType,
                     position,
-                    id: generateNodeId(type),
+                    id: generateNodeId(normalizedType),
                 })
 
-                const simpleId = generateSimpleId(type)
+                const simpleId = generateSimpleId(normalizedType)
                 newNode.data = {
                     ...newNode.data,
                     customId: simpleId,
@@ -980,11 +997,13 @@ function WorkflowBuilderInner({
                         loadedNodes.unshift(startNode)
                     }
 
-                    setNodes(loadedNodes)
+                    const normalizedNodes = normalizeWorkflowNodes(loadedNodes)
+
+                    setNodes(normalizedNodes)
                     setEdges(loadedEdges)
                     setNodeCounters(loadedCounters || {})
 
-                    const workflow = { nodes: loadedNodes, edges: loadedEdges, nodeCounters: loadedCounters || {} }
+                    const workflow = { nodes: normalizedNodes, edges: loadedEdges, nodeCounters: loadedCounters || {} }
                     localStorage.setItem(WORKFLOW_KEY, JSON.stringify(workflow))
 
                     localStorage.removeItem(EXECUTED_KEY)
