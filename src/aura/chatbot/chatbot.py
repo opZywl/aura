@@ -135,17 +135,63 @@ class WorkflowStorage:
         return payload
 
 
-_DEFAULT_WORKSHOP_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "workshopData.json"
+def _candidate_roots() -> List[Path]:
+    """Return roots to search for shared workshop data files."""
 
-_LEGACY_WORKSHOP_DATA_PATHS = [
-    Path(__file__).resolve().parents[1] / "data" / "workshopData.json",
-    Path(__file__).resolve().parents[3] / "data" / "workshopData.json",
-]
+    roots = [Path.cwd()]
+    module_root = Path(__file__).resolve().parents[3]
+
+    if module_root not in roots:
+        roots.append(module_root)
+
+    return roots
+
+
+def _default_workshop_data_path() -> Path:
+    """Prefer the same default path used by the Next.js backend."""
+
+    candidates = [(root / "src" / "data" / "workshopData.json") for root in _candidate_roots()]
+
+    for path in candidates:
+        if path.exists():
+            return path
+
+    return candidates[0]
+
+
+def _legacy_workshop_data_paths() -> List[Path]:
+    """Include legacy storage locations across possible roots."""
+
+    legacy: List[Path] = []
+
+    for root in _candidate_roots():
+        legacy.extend(
+            [
+                root / "src" / "aura" / "data" / "workshopData.json",
+                root / "data" / "workshopData.json",
+            ]
+        )
+
+    # Preserve historical module-relative defaults even if cwd changes
+    legacy.append(Path(__file__).resolve().parents[2] / "data" / "workshopData.json")
+
+    # Remove duplicates while preserving order
+    seen: set[Path] = set()
+    unique: List[Path] = []
+
+    for path in legacy:
+        if path in seen:
+            continue
+        unique.append(path)
+        seen.add(path)
+
+    return unique
+
 
 WORKSHOP_DATA_PATH = (
     Path(os.environ.get("AURA_WORKSHOP_DATA_FILE", "")).expanduser()
     if os.environ.get("AURA_WORKSHOP_DATA_FILE")
-    else _DEFAULT_WORKSHOP_DATA_PATH
+    else _default_workshop_data_path()
 )
 
 
@@ -155,7 +201,7 @@ def _sync_legacy_workshop_data() -> None:
     latest_path: Path | None = None
     latest_mtime = 0.0
 
-    for legacy_path in _LEGACY_WORKSHOP_DATA_PATHS:
+    for legacy_path in _legacy_workshop_data_paths():
         if not legacy_path.exists():
             continue
 
