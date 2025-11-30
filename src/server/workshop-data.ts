@@ -138,10 +138,40 @@ async function ensureDataFile(): Promise<void> {
     await fs.writeFile(dataFilePath, JSON.stringify(defaultData, null, 2), "utf-8")
 }
 
+function tryRecoverJson(raw: string): Partial<WorkshopData> | null {
+    const start = raw.indexOf("{")
+    const end = raw.lastIndexOf("}")
+
+    if (start === -1 || end === -1 || end <= start) {
+        return null
+    }
+
+    const candidate = raw.slice(start, end + 1)
+
+    try {
+        return JSON.parse(candidate) as Partial<WorkshopData>
+    } catch (error) {
+        return null
+    }
+}
+
 export async function readWorkshopData(): Promise<WorkshopData> {
     await ensureDataFile()
     const raw = await fs.readFile(dataFilePath, "utf-8")
-    const parsed = JSON.parse(raw) as Partial<WorkshopData>
+    let parsed: Partial<WorkshopData>
+
+    try {
+        parsed = JSON.parse(raw) as Partial<WorkshopData>
+    } catch (error) {
+        const recovered = tryRecoverJson(raw)
+
+        if (!recovered) {
+            throw error
+        }
+
+        parsed = recovered
+        await fs.writeFile(dataFilePath, JSON.stringify(parsed, null, 2), "utf-8")
+    }
 
     return {
         inventory: parsed.inventory ?? [],
