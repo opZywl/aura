@@ -115,9 +115,40 @@ const legacyDataFiles = [
     path.join(process.cwd(), "data/workshopData.json"),
 ]
 
-const dataFilePath = envDataFile ?? legacyDataFiles.find((file) => fsSync.existsSync(file)) ?? defaultDataFile
+const dataFilePath = envDataFile ?? defaultDataFile
+
+async function migrateLegacyDataFile(): Promise<void> {
+    if (envDataFile) {
+        return
+    }
+
+    let defaultExists = fsSync.existsSync(defaultDataFile)
+    let defaultMtime = defaultExists ? fsSync.statSync(defaultDataFile).mtimeMs : 0
+
+    for (const legacy of legacyDataFiles) {
+        if (!fsSync.existsSync(legacy)) {
+            continue
+        }
+
+        try {
+            const legacyMtime = fsSync.statSync(legacy).mtimeMs
+
+            if (!defaultExists || legacyMtime > defaultMtime) {
+                await fs.mkdir(path.dirname(defaultDataFile), { recursive: true })
+                await fs.copyFile(legacy, defaultDataFile)
+                defaultMtime = legacyMtime
+                defaultExists = true
+            }
+        } catch (error) {
+            // Ignora falhas de migração e segue para próximo
+            continue
+        }
+    }
+}
 
 async function ensureDataFile(): Promise<void> {
+    await migrateLegacyDataFile()
+
     try {
         await fs.access(dataFilePath)
         return
