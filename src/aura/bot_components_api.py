@@ -1180,6 +1180,213 @@ def process_user_message(user_id: str, workflow_id: str, message: str) -> Dict[s
                     "is_final": True
                 }
 
+            # Prioridade: se estamos aguardando código ou motivo de cancelamento, tratar antes de qualquer outra lógica
+            cancellation_state = getattr(execution, "cancellation_state", {}) or {}
+
+            if cancellation_state.get('waiting_code'):
+                code = message.strip().upper()
+                booking = booking_manager.get_booking_by_code(code, user_id)
+
+                if booking:
+                    # Código válido - pedir motivo
+                    execution.cancellation_state['waiting_code'] = False
+                    execution.cancellation_state['waiting_reason'] = True
+                    execution.cancellation_state['code'] = code
+
+                    reason_request_msg = (
+                        f"✅ Código validado com sucesso!\n\n"
+                        f"📋 Agendamento encontrado:\n"
+                        f"⏰ Horário: {booking['time']}\n"
+                        f"📅 Data: {booking['date']}\n\n"
+                        f"Por favor, descreva com detalhes o motivo do cancelamento:"
+                    )
+
+                    messages_to_send.append({
+                        "text": reason_request_msg,
+                        "options": []
+                    })
+
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": reason_request_msg,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                    })
+
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": True,
+                        "is_final": False,
+                        "node_type": "agendamento_cancellation"
+                    }
+                else:
+                    error_msg = "❌ Código inválido ou agendamento não encontrado.\n\nPor favor, verifique o código e tente novamente:"
+
+                    return {
+                        "success": True,
+                        "messages": [{
+                            "text": error_msg,
+                            "options": []
+                        }],
+                        "requires_input": True,
+                        "is_final": False,
+                        "node_type": "agendamento_cancellation"
+                    }
+
+            if cancellation_state.get('waiting_reason'):
+                reason = message.strip()
+
+                if len(reason) < 10:
+                    return {
+                        "success": True,
+                        "messages": [{
+                            "text": "Por favor, forneça uma descrição mais detalhada do motivo do cancelamento (mínimo 10 caracteres):",
+                            "options": []
+                        }],
+                        "requires_input": True,
+                        "is_final": False,
+                        "node_type": "agendamento_cancellation"
+                    }
+
+                # Cancel the booking
+                code = execution.cancellation_state['code']
+                success = booking_manager.cancel_booking(code, user_id, reason)
+
+                if success:
+                    cancellation_msg = (
+                        "✅ Cancelamento concluído com sucesso!\n\n"
+                        "Seu agendamento foi cancelado e o horário está novamente disponível."
+                    )
+
+                    messages_to_send.append({
+                        "text": cancellation_msg,
+                        "options": []
+                    })
+
+                    execution.conversation_history.append({
+                        "role": "assistant",
+                        "content": cancellation_msg,
+                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                    })
+
+                    execution.waiting_for_input = False
+                    execution.cancellation_state = {}
+                    execution.scheduling_state = {}
+
+                    # Move to next node
+                    next_node = find_next_node(workflow_id, current_node.id)
+                    if next_node:
+                        execution.current_node_id = next_node.id
+                        current_node = next_node
+                        while current_node:
+                            logger.info(f"Processando nó: {current_node.id} ({current_node.type})")
+
+                            if current_node.type == "sendMessage":
+                                msg_text = current_node.data.message or "Mensagem não configurada"
+                                messages_to_send.append({
+                                    "text": msg_text,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": msg_text,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
+                                continue
+
+                            if current_node.type == "ai":
+                                ai_response = current_node.data.aiResponse or ""
+                                messages_to_send.append({
+                                    "text": ai_response,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": ai_response,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
+                                continue
+
+                            if current_node.type == "whatsappContact":
+                                contact_data = current_node.data
+                                whatsapp_message = contact_data.contactMessage or ""
+                                whatsapp_number = contact_data.contactNumber or ""
+
+                                if whatsapp_message:
+                                    messages_to_send.append({
+                                        "text": whatsapp_message,
+                                        "options": []
+                                    })
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": whatsapp_message,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                    })
+
+                                if whatsapp_number:
+                                    contact_message = f"Deseja entrar em contato pelo WhatsApp? {whatsapp_number}"
+                                    messages_to_send.append({
+                                        "text": contact_message,
+                                        "options": []
+                                    })
+
+                                    execution.conversation_history.append({
+                                        "role": "assistant",
+                                        "content": contact_message,
+                                        "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                    })
+
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
+                                continue
+
+                            if current_node.type == "media":
+                                media_message = current_node.data.url or ""
+                                messages_to_send.append({
+                                    "text": media_message,
+                                    "options": []
+                                })
+
+                                execution.conversation_history.append({
+                                    "role": "assistant",
+                                    "content": media_message,
+                                    "timestamp": datetime.now(BRASIL_TZ).isoformat()
+                                })
+
+                                execution.current_node_id = current_node.id
+                                current_node = find_next_node(workflow_id, current_node.id)
+                                continue
+
+                            # Stop processing if node type not handled
+                            break
+
+                    reset_conversation(user_id, workflow_id)
+                    return {
+                        "success": True,
+                        "messages": messages_to_send,
+                        "requires_input": False,
+                        "is_final": True,
+                        "archive_conversation": True
+                    }
+
+                reset_conversation(user_id, workflow_id)
+                return {
+                    "success": True,
+                    "messages": messages_to_send,
+                    "requires_input": False,
+                    "is_final": True,
+                    "archive_conversation": True
+                }
+
             if current_node.type == "agendamento":
                 user_input = message.strip().lower()
 
