@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -445,6 +445,7 @@ class ChatState:
     waiting_options: Dict[str, str] = None
     waiting_scheduling: bool = False
     scheduling_node_id: Optional[str] = None
+    scheduling_slots: List[Dict[str, Any]] = field(default_factory=list)
     waiting_cancellation_code: bool = False
     waiting_cancellation_reason: bool = False
     cancellation_code: Optional[str] = None
@@ -459,6 +460,7 @@ class ChatState:
         self.waiting_options = {}
         self.waiting_scheduling = False
         self.scheduling_node_id = None
+        self.scheduling_slots = []
         self.waiting_cancellation_code = False
         self.waiting_cancellation_reason = False
         self.cancellation_code = None
@@ -616,6 +618,27 @@ class WorkflowManager:
         node_data = scheduling_node.get("data", {}) or {}
         user_input = user_text.strip().lower()
 
+        def _build_slots_message(slots: List[Dict[str, Any]]) -> str:
+            slots_text = "\n\n━━━━━━━━━━━━━━━━━━━━\n📋 *Horários Disponíveis:*\n━━━━━━━━━━━━━━━━━━━\n\n"
+
+            for idx, slot in enumerate(slots, start=1):
+                time = slot.get("time", "")
+                date = slot.get("date", "")
+
+                # Format date nicely
+                try:
+                    from datetime import datetime
+                    date_obj = datetime.strptime(date, "%Y-%m-%d")
+                    date_formatted = date_obj.strftime("%d/%m/%Y")
+                except Exception:
+                    date_formatted = date
+
+                slots_text += f"⏰ *{idx}.* {time} - 📅 {date_formatted}\n"
+
+            slots_text += "\n━━━━━━━━━━━━━━━━━━━━\n\n💡 Digite o *número* do horário desejado\n❌ Digite *'cancelar'* para cancelar um agendamento"
+            base_message = node_data.get("message") or "📅 Deseja agendar um horário?"
+            return base_message + slots_text
+
         if state.waiting_cancellation_code:
             code = user_text.strip().upper()
 
@@ -663,6 +686,7 @@ class WorkflowManager:
             if success:
                 state.waiting_scheduling = False
                 state.scheduling_node_id = None
+                state.scheduling_slots = []
                 state.waiting_cancellation_reason = False
                 state.cancellation_code = None
 
@@ -690,17 +714,35 @@ class WorkflowManager:
         available_slots = node_data.get("availableSlots", []) or []
 
         workflow_id = "default_workflow"  # This should be passed from context
-        filtered_slots = []
-        for slot in available_slots:
-            if slot.get("available", False):
-                time = slot.get("time", "")
-                date = slot.get("date", "")
-                if not booking_manager.is_slot_booked(time, date, workflow_id):
-                    filtered_slots.append(slot)
 
-        # Try to match by slot number
-        if user_input.isdigit():
-            slot_index = int(user_input) - 1
+        filtered_slots = state.scheduling_slots or []
+        if not filtered_slots:
+            for slot in available_slots:
+                if slot.get("available", False):
+                    time = slot.get("time", "")
+                    date = slot.get("date", "")
+                    if not booking_manager.is_slot_booked(time, date, workflow_id):
+                        filtered_slots.append(slot)
+
+        if not filtered_slots:
+            state.waiting_scheduling = False
+            state.scheduling_node_id = None
+            state.scheduling_slots = []
+
+            no_slots_msg = node_data.get("noSlotsMessage") or "😔 Não há horários disponíveis no momento.\n\nPor favor, tente novamente mais tarde."
+            # Move to next node
+            next_node = self._next_node(scheduling_node.get("id"), nodes_by_id, edges)
+            if next_node:
+                return [{"text": no_slots_msg}] + self._process_from_node(state, next_node, nodes_by_id, edges)
+
+            state.reset()
+            return [{"text": no_slots_msg, "reply_markup": {"remove_keyboard": True}}]
+
+        # Try to match by slot number (allowing inputs like "1.", "1️⃣", etc.)
+        import re
+        slot_match = re.search(r"(\d+)", user_input)
+        if slot_match:
+            slot_index = int(slot_match.group(1)) - 1
             if 0 <= slot_index < len(filtered_slots):
                 slot = filtered_slots[slot_index]
 
@@ -725,6 +767,7 @@ class WorkflowManager:
 
                 state.waiting_scheduling = False
                 state.scheduling_node_id = None
+                state.scheduling_slots = []
 
                 # Move to next node
                 next_node = self._next_node(scheduling_node.get("id"), nodes_by_id, edges)
@@ -734,8 +777,19 @@ class WorkflowManager:
                     state.reset()
                     return [{"text": confirmation_msg, "reply_markup": {"remove_keyboard": True}}]
 
+            # Out of range option
+            retry_message = _build_slots_message(filtered_slots)
+            return [{
+                "text": f"❌ Opção inválida. Escolha um número entre 1 e {len(filtered_slots)}.\n" + retry_message,
+                "reply_markup": {"remove_keyboard": True},
+            }]
+
         # Invalid input
-        return [{"text": "❌ Opção inválida.\n\nPor favor, digite o número do horário desejado ou 'cancelar' para cancelar."}]
+        retry_message = _build_slots_message(filtered_slots)
+        return [{
+            "text": "❌ Opção inválida.\n\nPor favor, digite o número do horário desejado ou 'cancelar' para cancelar.\n" + retry_message,
+            "reply_markup": {"remove_keyboard": True},
+        }]
 
     def _handle_sale_response(
             self,
@@ -983,6 +1037,8 @@ class WorkflowManager:
                         date = slot.get("date", "")
                         if not booking_manager.is_slot_booked(time, date, workflow_id):
                             filtered_slots.append(slot)
+
+                state.scheduling_slots = filtered_slots
 
                 if not filtered_slots:
                     no_slots_msg = node_data.get("noSlotsMessage") or "😔 Não há horários disponíveis no momento.\n\nPor favor, tente novamente mais tarde."
