@@ -1,4 +1,5 @@
 import fs from "node:fs/promises"
+import fsSync from "node:fs"
 import path from "node:path"
 
 export interface InventoryItem {
@@ -102,23 +103,39 @@ export interface WorkshopData {
     saleRequests: SaleRequest[]
 }
 
-const dataFilePath = path.join(process.cwd(), "src/data/workshopData.json")
+const envDataFile = process.env.AURA_WORKSHOP_DATA_FILE
+    ? path.resolve(process.env.AURA_WORKSHOP_DATA_FILE)
+    : null
+
+const defaultDataFile = path.join(process.cwd(), "src/data/workshopData.json")
+
+// Arquivos legados usados por versões anteriores do bot
+const legacyDataFiles = [
+    path.join(process.cwd(), "src/aura/data/workshopData.json"),
+    path.join(process.cwd(), "data/workshopData.json"),
+]
+
+const dataFilePath = envDataFile ?? legacyDataFiles.find((file) => fsSync.existsSync(file)) ?? defaultDataFile
 
 async function ensureDataFile(): Promise<void> {
     try {
         await fs.access(dataFilePath)
+        return
     } catch (error) {
-        const defaultData: WorkshopData = {
-            inventory: [],
-            sales: [],
-            serviceOrders: [],
-            maintenanceTasks: [],
-            financialRecords: [],
-            saleRequests: [],
-        }
-        await fs.mkdir(path.dirname(dataFilePath), { recursive: true })
-        await fs.writeFile(dataFilePath, JSON.stringify(defaultData, null, 2), "utf-8")
+        // Continua para criação do arquivo padrão
     }
+
+    const defaultData: WorkshopData = {
+        inventory: [],
+        sales: [],
+        serviceOrders: [],
+        maintenanceTasks: [],
+        financialRecords: [],
+        saleRequests: [],
+    }
+
+    await fs.mkdir(path.dirname(dataFilePath), { recursive: true })
+    await fs.writeFile(dataFilePath, JSON.stringify(defaultData, null, 2), "utf-8")
 }
 
 export async function readWorkshopData(): Promise<WorkshopData> {
