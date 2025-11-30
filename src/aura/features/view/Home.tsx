@@ -96,7 +96,7 @@ function HomeContent() {
         {
             question: "O QUE É O PROJETO AURA?",
             answer:
-                "Aura é um chatbot inteligente conectado aos sistemas internos da oficina para automatizar atendimento, agendamentos e consultas de ordens de serviço 24 horas por dia.",
+                "Aura é um chatbot inteligente conectado aos sistemas internos da oficina para automatizar atendimento, agendamentos e consultas de ordens de serviço.",
         },
         {
             question: "QUAIS TECNOLOGIAS SÃO UTILIZADAS?",
@@ -254,7 +254,7 @@ function HomeContent() {
                                 </p>
                                 <p className={`text-base sm:text-lg lg:text-xl leading-relaxed mt-4 sm:mt-6 text-gray-300`}>
                                     Com integração completa aos sistemas internos da oficina, o AURA centraliza atendimentos de múltiplos
-                                    canais em um único painel, oferecendo respostas rápidas e precisas 24 horas por dia.
+                                    canais em um único painel, oferecendo respostas rápidas e precisas.
                                 </p>
                             </motion.div>
                             <div className="relative h-64 sm:h-80 lg:h-96 w-full rounded-2xl overflow-hidden shadow-2xl shadow-black/50 order-1 lg:order-2 border border-white/10">
