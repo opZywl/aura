@@ -1,4 +1,5 @@
 import fs from "node:fs/promises"
+import fsSync from "node:fs"
 import path from "node:path"
 
 export interface InventoryItem {
@@ -102,29 +103,113 @@ export interface WorkshopData {
     saleRequests: SaleRequest[]
 }
 
-const dataFilePath = path.join(process.cwd(), "src/data/workshopData.json")
+const envDataFile = process.env.AURA_WORKSHOP_DATA_FILE
+    ? path.resolve(process.env.AURA_WORKSHOP_DATA_FILE)
+    : null
+
+const defaultDataFile = path.join(process.cwd(), "src/data/workshopData.json")
+
+// Arquivos legados usados por versões anteriores do bot
+const legacyDataFiles = [
+    path.join(process.cwd(), "src/aura/data/workshopData.json"),
+    path.join(process.cwd(), "data/workshopData.json"),
+]
+
+const dataFilePath = envDataFile ?? defaultDataFile
+
+async function migrateLegacyDataFile(): Promise<void> {
+    if (envDataFile) {
+        return
+    }
+
+    let defaultExists = fsSync.existsSync(defaultDataFile)
+    let defaultMtime = defaultExists ? fsSync.statSync(defaultDataFile).mtimeMs : 0
+
+    for (const legacy of legacyDataFiles) {
+        if (!fsSync.existsSync(legacy)) {
+            continue
+        }
+
+        try {
+            const legacyMtime = fsSync.statSync(legacy).mtimeMs
+
+            if (!defaultExists || legacyMtime > defaultMtime) {
+                await fs.mkdir(path.dirname(defaultDataFile), { recursive: true })
+                await fs.copyFile(legacy, defaultDataFile)
+                defaultMtime = legacyMtime
+                defaultExists = true
+            }
+        } catch (error) {
+            // Ignora falhas de migração e segue para próximo
+            continue
+        }
+    }
+}
 
 async function ensureDataFile(): Promise<void> {
+    await migrateLegacyDataFile()
+
     try {
         await fs.access(dataFilePath)
+        return
     } catch (error) {
-        const defaultData: WorkshopData = {
-            inventory: [],
-            sales: [],
-            serviceOrders: [],
-            maintenanceTasks: [],
-            financialRecords: [],
-            saleRequests: [],
-        }
-        await fs.mkdir(path.dirname(dataFilePath), { recursive: true })
-        await fs.writeFile(dataFilePath, JSON.stringify(defaultData, null, 2), "utf-8")
+        // Continua para criação do arquivo padrão
     }
+
+    const defaultData: WorkshopData = {
+        inventory: [],
+        sales: [],
+        serviceOrders: [],
+        maintenanceTasks: [],
+        financialRecords: [],
+        saleRequests: [],
+    }
+
+    await fs.mkdir(path.dirname(dataFilePath), { recursive: true })
+    await fs.writeFile(dataFilePath, JSON.stringify(defaultData, null, 2), "utf-8")
+}
+
+function tryRecoverJson(raw: string): Partial<WorkshopData> | null {
+    const start = raw.indexOf("{")
+
+    if (start === -1) {
+        return null
+    }
+
+    for (let end = raw.length; end > start; end -= 1) {
+        const candidate = raw.slice(start, end).trimEnd()
+
+        if (!candidate.endsWith("}")) {
+            continue
+        }
+
+        try {
+            return JSON.parse(candidate) as Partial<WorkshopData>
+        } catch (error) {
+            continue
+        }
+    }
+
+    return null
 }
 
 export async function readWorkshopData(): Promise<WorkshopData> {
     await ensureDataFile()
     const raw = await fs.readFile(dataFilePath, "utf-8")
-    const parsed = JSON.parse(raw) as Partial<WorkshopData>
+    let parsed: Partial<WorkshopData>
+
+    try {
+        parsed = JSON.parse(raw) as Partial<WorkshopData>
+    } catch (error) {
+        const recovered = tryRecoverJson(raw)
+
+        if (!recovered) {
+            throw error
+        }
+
+        parsed = recovered
+        await fs.writeFile(dataFilePath, JSON.stringify(parsed, null, 2), "utf-8")
+    }
 
     return {
         inventory: parsed.inventory ?? [],

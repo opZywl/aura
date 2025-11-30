@@ -135,16 +135,103 @@ class WorkflowStorage:
         return payload
 
 
-_DEFAULT_WORKSHOP_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "workshopData.json"
+def _candidate_roots() -> List[Path]:
+    """Return roots to search for shared workshop data files."""
 
-# Caminho antigo incorreto que pode ter sido criado em versões anteriores
-_LEGACY_WORKSHOP_DATA_PATH = Path(__file__).resolve().parents[3] / "data" / "workshopData.json"
+    roots = [Path.cwd()]
+    module_root = Path(__file__).resolve().parents[3]
+
+    if module_root not in roots:
+        roots.append(module_root)
+
+    return roots
+
+
+def _default_workshop_data_path() -> Path:
+    """Prefer the same default path used by the Next.js backend."""
+
+    candidates = [(root / "src" / "data" / "workshopData.json") for root in _candidate_roots()]
+
+    for path in candidates:
+        if path.exists():
+            return path
+
+    return candidates[0]
+
+
+def _legacy_workshop_data_paths() -> List[Path]:
+    """Include legacy storage locations across possible roots."""
+
+    legacy: List[Path] = []
+
+    for root in _candidate_roots():
+        legacy.extend(
+            [
+                root / "src" / "aura" / "data" / "workshopData.json",
+                root / "data" / "workshopData.json",
+            ]
+        )
+
+    # Preserve historical module-relative defaults even if cwd changes
+    legacy.append(Path(__file__).resolve().parents[2] / "data" / "workshopData.json")
+
+    # Remove duplicates while preserving order
+    seen: set[Path] = set()
+    unique: List[Path] = []
+
+    for path in legacy:
+        if path in seen:
+            continue
+        unique.append(path)
+        seen.add(path)
+
+    return unique
+
 
 WORKSHOP_DATA_PATH = (
     Path(os.environ.get("AURA_WORKSHOP_DATA_FILE", "")).expanduser()
     if os.environ.get("AURA_WORKSHOP_DATA_FILE")
-    else _DEFAULT_WORKSHOP_DATA_PATH
+    else _default_workshop_data_path()
 )
+
+
+def _sync_legacy_workshop_data() -> None:
+    """Copy data from legacy locations when they are newer than the target file."""
+
+    latest_path: Path | None = None
+    latest_mtime = 0.0
+
+    for legacy_path in _legacy_workshop_data_paths():
+        if not legacy_path.exists():
+            continue
+
+        try:
+            mtime = legacy_path.stat().st_mtime
+        except OSError:
+            continue
+
+        if latest_path is None or mtime > latest_mtime:
+            latest_path = legacy_path
+            latest_mtime = mtime
+
+    if latest_path is None:
+        return
+
+    try:
+        target_exists = WORKSHOP_DATA_PATH.exists()
+        target_mtime = WORKSHOP_DATA_PATH.stat().st_mtime if target_exists else 0
+
+        if not target_exists or latest_mtime > target_mtime:
+            content = latest_path.read_text(encoding="utf-8")
+            WORKSHOP_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+            WORKSHOP_DATA_PATH.write_text(content, encoding="utf-8")
+            logger.info(
+                "Arquivo de dados sincronizado do caminho legado %s para %s",
+                latest_path,
+                WORKSHOP_DATA_PATH,
+            )
+    except Exception:
+        logger.exception("Falha ao migrar workshopData.json do caminho legado")
 
 
 def _load_workshop_data() -> Dict[str, Any]:
@@ -154,20 +241,8 @@ def _load_workshop_data() -> Dict[str, Any]:
 
     use_env_path = bool(os.environ.get("AURA_WORKSHOP_DATA_FILE"))
 
-    if not use_env_path and _LEGACY_WORKSHOP_DATA_PATH.exists():
-        try:
-            legacy_mtime = _LEGACY_WORKSHOP_DATA_PATH.stat().st_mtime
-            target_exists = WORKSHOP_DATA_PATH.exists()
-            target_mtime = WORKSHOP_DATA_PATH.stat().st_mtime if target_exists else 0
-
-            if not target_exists or legacy_mtime > target_mtime:
-                legacy_content = _LEGACY_WORKSHOP_DATA_PATH.read_text(encoding="utf-8")
-                WORKSHOP_DATA_PATH.write_text(legacy_content, encoding="utf-8")
-                logger.info(
-                    "Arquivo de dados sincronizado do caminho legado para %s", WORKSHOP_DATA_PATH
-                )
-        except Exception:
-            logger.exception("Falha ao migrar workshopData.json do caminho legado")
+    if not use_env_path:
+        _sync_legacy_workshop_data()
 
     if not WORKSHOP_DATA_PATH.exists():
         WORKSHOP_DATA_PATH.write_text(
